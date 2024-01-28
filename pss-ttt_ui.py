@@ -230,9 +230,9 @@ class Ui_MainWindow(object):
         self.pixyshipLayoutButton = QtWidgets.QPushButton(parent=self.centralwidget)
         self.pixyshipLayoutButton.setGeometry(QtCore.QRect(250, 100, 101, 31))
         self.pixyshipLayoutButton.setObjectName("pixyshipLayoutButton")
-        self.clearButton = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.clearButton.setGeometry(QtCore.QRect(50, 340, 75, 23))
-        self.clearButton.setObjectName("clearButton")
+        self.importButton = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.importButton.setGeometry(QtCore.QRect(450, 140, 75, 23))
+        self.importButton.setObjectName("importButton")
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -261,7 +261,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Pixel Starships Target Tracking Tool"))
         self.fleetNameLabel.setText(_translate("MainWindow", "Fleet"))
         self.maxTrophiesLabel.setText(_translate("MainWindow", "Max Trophies"))
         self.label.setText(_translate("MainWindow", "Player Name"))
@@ -280,4 +280,4 @@ class Ui_MainWindow(object):
         self.saveNewData.setText(_translate("MainWindow", "Save New Data"))
         self.resetButton.setText(_translate("MainWindow", "Reset"))
         self.pixyshipLayoutButton.setText(_translate("MainWindow", "PixyShip Layout"))
-        self.clearButton.setText(_translate("MainWindow", "PushButton"))
+        self.importButton.setText(_translate("MainWindow", "Import"))

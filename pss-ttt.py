@@ -1,7 +1,7 @@
 from PyQt6 import QtWidgets, uic
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from datetime import date
-#import pandas as pd
+from openpyxl import load_workbook
 import sys
 import webbrowser
 
@@ -86,6 +86,36 @@ class Ui(QtWidgets.QMainWindow):
             self.tournamentSubmit.clicked.connect(self.submitTournamentData)
             self.legendsSubmit.clicked.connect(self.submitLegendsData)
             self.pvpSubmit.clicked.connect(self.pvpLegendsData)
+            self.importButton.clicked.connect(self.importExcel)
+
+      def importExcel(self):
+            workbook = load_workbook("Import.xlsx")
+            sheet = workbook.active
+            if not QSqlDatabase.database("targetsdb").open():
+                  print("Unable to open targets database for import")
+                  return False
+            query = QSqlQuery(QSqlDatabase.database("targetsdb"))
+            query.exec(f"CREATE TABLE IF NOT EXISTS players (playername TEXT, fleetname TEXT, laststars INT, beststars INT, trophies INT, maxtrophies INT, notes TEXT)")
+
+            for row in sheet.iter_rows(min_row=2, values_only=True):  # Start from the second row assuming the first row is header
+                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row
+                  query.prepare(f"INSERT INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) "
+                      "VALUES (?, ?, ?, ?, ?, ?, ?)")
+                  query.addBindValue(playername)
+                  query.addBindValue(fleetname)
+                  query.addBindValue(laststars)
+                  query.addBindValue(beststars)
+                  query.addBindValue(trophies)
+                  query.addBindValue(maxtrophies)
+                  query.addBindValue(notes)
+                  if not query.exec():
+                        print("Error inserting data:", query.lastError().text())
+                        sys.exit(1)
+            
+            QSqlDatabase.database("targetsdb").close()
+            print("Data imported successfully")
+            return True
+            
 
       def pixyshipURL(self):
             searchName = self.playerNameSearchBox.toPlainText()
@@ -118,7 +148,6 @@ class Ui(QtWidgets.QMainWindow):
             text = self.playerNameSearchBox.toPlainText()
             self.resetDataFields()
             self.playerNameSearchBox.insertPlainText(text)
-            print("122")
             query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetsdb"))
             if query.exec():
                   found = False
@@ -131,13 +160,9 @@ class Ui(QtWidgets.QMainWindow):
                               self.currentTrophies.insertPlainText(query.value(4))
                               self.maxTrophies.insertPlainText(query.value(5))
                               self.playerNotes.insertPlainText(query.value(6))
-                              print("134")
                               self.updateFightTables("tourny")
-                              print("136")
                               self.updateFightTables("legends")
-                              print("138")
                               self.updateFightTables("pvp")
-                              print("140")
                               found = True
                   if not found:
                         return
@@ -165,6 +190,12 @@ class Ui(QtWidgets.QMainWindow):
       def submitNewPlayerData(self):
             player_data = [self.playerNameSearchBox.toPlainText(), self.fleetName.toPlainText(), self.lastStars.toPlainText(),
                         self.bestStars.toPlainText(), self.currentTrophies.toPlainText(), self.maxTrophies.toPlainText(), self.playerNotes.toPlainText()]
+            if int(self.lastStars.toPlainText()) > int(self.bestStars.toPlainText()):
+                  player_data = [self.playerNameSearchBox.toPlainText(), self.fleetName.toPlainText(), self.lastStars.toPlainText(),
+                        self.lastStars.toPlainText(), self.currentTrophies.toPlainText(), self.maxTrophies.toPlainText(), self.playerNotes.toPlainText()]
+            if int(self.currentTrophies.toPlainText()) > int(self.maxTrophies.toPlainText()):
+                  player_data = [self.playerNameSearchBox.toPlainText(), self.fleetName.toPlainText(), self.lastStars.toPlainText(),
+                        self.lastStars.toPlainText(), self.currentTrophies.toPlainText(), self.currentTrophies.toPlainText(), self.playerNotes.toPlainText()]
             if write_to_targets_database(player_data):
                   player_data.clear()
             else:
@@ -197,6 +228,7 @@ class Ui(QtWidgets.QMainWindow):
                   model = QSqlTableModel()
                   model.setQuery(query)
                   self.legendsTable.setModel(model)
+                  self.legendsTable.setColumnWidth(0,50)
                   self.legendsTable.show()
             if fights == "pvp":
                   query = QSqlQuery(QSqlDatabase.database("pvpdb"))
@@ -210,6 +242,7 @@ class Ui(QtWidgets.QMainWindow):
                   model = QSqlTableModel()
                   model.setQuery(query)
                   self.pvpTable.setModel(model)
+                  self.pvpTable.setColumnWidth(0,50)
                   self.pvpTable.show()
                      
       def submitTournamentData(self):

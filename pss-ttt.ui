@@ -16,7 +16,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Pixel Starships Target Tracking Tool</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="fleetNameLabel">
@@ -592,17 +592,17 @@
      <string>PixyShip Layout</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="clearButton">
+   <widget class="QPushButton" name="importButton">
     <property name="geometry">
      <rect>
-      <x>50</x>
-      <y>340</y>
+      <x>450</x>
+      <y>140</y>
       <width>75</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Import</string>
     </property>
    </widget>
   </widget>
