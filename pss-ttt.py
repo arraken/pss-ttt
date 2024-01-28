@@ -1,6 +1,5 @@
 from PyQt6 import QtWidgets, uic
-from PyQt6.QtSql import (QSqlDatabase, QSqlQuery)
-from PyQt6.QtCore import QAbstractTableModel, QObject, Qt
+from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from datetime import date
 import sys
 import webbrowser
@@ -31,14 +30,13 @@ def create_table():
       targetsQuery = QSqlQuery(QSqlDatabase.database("connection1"))
       fightsQuery = QSqlQuery(QSqlDatabase.database("connection2"))
       targetsQuery.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
-      fightsQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT UNIQUE KEY, fighttype TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL)")
+      fightsQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, fighttype TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, UNIQUE(name, fighttype, rewards, datetag))")
 
 def write_to_fights_database(data):
       query = QSqlQuery(QSqlDatabase.database("connection2"))
       query.prepare("INSERT INTO fights(name, fighttype, rewards, datetag) VALUES(?, ?, ?, ?)")
       print("[***] Prepared SQL Query: ", query.lastQuery())
       for i in range(4):
-            print("FightsDB[40]: Attempting to bind", data[i], " into slot ", i)
             query.bindValue(i, data[i].strip())
       if not query.exec():
             print("FightsDB[41]:", query.lastError().text())
@@ -86,6 +84,9 @@ class Ui(QtWidgets.QMainWindow):
             self.currentTrophies.clear()
             self.maxTrophies.clear()
             self.playerNotes.clear()
+            self.tournyTable.clearSpans()
+            self.legendsTable.clearSpans()
+            self.pvpTable.clearSpans()
 
       def searchPlayer(self):
             text = self.playerNameSearchBox.toPlainText()
@@ -134,6 +135,28 @@ class Ui(QtWidgets.QMainWindow):
                   print("TargetsDB: Error writing data to the database - Dumping data")
                   print("[***]:",player_data)
 
+      def updateFightTables(self, data):
+            # Current data just updated in button is in tournament_data
+            # QTableView needs to include the new data
+            print("***", data, "***")
+            query = QSqlQuery(QSqlDatabase.database("connection2"))
+            query.exec("SELECT fighttype, rewards, datetag FROM fights")
+            if query.lastError().isValid():
+                  print("[***]: ", query.lastError().text())
+            print(query)
+            
+            model = QSqlTableModel()
+            model.setQuery(query)
+            if data[1] == "tournament":
+                  view = self.tournyTable
+            if data[1] == "legends":
+                  view = self.legendsTable
+            if data[1] == "pvp":
+                  view = self.pvpTable
+            view.setModel(model)
+            view.show()
+
+
       def submitTournamentData(self):
             todaysdate = str(date.today())
             tournament_data = [self.playerNameSearchBox.toPlainText(), str("tournament"), str(self.starCount.value()), todaysdate]
@@ -143,6 +166,7 @@ class Ui(QtWidgets.QMainWindow):
             else:
                   print("FightsDB: Error writing data to the database - Dumping data")
                   print("[***]:",tournament_data)
+            self.updateFightTables(tournament_data)
 
 if __name__ == "__main__":
       if create_connection():

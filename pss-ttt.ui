@@ -506,7 +506,7 @@
      <string>Save New Data</string>
     </property>
    </widget>
-   <widget class="QTableView" name="tourny">
+   <widget class="QTableView" name="tournyTable">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -516,7 +516,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QTableView" name="legends">
+   <widget class="QTableView" name="legendsTable">
     <property name="geometry">
      <rect>
       <x>210</x>
@@ -526,7 +526,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QTableView" name="pvp">
+   <widget class="QTableView" name="pvpTable">
     <property name="geometry">
      <rect>
       <x>390</x>
@@ -587,9 +587,9 @@
   <tabstop>maxTrophies</tabstop>
   <tabstop>playerNotes</tabstop>
   <tabstop>saveNewData</tabstop>
-  <tabstop>tourny</tabstop>
-  <tabstop>legends</tabstop>
-  <tabstop>pvp</tabstop>
+  <tabstop>tournyTable</tabstop>
+  <tabstop>legendsTable</tabstop>
+  <tabstop>pvpTable</tabstop>
   <tabstop>starCount</tabstop>
   <tabstop>legendTrophyCount</tabstop>
   <tabstop>trophyCount</tabstop>
