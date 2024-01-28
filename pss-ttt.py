@@ -1,58 +1,76 @@
 from PyQt6 import QtWidgets, uic
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from datetime import date
+#import pandas as pd
 import sys
 import webbrowser
 
 
 '''
-Get bottom buttons to save correctly
-Create 3 datasets for the results tables
-date (just copy todays easier?), value entered
-
 Start building database, pull player info from where?
+
+Make ways for players to search by fleet to find name for foreign characters
+
 '''
 def create_connection():
-      targetsdb = QSqlDatabase.addDatabase('QSQLITE', "connection1")
-      fightsdb = QSqlDatabase.addDatabase('QSQLITE', "connection2")
+      targetsdb = QSqlDatabase.addDatabase('QSQLITE', "targetsdb")
+      tournyfightsdb = QSqlDatabase.addDatabase('QSQLITE', "tournydb")
+      legendfightsdb = QSqlDatabase.addDatabase('QSQLITE', "legendsdb")
+      pvpfightsdb = QSqlDatabase.addDatabase('QSQLITE', "pvpdb")
       targetsdb.setDatabaseName('targets.db')
-      fightsdb.setDatabaseName('fights.db')
+      tournyfightsdb.setDatabaseName('tournyfights.db')
+      legendfightsdb.setDatabaseName('legendfights.db')
+      pvpfightsdb.setDatabaseName('pvpfights.db')
       if not targetsdb.open():
             print("Fatal Error: Connection with targets database failed.")
             return False
-      if not fightsdb.open():
-            print("Fatal Error: Connection with fights database failed.")
-            return False      
+      if not tournyfightsdb.open():
+            print("Fatal Error: Connection with tournament fights database failed.")
+            return False
+      if not legendfightsdb.open():
+            print("Fatal Error: Connection with legends fight database failed.")
+            return False
+      if not pvpfightsdb.open():
+            print("Fatal Error: Connection with pvp fight database failed.")
       return True
 
 # Name - Battle Type - Trophies/Stars - Date
 def create_table():
-      targetsQuery = QSqlQuery(QSqlDatabase.database("connection1"))
-      fightsQuery = QSqlQuery(QSqlDatabase.database("connection2"))
+      targetsQuery = QSqlQuery(QSqlDatabase.database("targetsdb"))
+      tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
+      legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
+      pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
       targetsQuery.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
-      fightsQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, fighttype TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, UNIQUE(name, fighttype, rewards, datetag))")
+      tournyQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, UNIQUE(name, rewards, datetag))")
+      legendQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, UNIQUE(name, rewards, datetag))")
+      pvpQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, UNIQUE(name, rewards, datetag))")
 
-def write_to_fights_database(data):
-      query = QSqlQuery(QSqlDatabase.database("connection2"))
-      query.prepare("INSERT INTO fights(name, fighttype, rewards, datetag) VALUES(?, ?, ?, ?)")
-      print("[***] Prepared SQL Query: ", query.lastQuery())
-      for i in range(4):
+def write_to_fights_database(data, fights):
+      if fights == "tourny":
+            query = QSqlQuery(QSqlDatabase.database("tournydb"))
+      if fights == "legends":
+            query = QSqlQuery(QSqlDatabase.database("legendsdb"))
+      if fights == "pvp":
+            query = QSqlQuery(QSqlDatabase.database("pvpdb"))
+#      print("Database type selected: ", fights)
+      query.prepare("INSERT OR REPLACE INTO fights(name, rewards, datetag) VALUES(?, ?, ?)")
+      for i in range(3):
             query.bindValue(i, data[i].strip())
       if not query.exec():
             print("FightsDB[41]:", query.lastError().text())
             return False
-      print("Fights Data processed successfully")
+      print("Fights Data processed successfully ",data)
       return True
 
 def write_to_targets_database(data):
-      query = QSqlQuery(QSqlDatabase.database("connection1"))
+      query = QSqlQuery(QSqlDatabase.database("targetsdb"))
       query.prepare("INSERT OR REPLACE INTO players(playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES(?, ?, ?, ?, ?, ?, ?)")
       for i in range(7):
             query.bindValue(i, data[i])
       if not query.exec():
             print("TargetsDB[52]:", query.lastError().text())
             return False
-      print("Targets Data processed successfully")
+      #print("Targets Data processed successfully")
       return True
 
 class Ui(QtWidgets.QMainWindow):
@@ -66,6 +84,8 @@ class Ui(QtWidgets.QMainWindow):
             self.resetButton.clicked.connect(self.resetDataFields)
             self.pixyshipLayoutButton.clicked.connect(self.pixyshipURL)
             self.tournamentSubmit.clicked.connect(self.submitTournamentData)
+            self.legendsSubmit.clicked.connect(self.submitLegendsData)
+            self.pvpSubmit.clicked.connect(self.pvpLegendsData)
 
       def pixyshipURL(self):
             searchName = self.playerNameSearchBox.toPlainText()
@@ -84,13 +104,22 @@ class Ui(QtWidgets.QMainWindow):
             self.currentTrophies.clear()
             self.maxTrophies.clear()
             self.playerNotes.clear()
-            self.tournyTable.clearSpans()
-            self.legendsTable.clearSpans()
-            self.pvpTable.clearSpans()
+            model = QSqlTableModel()
+            model.clear()
+            self.tournyTable.setModel(model)
+            self.tournyTable.show()
+            self.legendsTable.setModel(model)
+            self.legendsTable.show()
+            self.pvpTable.setModel(model)
+            self.pvpTable.show()
+
 
       def searchPlayer(self):
             text = self.playerNameSearchBox.toPlainText()
-            query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("connection1"))
+            self.resetDataFields()
+            self.playerNameSearchBox.insertPlainText(text)
+            print("122")
+            query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetsdb"))
             if query.exec():
                   found = False
                   while query.next():
@@ -102,6 +131,13 @@ class Ui(QtWidgets.QMainWindow):
                               self.currentTrophies.insertPlainText(query.value(4))
                               self.maxTrophies.insertPlainText(query.value(5))
                               self.playerNotes.insertPlainText(query.value(6))
+                              print("134")
+                              self.updateFightTables("tourny")
+                              print("136")
+                              self.updateFightTables("legends")
+                              print("138")
+                              self.updateFightTables("pvp")
+                              print("140")
                               found = True
                   if not found:
                         return
@@ -135,38 +171,75 @@ class Ui(QtWidgets.QMainWindow):
                   print("TargetsDB: Error writing data to the database - Dumping data")
                   print("[***]:",player_data)
 
-      def updateFightTables(self, data):
-            # Current data just updated in button is in tournament_data
-            # QTableView needs to include the new data
-            print("***", data, "***")
-            query = QSqlQuery(QSqlDatabase.database("connection2"))
-            query.exec("SELECT fighttype, rewards, datetag FROM fights")
-            if query.lastError().isValid():
-                  print("[***]: ", query.lastError().text())
-            print(query)
-            
-            model = QSqlTableModel()
-            model.setQuery(query)
-            if data[1] == "tournament":
-                  view = self.tournyTable
-            if data[1] == "legends":
-                  view = self.legendsTable
-            if data[1] == "pvp":
-                  view = self.pvpTable
-            view.setModel(model)
-            view.show()
+      def updateFightTables(self, fights):
+            name = self.playerNameSearchBox.toPlainText()
+            if fights == "tourny":
+                  query = QSqlQuery(QSqlDatabase.database("tournydb"))
+                  query.prepare("SELECT rewards, datetag FROM fights WHERE name LIKE ?")
+                  if query.lastError().isValid():
+                        print("TournyDB: ",query.lastError().text())
+                        sys.exit(-1)
+                  query.addBindValue('%' + self.playerNameSearchBox.toPlainText() + '%')
+                  query.exec()
+                  model = QSqlTableModel()
+                  model.setQuery(query)
+                  self.tournyTable.setModel(model)
+                  self.tournyTable.setColumnWidth(0,50)
+                  self.tournyTable.show()
+            if fights == "legends":
+                  query = QSqlQuery(QSqlDatabase.database("legendsdb"))
+                  query.prepare("SELECT rewards, datetag FROM fights WHERE name LIKE ?")
+                  if query.lastError().isValid():
+                        print("LegendsDB: ",query.lastError().text())
+                        sys.exit(-1)
+                  query.addBindValue('%' + self.playerNameSearchBox.toPlainText() + '%')
+                  query.exec()
+                  model = QSqlTableModel()
+                  model.setQuery(query)
+                  self.legendsTable.setModel(model)
+                  self.legendsTable.show()
+            if fights == "pvp":
+                  query = QSqlQuery(QSqlDatabase.database("pvpdb"))
+                  query.prepare("SELECT rewards, datetag FROM fights WHERE name LIKE ?")
+                  if query.lastError().isValid():
+                        print("pvpDB: ",query.lastError().text())
+                        sys.exit(-1)
+                  query.addBindValue('%' + self.playerNameSearchBox.toPlainText() + '%')
+                  query.exec()
 
-
+                  model = QSqlTableModel()
+                  model.setQuery(query)
+                  self.pvpTable.setModel(model)
+                  self.pvpTable.show()
+                     
       def submitTournamentData(self):
             todaysdate = str(date.today())
-            tournament_data = [self.playerNameSearchBox.toPlainText(), str("tournament"), str(self.starCount.value()), todaysdate]
-            print("Debug[137]:",tournament_data)
-            if write_to_fights_database(tournament_data):
-                  tournament_data.clear()
-            else:
+            tournament_data = [self.playerNameSearchBox.toPlainText(), str(self.starCount.value()), todaysdate]
+            if not write_to_fights_database(tournament_data, "tourny"):
                   print("FightsDB: Error writing data to the database - Dumping data")
                   print("[***]:",tournament_data)
-            self.updateFightTables(tournament_data)
+            self.tournyTable.clearSpans()
+            self.updateFightTables("tourny")
+            tournament_data.clear()
+      def submitLegendsData(self):
+            todaysdate = str(date.today())
+            legends_data = [self.playerNameSearchBox.toPlainText(), str(self.legendTrophyCount.value()), todaysdate]
+            if not write_to_fights_database(legends_data, "legends"):
+                  print("FightsDB: Error writing data to the database - Dumping data")
+                  print("[***]:",legends_data)
+            self.tournyTable.clearSpans()
+            self.updateFightTables("legends")
+            legends_data.clear()
+      def pvpLegendsData(self):
+            todaysdate = str(date.today())
+            pvp_data = [self.playerNameSearchBox.toPlainText(), str(self.trophyCount.value()), todaysdate]
+            if not write_to_fights_database(pvp_data, "pvp"):
+                  print("FightsDB: Error writing data to the database - Dumping data")
+                  print("[***]:",pvp_data)
+            self.tournyTable.clearSpans()
+            self.updateFightTables("pvp")
+            pvp_data.clear()
+            
 
 if __name__ == "__main__":
       if create_connection():

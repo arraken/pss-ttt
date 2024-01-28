@@ -164,6 +164,12 @@
       <height>22</height>
      </rect>
     </property>
+    <property name="minimum">
+     <number>-40</number>
+    </property>
+    <property name="maximum">
+     <number>40</number>
+    </property>
    </widget>
    <widget class="QLabel" name="starsLastTournamentLabel">
     <property name="geometry">
@@ -211,6 +217,12 @@
       <width>31</width>
       <height>22</height>
      </rect>
+    </property>
+    <property name="minimum">
+     <number>-40</number>
+    </property>
+    <property name="maximum">
+     <number>40</number>
     </property>
    </widget>
    <widget class="QTextBrowser" name="maxTrophies">
@@ -285,6 +297,12 @@
       <width>31</width>
       <height>22</height>
      </rect>
+    </property>
+    <property name="minimum">
+     <number>-40</number>
+    </property>
+    <property name="maximum">
+     <number>40</number>
     </property>
    </widget>
    <widget class="QLabel" name="currentTrophiesLabel">
@@ -572,6 +590,19 @@
     </property>
     <property name="text">
      <string>PixyShip Layout</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="clearButton">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>340</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>PushButton</string>
     </property>
    </widget>
   </widget>
