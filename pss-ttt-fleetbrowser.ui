@@ -26,9 +26,9 @@
   <widget class="QPushButton" name="copyFleetSearch">
    <property name="geometry">
     <rect>
-     <x>250</x>
+     <x>260</x>
      <y>10</y>
-     <width>91</width>
+     <width>81</width>
      <height>23</height>
     </rect>
    </property>
@@ -39,9 +39,9 @@
   <widget class="QCheckBox" name="charLimiterCheckBox">
    <property name="geometry">
     <rect>
-     <x>250</x>
-     <y>150</y>
-     <width>101</width>
+     <x>60</x>
+     <y>310</y>
+     <width>111</width>
      <height>21</height>
     </rect>
    </property>
@@ -52,14 +52,14 @@
   <widget class="QSpinBox" name="charLimiter">
    <property name="geometry">
     <rect>
-     <x>250</x>
-     <y>170</y>
+     <x>10</x>
+     <y>310</y>
      <width>41</width>
      <height>21</height>
     </rect>
    </property>
   </widget>
-  <widget class="QPlainTextEdit" name="fleetNameSearchBox">
+  <widget class="QPlainTextEdit" name="fleetFilterBox">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -100,9 +100,9 @@
   <widget class="QPushButton" name="fleetSearchClose">
    <property name="geometry">
     <rect>
-     <x>250</x>
+     <x>260</x>
      <y>40</y>
-     <width>91</width>
+     <width>81</width>
      <height>23</height>
     </rect>
    </property>

@@ -9,9 +9,8 @@ import webbrowser
 
 '''
 Start building database, pull player info from where?
-
+Trek Wolfpack
 Make ways for players to search by fleet to find name for foreign characters
-
 '''
 
 def create_connection():
@@ -84,6 +83,9 @@ class DialogBox(QtWidgets.QDialog):
             uic.loadUi('pss-ttt-fleetbrowser.ui', self)
             self.fleetSearchClose.clicked.connect(self.accept)
             self.copyFleetSearch.clicked.connect(self.onCopyFleetSearchClicked)
+            self.fleetFilterBox.textChanged.connect(self.filterFleetList)
+            self.charLimiter.valueChanged.connect(self.filterFleetListLength)
+            self.charLimiterCheckBox.stateChanged.connect(self.filterFleetListLength)
       def populateFleetList(self, fleet_name):
             self.fleetNameList.clear()
             if not QSqlDatabase.database("targetsdb").isOpen():
@@ -106,6 +108,25 @@ class DialogBox(QtWidgets.QDialog):
             if selected_item:
                   selected_text = selected_item.text()
                   self.copyFleetSearchClicked.emit(selected_text, True)
+      def filterFleetList(self):
+            filter_text = self.fleetFilterBox.toPlainText().lower()
+            for i in range(self.fleetNameList.count()):
+                  item = self.fleetNameList.item(i)
+                  item_text = item.text().lower()
+                  if filter_text in item_text:
+                        item.setHidden(False)
+                  else:
+                        item.setHidden(True)
+      def filterFleetListLength(self):
+            if self.charLimiterCheckBox.isChecked():
+                  length_threshold = self.charLimiter.value()
+                  for i in range(self.fleetNameList.count()):
+                        item = self.fleetNameList.item(i)
+                        item_text = item.text()
+                        if len(item_text) == length_threshold:
+                              item.setHidden(False)
+                        else:
+                              item.setHidden(True)
 class MainWindow(QtWidgets.QMainWindow):
       def __init__(self):
             super(MainWindow, self).__init__() # Call the inherited classes __init__ method
