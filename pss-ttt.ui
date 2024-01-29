@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>565</width>
-    <height>606</height>
+    <width>581</width>
+    <height>645</height>
    </rect>
   </property>
   <property name="font">
@@ -18,12 +18,15 @@
   <property name="windowTitle">
    <string>Pixel Starships Target Tracking Tool</string>
   </property>
+  <property name="statusTip">
+   <string notr="true"/>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="fleetNameLabel">
     <property name="geometry">
      <rect>
-      <x>70</x>
-      <y>140</y>
+      <x>40</x>
+      <y>80</y>
       <width>91</width>
       <height>16</height>
      </rect>
@@ -47,8 +50,8 @@
    <widget class="QTextBrowser" name="bestStars">
     <property name="geometry">
      <rect>
-      <x>200</x>
-      <y>230</y>
+      <x>130</x>
+      <y>240</y>
       <width>81</width>
       <height>31</height>
      </rect>
@@ -60,10 +63,10 @@
    <widget class="QLabel" name="maxTrophiesLabel">
     <property name="geometry">
      <rect>
-      <x>170</x>
-      <y>280</y>
-      <width>151</width>
-      <height>16</height>
+      <x>100</x>
+      <y>300</y>
+      <width>131</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="font">
@@ -85,8 +88,8 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>120</x>
-      <y>20</y>
+      <x>20</x>
+      <y>10</y>
       <width>91</width>
       <height>16</height>
      </rect>
@@ -132,8 +135,8 @@
    <widget class="QTextBrowser" name="lastStars">
     <property name="geometry">
      <rect>
-      <x>50</x>
-      <y>230</y>
+      <x>20</x>
+      <y>240</y>
       <width>81</width>
       <height>31</height>
      </rect>
@@ -174,8 +177,8 @@
    <widget class="QLabel" name="starsLastTournamentLabel">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>210</y>
+      <x>-10</x>
+      <y>220</y>
       <width>151</width>
       <height>16</height>
      </rect>
@@ -190,7 +193,7 @@
      </font>
     </property>
     <property name="text">
-     <string>Stars Last Tournament</string>
+     <string>Last Stars</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
@@ -199,9 +202,9 @@
    <widget class="QTextEdit" name="playerNotes">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>240</x>
       <y>200</y>
-      <width>251</width>
+      <width>311</width>
       <height>161</height>
      </rect>
     </property>
@@ -228,8 +231,8 @@
    <widget class="QTextBrowser" name="maxTrophies">
     <property name="geometry">
      <rect>
-      <x>200</x>
-      <y>300</y>
+      <x>130</x>
+      <y>320</y>
       <width>81</width>
       <height>31</height>
      </rect>
@@ -241,8 +244,8 @@
    <widget class="QPushButton" name="searchButton">
     <property name="geometry">
      <rect>
-      <x>260</x>
-      <y>50</y>
+      <x>190</x>
+      <y>30</y>
       <width>81</width>
       <height>31</height>
      </rect>
@@ -254,8 +257,8 @@
    <widget class="QLabel" name="bestStarsLabel">
     <property name="geometry">
      <rect>
-      <x>170</x>
-      <y>210</y>
+      <x>100</x>
+      <y>220</y>
       <width>151</width>
       <height>16</height>
      </rect>
@@ -308,8 +311,8 @@
    <widget class="QLabel" name="currentTrophiesLabel">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>280</y>
+      <x>-10</x>
+      <y>300</y>
       <width>151</width>
       <height>16</height>
      </rect>
@@ -333,10 +336,10 @@
    <widget class="QLabel" name="playerNotesLabel">
     <property name="geometry">
      <rect>
-      <x>350</x>
+      <x>240</x>
       <y>180</y>
-      <width>151</width>
-      <height>16</height>
+      <width>311</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="font">
@@ -358,8 +361,8 @@
    <widget class="QPlainTextEdit" name="playerNameSearchBox">
     <property name="geometry">
      <rect>
-      <x>70</x>
-      <y>50</y>
+      <x>10</x>
+      <y>30</y>
       <width>181</width>
       <height>31</height>
      </rect>
@@ -383,10 +386,10 @@
    <widget class="QToolButton" name="lockUnlockButton">
     <property name="geometry">
      <rect>
-      <x>200</x>
-      <y>160</y>
-      <width>75</width>
-      <height>23</height>
+      <x>70</x>
+      <y>180</y>
+      <width>101</width>
+      <height>41</height>
      </rect>
     </property>
     <property name="font">
@@ -426,8 +429,8 @@
    <widget class="QTextBrowser" name="currentTrophies">
     <property name="geometry">
      <rect>
-      <x>50</x>
-      <y>300</y>
+      <x>20</x>
+      <y>320</y>
       <width>81</width>
       <height>31</height>
      </rect>
@@ -489,8 +492,8 @@
    <widget class="QPlainTextEdit" name="fleetName">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>160</y>
+      <x>10</x>
+      <y>100</y>
       <width>161</width>
       <height>31</height>
      </rect>
@@ -502,14 +505,14 @@
      <bool>true</bool>
     </property>
     <property name="readOnly">
-     <bool>true</bool>
+     <bool>false</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="saveNewData">
     <property name="geometry">
      <rect>
       <x>440</x>
-      <y>80</y>
+      <y>60</y>
       <width>101</width>
       <height>41</height>
      </rect>
@@ -576,14 +579,14 @@
      </font>
     </property>
     <property name="text">
-     <string>Reset</string>
+     <string>Reset Search</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pixyshipLayoutButton">
     <property name="geometry">
      <rect>
-      <x>250</x>
-      <y>100</y>
+      <x>270</x>
+      <y>30</y>
       <width>101</width>
       <height>31</height>
      </rect>
@@ -602,32 +605,91 @@
      </rect>
     </property>
     <property name="text">
-     <string>Import</string>
+     <string>XLS Import</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="fleetSearchButton">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>100</y>
+      <width>81</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Fleet Search</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="delTournyButton">
+    <property name="geometry">
+     <rect>
+      <x>24</x>
+      <y>590</y>
+      <width>151</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Delete Tournament Entry</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="delLegendsButton">
+    <property name="geometry">
+     <rect>
+      <x>214</x>
+      <y>590</y>
+      <width>151</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Delete Legends Entry</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="delPVPButton">
+    <property name="geometry">
+     <rect>
+      <x>394</x>
+      <y>590</y>
+      <width>151</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Delete Pvp Entry</string>
     </property>
    </widget>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="sizeGripEnabled">
+    <bool>true</bool>
+   </property>
+  </widget>
  </widget>
  <tabstops>
   <tabstop>playerNameSearchBox</tabstop>
   <tabstop>searchButton</tabstop>
+  <tabstop>lockUnlockButton</tabstop>
   <tabstop>fleetName</tabstop>
   <tabstop>lastStars</tabstop>
   <tabstop>bestStars</tabstop>
   <tabstop>currentTrophies</tabstop>
   <tabstop>maxTrophies</tabstop>
   <tabstop>playerNotes</tabstop>
-  <tabstop>saveNewData</tabstop>
-  <tabstop>tournyTable</tabstop>
-  <tabstop>legendsTable</tabstop>
-  <tabstop>pvpTable</tabstop>
   <tabstop>starCount</tabstop>
   <tabstop>legendTrophyCount</tabstop>
   <tabstop>trophyCount</tabstop>
   <tabstop>tournamentSubmit</tabstop>
   <tabstop>legendsSubmit</tabstop>
   <tabstop>pvpSubmit</tabstop>
-  <tabstop>lockUnlockButton</tabstop>
+  <tabstop>tournyTable</tabstop>
+  <tabstop>legendsTable</tabstop>
+  <tabstop>pvpTable</tabstop>
+  <tabstop>saveNewData</tabstop>
+  <tabstop>resetButton</tabstop>
+  <tabstop>pixyshipLayoutButton</tabstop>
+  <tabstop>importButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>
