@@ -12,7 +12,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_fleetBrowser(object):
     def setupUi(self, fleetBrowser):
         fleetBrowser.setObjectName("fleetBrowser")
-        fleetBrowser.resize(343, 339)
+        fleetBrowser.resize(343, 329)
         self.fleetNameList = QtWidgets.QListWidget(parent=fleetBrowser)
         self.fleetNameList.setGeometry(QtCore.QRect(10, 10, 231, 231))
         self.fleetNameList.setObjectName("fleetNameList")

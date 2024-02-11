@@ -1,16 +1,19 @@
 from PyQt6 import QtWidgets, uic, QtCore
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem
+from PyQt6.QtCore import Qt, QAbstractTableModel
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from datetime import date
 from openpyxl import load_workbook
+from decimal import Decimal
 import sys
+import math
 import webbrowser
 
-
 '''
-Start building database, pull player info from where?
-Trek Wolfpack
-Make ways for players to search by fleet to find name for foreign characters
+To-do
+Keep up to date with targets easier (import xls somehow? talk with the worst and see if there's a specific formatting)
+Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
+Add column in fights db for hp remaining
 '''
 
 def create_connection():
@@ -75,7 +78,7 @@ def throwErrorMessage(text, dump):
       msg.setInformativeText(dump)
       msg.setWindowTitle("Error")
       msg.exec()
-class DialogBox(QtWidgets.QDialog):
+class FleetDialogBox(QtWidgets.QDialog):
       copyFleetSearchClicked = QtCore.pyqtSignal(str, bool)
 
       def __init__(self):
@@ -129,11 +132,10 @@ class DialogBox(QtWidgets.QDialog):
                               item.setHidden(True)
 class MainWindow(QtWidgets.QMainWindow):
       def __init__(self):
-            super(MainWindow, self).__init__() # Call the inherited classes __init__ method
-            uic.loadUi('pss-ttt.ui', self) # Load the .ui file
+            super(MainWindow, self).__init__() 
+            uic.loadUi('pss-ttt.ui', self) 
             self.show()
-            #self.copyFleetSearchSignal = QtCore.pyqtSignal(str)
-
+            
             self.lockUnlockButton.clicked.connect(self.changeButtonText)
             self.searchButton.clicked.connect(self.searchPlayer)
             self.saveNewData.clicked.connect(self.submitNewPlayerData)
@@ -147,18 +149,28 @@ class MainWindow(QtWidgets.QMainWindow):
             self.delLegendsButton.clicked.connect(self.deleteLegendsLine)
             self.delTournyButton.clicked.connect(self.deleteTournamentLine)
             self.delPVPButton.clicked.connect(self.deletePVPLine)
+            self.tournyStarsWindow.clicked.connect(self.open_tournamentStarsCalc)
             
-            self.fleetBrowser = DialogBox()
+            self.fleetBrowser = FleetDialogBox()
             self.fleetBrowser.copyFleetSearchClicked.connect(self.handleCopyFleetSearchClicked)
+
+            self.starCalculator = TournamentDialogBox()
+        #    self.starCalculator.openCalculator.connect(self.handleOpenCalculator)
+
       def open_fleetBrowser(self):
             self.fleetBrowser.populateFleetList(self.fleetName.toPlainText())
             self.fleetBrowser.exec()
+      def open_tournamentStarsCalc(self):
+            self.starCalculator.exec()
       def handleCopyFleetSearchClicked(self, selected_text, close_dialog):
             self.resetDataFields()
             self.playerNameSearchBox.insertPlainText(selected_text)
             self.searchPlayer()
             if close_dialog:
                   self.fleetBrowser.accept()
+      #def handleOpenCalculator(self):
+       #     if close_dialog:
+        #          self.starCalculator.accept()
       def importExcel(self):
             workbook = load_workbook("Import.xlsx")
             sheet = workbook.active
@@ -425,7 +437,116 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pvpTable.model().clear()
             # Update the model to reflect changes in the database
             self.updateFightTables("pvp")
-      
+class TournamentDialogBox(QtWidgets.QDialog):
+      def __init__(self):
+            super().__init__()
+            uic.loadUi('pss-ttt-tsc.ui', self)
+            self.starTableHeaders = ['Star Goal', 'Fight 1', 'Fight 2', 'Fight 3', 'Fight 4', 'Fight 5', 'Fight 6']
+            self.starsTable = [
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],]
+            self.tournamentTable = self.findChild(QTableView, "starsTableView")
+            self.model = self.TournamentTableModel(self.starsTable, self)
+            self.tournamentTable.setModel(self.model)
+            for i in range(7):
+                  self.tournamentTable.setColumnWidth(i,50)
+            self.calculateStars.clicked.connect(self.calculateStarsGoal)     
+      def updateActualStarsBox(self):
+            total_sum = sum(self.model.getCellValue(7, col) for col in range(self.model.columnCount(None)))
+            self.actualStarsBox.setPlainText(str(total_sum))
+      class starsErrorDialog(QtWidgets.QDialog):
+            def __init__(self):
+                  super().__init__()
+            def checkStarsErrors(self):
+                  winsPerDay = self.winsPerDayBox.toPlainText().strip()
+                  myTrophies = self.myTrophiesBox.toPlainText().strip()
+                  strengthRatio = self.strengthRatioBox.toPlainText().strip()
+
+                  if not winsPerDay or not myTrophies or not strengthRatio:
+                        error_message = QMessageBox()
+                        error_message.setIcon(QMessageBox.Icon.Warning)
+                        error_message.setText("Error: Please fill out all 3 boxes for star calculations.")
+                        error_message.setWindowTitle("Missing Information")
+                        error_message.exec()
+                        return False
+                  else:
+                        return True
+      class TournamentTableModel(QAbstractTableModel):
+            def __init__(self, data, parent=None):
+                  super().__init__()
+                  self._data = data
+                  self.parent = parent
+                  self.verticalHeaders = ['Star Goal', 'Fight 1', 'Fight 2', 'Fight 3', 'Fight 4', 'Fight 5', 'Fight 6', 'Stars Gained']
+                  self.horizontalHeaders = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7']
+            def rowCount(self, index):
+                  return len(self._data)
+            def columnCount(self, index):
+                  return len(self._data[0])
+            def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+                  if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
+                        return str(self._data[index.row()][index.column()])
+            def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+                  if role == Qt.ItemDataRole.EditRole and index.isValid():
+                        self._data[index.row()][index.column()] = value
+                        self.dataChanged.emit(index, index)
+                        for col in range(self.columnCount(None)):
+                              self._data[7][col] = sum(int(self._data[i][col]) for i in range(1,7))
+                        self.parent.updateActualStarsBox()
+                        return True
+                  return False
+            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+                  if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+                        return self.horizontalHeaders[section]
+                  if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
+                        return self.verticalHeaders[section]
+            def getCellValue(self, row, column):
+                  return self._data[row][column]
+            def flags(self, index):
+                  if index.row() == 0 or index.row() == 7:
+                        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+                  else:
+                        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
+      def calculateStarsGoal(self):
+            if not self.starsErrorDialog.checkStarsErrors(self):
+                  return
+            # Sort out day 1 planning first, then 2 should be easier and 3 shoudl be automatic then
+                        
+            start_value = Decimal(0)
+            winsPerDay = Decimal(self.winsPerDayBox.toPlainText())
+            myTrophies = Decimal(self.myTrophiesBox.toPlainText())
+            strengthRatio = Decimal(self.strengthRatioBox.toPlainText())
+            end_value = Decimal(0)
+            todaysStarsTarget = Decimal(0)
+            for i in range(7):
+                  start_value = end_value
+                  trophyStarsTarget = math.floor((myTrophies*strengthRatio)/1000)
+                  starsStarsTarget = math.floor(Decimal(start_value*Decimal(".15")*strengthRatio))
+                  if trophyStarsTarget > starsStarsTarget:
+                        todaysStarsTarget = trophyStarsTarget
+                  else:
+                        todaysStarsTarget = starsStarsTarget
+                  end_value = todaysStarsTarget*winsPerDay+start_value
+                  #print("Day[",i,"] star target: ",todaysStarsTarget) debugging
+                  #print("Day[",i,"] start value: ",start_value)
+                  #print("Day[",i,"] end value", end_value)
+                  index = self.model.index(0,i)
+                  self.model.setData(index, todaysStarsTarget)
+                  self.estStarsBox.clear()
+                  if i == 6:
+                        self.estStarsBox.insertPlainText(str(end_value))
+            self.tournamentTable.show()
+
+'''
+To-do stars tourny calc
+Calculate up stars gained each time a new value is entered into the table
+Find spot to display Est cumulative stars and current cumulative stars
+'''
 ## Startup
 if __name__ == "__main__":
       if create_connection():
@@ -434,5 +555,4 @@ if __name__ == "__main__":
             sys.exit(1)
       app = QtWidgets.QApplication(sys.argv)
       window = MainWindow()
-      box = DialogBox()
       app.exec()
