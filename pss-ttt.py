@@ -5,9 +5,7 @@ from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from datetime import date
 from openpyxl import load_workbook
 from decimal import Decimal
-import sys
-import math
-import webbrowser
+import sys, csv, math, webbrowser, os
 
 '''
 To-do
@@ -15,7 +13,6 @@ Keep up to date with targets easier (import xls somehow? talk with the worst and
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
 Add column in fights db for hp remaining
 '''
-
 def create_connection():
       targetsdb = QSqlDatabase.addDatabase('QSQLITE', "targetsdb")
       tournyfightsdb = QSqlDatabase.addDatabase('QSQLITE', "tournydb")
@@ -451,6 +448,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
+            self.loadStarsTableFromCSV("starstable.csv")
             self.tournamentTable = self.findChild(QTableView, "starsTableView")
             self.model = self.TournamentTableModel(self.starsTable, self)
             self.tournamentTable.setModel(self.model)
@@ -460,6 +458,29 @@ class TournamentDialogBox(QtWidgets.QDialog):
       def updateActualStarsBox(self):
             total_sum = sum(self.model.getCellValue(7, col) for col in range(self.model.columnCount(None)))
             self.actualStarsBox.setPlainText(str(total_sum))
+            self.saveStarsTableToCSV("starstable.csv")
+      def saveStarsTableToCSV(self, filename):
+            with open(filename, 'w', newline='') as csvfile:
+                  writer = csv.writer(csvfile)
+                  writer.writerows(self.starsTable)
+            print("Stars table data has been saved to", filename)
+      def loadStarsTableFromCSV(self, filename):
+            if os.path.exists(filename):
+                  with open(filename, newline='') as csvfile:
+                        reader = csv.reader(csvfile)
+                        self.starsTable = [list(map(int, row)) for row in reader]
+            else:
+                  self.starsTable = [
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],]
+                  self.saveStarsTableToCSV(filename)
+            print("Stars table data has been loaded from", filename)
       class starsErrorDialog(QtWidgets.QDialog):
             def __init__(self):
                   super().__init__()
@@ -541,6 +562,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   if i == 6:
                         self.estStarsBox.insertPlainText(str(end_value))
             self.tournamentTable.show()
+            self.saveStarsTableToCSV("starstable.csv")
 
 '''
 To-do stars tourny calc
