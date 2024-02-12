@@ -157,9 +157,9 @@
   <widget class="QPushButton" name="calculateStars">
    <property name="geometry">
     <rect>
-     <x>4</x>
+     <x>0</x>
      <y>130</y>
-     <width>101</width>
+     <width>111</width>
      <height>23</height>
     </rect>
    </property>
@@ -184,7 +184,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>180</y>
+     <y>150</y>
      <width>111</width>
      <height>20</height>
     </rect>
@@ -200,7 +200,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>200</y>
+     <y>170</y>
      <width>71</width>
      <height>31</height>
     </rect>
@@ -221,7 +221,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>230</y>
+     <y>200</y>
      <width>111</width>
      <height>20</height>
     </rect>
@@ -237,7 +237,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>250</y>
+     <y>220</y>
      <width>71</width>
      <height>31</height>
     </rect>
@@ -252,6 +252,19 @@
    </property>
    <property name="textInteractionFlags">
     <set>Qt::NoTextInteraction</set>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="resetStarsTableButton">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>260</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Reset Data</string>
    </property>
   </widget>
  </widget>

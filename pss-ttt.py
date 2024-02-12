@@ -1,4 +1,4 @@
-from PyQt6 import QtWidgets, uic, QtCore
+from PyQt6 import QtWidgets, uic, QtCore, QtGui
 from PyQt6.QtCore import Qt, QAbstractTableModel
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
@@ -12,6 +12,9 @@ To-do
 Keep up to date with targets easier (import xls somehow? talk with the worst and see if there's a specific formatting)
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
 Add column in fights db for hp remaining
+
+Calculate up stars gained each time a new value is entered into the table
+Find spot to display Est cumulative stars and current cumulative stars
 '''
 def create_connection():
       targetsdb = QSqlDatabase.addDatabase('QSQLITE', "targetsdb")
@@ -141,7 +144,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tournamentSubmit.clicked.connect(self.submitTournamentData)
             self.legendsSubmit.clicked.connect(self.submitLegendsData)
             self.pvpSubmit.clicked.connect(self.pvpLegendsData)
-            self.importButton.clicked.connect(self.importExcel)
+            #self.importButton.clicked.connect(self.importExcel)
+            self.importButton.clicked.connect(self.importCSV)
             self.fleetSearchButton.clicked.connect(self.open_fleetBrowser)
             self.delLegendsButton.clicked.connect(self.deleteLegendsLine)
             self.delTournyButton.clicked.connect(self.deleteTournamentLine)
@@ -165,9 +169,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.searchPlayer()
             if close_dialog:
                   self.fleetBrowser.accept()
-      #def handleOpenCalculator(self):
-       #     if close_dialog:
-        #          self.starCalculator.accept()
       def importExcel(self):
             workbook = load_workbook("Import.xlsx")
             sheet = workbook.active
@@ -195,6 +196,55 @@ class MainWindow(QtWidgets.QMainWindow):
             QSqlDatabase.database("targetsdb").close()
             print("Data imported successfully")
             return True
+      def importCSV(self):
+            data_to_insert = []
+            with open('fleetsdata.csv', 'r', encoding='utf-8') as csvfile:
+                  reader = csv.reader(csvfile, delimiter=';')
+                  for row in reader:
+                        specific_data = (row[2], row[1], row[7], row[7], row[5], row[6], " ")
+                        data_to_insert.append(specific_data)
+    
+            if not QSqlDatabase.database("targetsdb").open():
+                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
+                  return False
+    
+            query = QSqlQuery(QSqlDatabase.database("targetsdb"))
+            query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
+    
+            for specific_data in data_to_insert:
+                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = specific_data
+                  count_query = QSqlQuery(QSqlDatabase.database("targetsdb"))
+                  count_query.prepare("SELECT COUNT(*) FROM players WHERE playername = ? AND fleetname = ?")
+                  count_query.addBindValue(playername)
+                  count_query.addBindValue(fleetname)
+                  count_query.exec()
+                  count_query.next()
+                  count = count_query.value(0)
+    
+                  query = QSqlQuery(QSqlDatabase.database("targetsdb"))
+                  if count > 0:
+                        query.prepare("UPDATE players SET laststars = ?, beststars = ?, trophies = ?, maxtrophies = ?, notes = ? WHERE playername = ? AND fleetname = ?")
+                        query.addBindValue(laststars)
+                        query.addBindValue(beststars)
+                        query.addBindValue(trophies)
+                        query.addBindValue(maxtrophies)
+                        query.addBindValue(notes)
+                        query.addBindValue(playername)
+                        query.addBindValue(fleetname)
+                        if not query.exec_():
+                              print("Update failed:", query.lastError().text())
+                  else:
+                        query.prepare("INSERT INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                        query.addBindValue(playername)
+                        query.addBindValue(fleetname)
+                        query.addBindValue(laststars)
+                        query.addBindValue(beststars)
+                        query.addBindValue(trophies)
+                        query.addBindValue(maxtrophies)
+                        query.addBindValue(notes)
+                        if not query.exec():
+                              print("Insert failed:", query.lastError().text())
+            QSqlDatabase.database("targetsdb").commit()
       def pixyshipURL(self):
             searchName = self.playerNameSearchBox.toPlainText()
             print(searchName)
@@ -455,6 +505,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
             for i in range(7):
                   self.tournamentTable.setColumnWidth(i,50)
             self.calculateStars.clicked.connect(self.calculateStarsGoal)     
+            self.resetStarsTableButton.clicked.connect(self.resetStarsTable)
       def updateActualStarsBox(self):
             total_sum = sum(self.model.getCellValue(7, col) for col in range(self.model.columnCount(None)))
             self.actualStarsBox.setPlainText(str(total_sum))
@@ -481,6 +532,19 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],]
                   self.saveStarsTableToCSV(filename)
             print("Stars table data has been loaded from", filename)
+      def resetStarsTable(self):
+            self.starsTable = [
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0],]
+            self.saveStarsTableToCSV("starstable.csv")
+            self.model = self.TournamentTableModel(self.starsTable, self)
+            self.tournamentTable.setModel(self.model)
       class starsErrorDialog(QtWidgets.QDialog):
             def __init__(self):
                   super().__init__()
@@ -517,7 +581,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                         self._data[index.row()][index.column()] = value
                         self.dataChanged.emit(index, index)
                         for col in range(self.columnCount(None)):
-                              self._data[7][col] = sum(int(self._data[i][col]) for i in range(1,7))
+                                    self._data[7][col] = sum(int(self._data[i][col]) for i in range(1,7))
                         self.parent.updateActualStarsBox()
                         return True
                   return False
@@ -564,11 +628,6 @@ class TournamentDialogBox(QtWidgets.QDialog):
             self.tournamentTable.show()
             self.saveStarsTableToCSV("starstable.csv")
 
-'''
-To-do stars tourny calc
-Calculate up stars gained each time a new value is entered into the table
-Find spot to display Est cumulative stars and current cumulative stars
-'''
 ## Startup
 if __name__ == "__main__":
       if create_connection():
