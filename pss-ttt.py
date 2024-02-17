@@ -1,6 +1,6 @@
-from PyQt6 import QtWidgets, uic, QtCore, QtGui
+from PyQt6 import QtWidgets, uic, QtCore
 from PyQt6.QtCore import Qt, QAbstractTableModel
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from datetime import date
 from openpyxl import load_workbook
@@ -9,33 +9,28 @@ import sys, csv, math, webbrowser, os
 
 '''
 To-do
-Keep up to date with targets easier (import xls somehow? talk with the worst and see if there's a specific formatting)
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
 Add column in fights db for hp remaining
+importing dialogbox for excel or csv
+be able to customize filename for import
+crew training calculator
 
-Calculate up stars gained each time a new value is entered into the table
-Find spot to display Est cumulative stars and current cumulative stars
 '''
+
 def create_connection():
-      targetsdb = QSqlDatabase.addDatabase('QSQLITE', "targetsdb")
-      tournyfightsdb = QSqlDatabase.addDatabase('QSQLITE', "tournydb")
-      legendfightsdb = QSqlDatabase.addDatabase('QSQLITE', "legendsdb")
-      pvpfightsdb = QSqlDatabase.addDatabase('QSQLITE', "pvpdb")
-      targetsdb.setDatabaseName('targets.db')
-      tournyfightsdb.setDatabaseName('tournyfights.db')
-      legendfightsdb.setDatabaseName('legendfights.db')
-      pvpfightsdb.setDatabaseName('pvpfights.db')
-      if not targetsdb.open():
-            throwErrorMessage("Fatal Error", "Targets DB did not open properly")
-            return False
-      if not tournyfightsdb.open():
-            throwErrorMessage("Fatal Error", "Tournament Fights DB did not open properly")
-            return False
-      if not legendfightsdb.open():
-            throwErrorMessage("Fatal Error", "Legend Fights DB did not open properly")
-            return False
-      if not pvpfightsdb.open():
-            throwErrorMessage("Fatal Error", "PVP Fights DB did not open properly")
+      databases = {
+            "targetsdb": "targets.db",
+            "tournydb": "tournyfights.db",
+            "legendsdb": "legendfights.db",
+            "pvpdb": "pvpfights.db"
+      }
+
+      for name, filename in databases.items():
+            db = QSqlDatabase.addDatabase('QSQLITE', name)
+            db.setDatabaseName(filename)
+            if not db.open():
+                  throwErrorMessage("Fatal Error", f"{name.capitalize()} DB did not open properly")
+                  return False
       return True
 def create_table():
       targetsQuery = QSqlQuery(QSqlDatabase.database("targetsdb"))
@@ -53,7 +48,6 @@ def write_to_fights_database(data, fights):
             query = QSqlQuery(QSqlDatabase.database("legendsdb"))
       if fights == "pvp":
             query = QSqlQuery(QSqlDatabase.database("pvpdb"))
-#      print("Database type selected: ", fights)
       query.prepare("INSERT OR REPLACE INTO fights(name, rewards, datetag) VALUES(?, ?, ?)")
       for i in range(3):
             query.bindValue(i, data[i].strip())
@@ -143,9 +137,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pixyshipLayoutButton.clicked.connect(self.pixyshipURL)
             self.tournamentSubmit.clicked.connect(self.submitTournamentData)
             self.legendsSubmit.clicked.connect(self.submitLegendsData)
-            self.pvpSubmit.clicked.connect(self.pvpLegendsData)
-            #self.importButton.clicked.connect(self.importExcel)
-            self.importButton.clicked.connect(self.importCSV)
+            self.pvpSubmit.clicked.connect(self.submitPVPData)
+            self.importDialogButton.clicked.connect(self.open_importDialog)
             self.fleetSearchButton.clicked.connect(self.open_fleetBrowser)
             self.delLegendsButton.clicked.connect(self.deleteLegendsLine)
             self.delTournyButton.clicked.connect(self.deleteTournamentLine)
@@ -156,11 +149,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fleetBrowser.copyFleetSearchClicked.connect(self.handleCopyFleetSearchClicked)
 
             self.starCalculator = TournamentDialogBox()
-        #    self.starCalculator.openCalculator.connect(self.handleOpenCalculator)
+
+            self.importDialog = ImportDialogBox()
 
       def open_fleetBrowser(self):
             self.fleetBrowser.populateFleetList(self.fleetName.toPlainText())
             self.fleetBrowser.exec()
+      def open_importDialog(self):
+            self.importDialog.importDialogLabel.setText("")
+            self.importDialog.importFilenameBox.setPlainText("")
+            self.importDialog.exec()
       def open_tournamentStarsCalc(self):
             self.starCalculator.exec()
       def handleCopyFleetSearchClicked(self, selected_text, close_dialog):
@@ -169,82 +167,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.searchPlayer()
             if close_dialog:
                   self.fleetBrowser.accept()
-      def importExcel(self):
-            workbook = load_workbook("Import.xlsx")
-            sheet = workbook.active
-            if not QSqlDatabase.database("targetsdb").open():
-                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
-                  return False
-            query = QSqlQuery(QSqlDatabase.database("targetsdb"))
-            query.exec(f"CREATE TABLE IF NOT EXISTS players (playername TEXT, fleetname TEXT, laststars INT, beststars INT, trophies INT, maxtrophies INT, notes TEXT)")
-
-            for row in sheet.iter_rows(min_row=2, values_only=True):  # Start from the second row assuming the first row is header
-                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row
-                  query.prepare(f"INSERT INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) "
-                      "VALUES (?, ?, ?, ?, ?, ?, ?)")
-                  query.addBindValue(playername)
-                  query.addBindValue(fleetname)
-                  query.addBindValue(laststars)
-                  query.addBindValue(beststars)
-                  query.addBindValue(trophies)
-                  query.addBindValue(maxtrophies)
-                  query.addBindValue(notes)
-                  if not query.exec():
-                        throwErrorMessage("Targets Database Insertion Error:", query.lastError().text())
-                        sys.exit(1)
-            
-            QSqlDatabase.database("targetsdb").close()
-            print("Data imported successfully")
-            return True
-      def importCSV(self):
-            data_to_insert = []
-            with open('fleetsdata.csv', 'r', encoding='utf-8') as csvfile:
-                  reader = csv.reader(csvfile, delimiter=';')
-                  for row in reader:
-                        specific_data = (row[2], row[1], row[7], row[7], row[5], row[6], " ")
-                        data_to_insert.append(specific_data)
-    
-            if not QSqlDatabase.database("targetsdb").open():
-                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
-                  return False
-    
-            query = QSqlQuery(QSqlDatabase.database("targetsdb"))
-            query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
-    
-            for specific_data in data_to_insert:
-                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = specific_data
-                  count_query = QSqlQuery(QSqlDatabase.database("targetsdb"))
-                  count_query.prepare("SELECT COUNT(*) FROM players WHERE playername = ? AND fleetname = ?")
-                  count_query.addBindValue(playername)
-                  count_query.addBindValue(fleetname)
-                  count_query.exec()
-                  count_query.next()
-                  count = count_query.value(0)
-    
-                  query = QSqlQuery(QSqlDatabase.database("targetsdb"))
-                  if count > 0:
-                        query.prepare("UPDATE players SET laststars = ?, beststars = ?, trophies = ?, maxtrophies = ?, notes = ? WHERE playername = ? AND fleetname = ?")
-                        query.addBindValue(laststars)
-                        query.addBindValue(beststars)
-                        query.addBindValue(trophies)
-                        query.addBindValue(maxtrophies)
-                        query.addBindValue(notes)
-                        query.addBindValue(playername)
-                        query.addBindValue(fleetname)
-                        if not query.exec_():
-                              print("Update failed:", query.lastError().text())
-                  else:
-                        query.prepare("INSERT INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
-                        query.addBindValue(playername)
-                        query.addBindValue(fleetname)
-                        query.addBindValue(laststars)
-                        query.addBindValue(beststars)
-                        query.addBindValue(trophies)
-                        query.addBindValue(maxtrophies)
-                        query.addBindValue(notes)
-                        if not query.exec():
-                              print("Insert failed:", query.lastError().text())
-            QSqlDatabase.database("targetsdb").commit()
       def pixyshipURL(self):
             searchName = self.playerNameSearchBox.toPlainText()
             print(searchName)
@@ -270,37 +192,34 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pvpTable.setModel(model)
             self.pvpTable.show()
       def searchPlayer(self):
-            text = self.playerNameSearchBox.toPlainText()
+            text = self.playerNameSearchBox.toPlainText().strip()
+            if not text:
+                  return
             self.resetDataFields()
-            self.playerNameSearchBox.insertPlainText(text)
+            self.playerNameSearchBox.setPlainText(text)
             query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetsdb"))
+            query.prepare("SELECT * FROM players WHERE playername = :text")
+            query.bindValue(":text", text)
             if query.exec():
-                  found = False
-                  while query.next():
-                        entry = query.value(0)
-                        if(entry.casefold() == text.casefold()):
-                              self.fleetName.insertPlainText(query.value(1))
-                              self.lastStars.insertPlainText(query.value(2))
-                              self.bestStars.insertPlainText(query.value(3))
-                              self.currentTrophies.insertPlainText(query.value(4))
-                              self.maxTrophies.insertPlainText(query.value(5))
-                              self.playerNotes.insertPlainText(query.value(6))
-                              self.updateFightTables("tourny")
-                              self.updateFightTables("legends")
-                              self.updateFightTables("pvp")
-                              found = True
-                  if not found:
+                  if query.next():
+                        self.fleetName.setPlainText(query.value(1))
+                        self.lastStars.setPlainText(query.value(2))
+                        self.bestStars.setPlainText(query.value(3))
+                        self.currentTrophies.setPlainText(query.value(4))
+                        self.maxTrophies.setPlainText(query.value(5))
+                        self.playerNotes.setPlainText(query.value(6))
+                        self.updateFightTables("tourny")
+                        self.updateFightTables("legends")
+                        self.updateFightTables("pvp")
+                  else:
                         return
             else:
                   throwErrorMessage("Query execution failed: ", query.lastError().text())
                   return                 
       def changeButtonText(self):
-            if self.lockUnlockButton.text() == "Locked":
-                  self.lockUnlockButton.setText("Unlocked")
-                  self.playerDataChange(False)
-            else:
-                  self.lockUnlockButton.setText("Locked")
-                  self.playerDataChange(True)
+            is_locked = self.lockUnlockButton.text() == "Locked"
+            self.lockUnlockButton.setText("Unlocked" if is_locked else "Locked")
+            self.playerDataChange(not is_locked)
       def playerDataChange(self, boolean_value):
             self.lastStars.setReadOnly(boolean_value)
             self.bestStars.setReadOnly(boolean_value)
@@ -336,46 +255,26 @@ class MainWindow(QtWidgets.QMainWindow):
                   throwErrorMessage("TargetsDB: Error writing data to the database - Dumping data", player_data)
       def updateFightTables(self, fights):
             name = self.playerNameSearchBox.toPlainText()
-            if fights == "tourny":
-                  query = QSqlQuery(QSqlDatabase.database("tournydb"))
+            query_error_message = f"{fights.capitalize()}DB Update: "
+
+            if fights in ("tourny", "legends", "pvp"):
+                  db_name = f"{fights}db"
+                  table_widget = getattr(self, f"{fights}Table")
+                  query = QSqlQuery(QSqlDatabase.database(db_name))
                   query.prepare("SELECT rewards, datetag FROM fights WHERE name LIKE ?")
                   if query.lastError().isValid():
-                        throwErrorMessage("TournyDB Update: ",query.lastError().text())
+                        throwErrorMessage(query_error_message, query.lastError().text())
                         sys.exit(-1)
-                  query.addBindValue('%' + self.playerNameSearchBox.toPlainText() + '%')
-                  query.exec()
-                  model = QSqlTableModel()
-                  model.setQuery(query)
-                  self.tournyTable.setModel(model)
-                  self.tournyTable.setColumnWidth(0,50)
-                  self.tournyTable.show()
-            if fights == "legends":
-                  query = QSqlQuery(QSqlDatabase.database("legendsdb"))
-                  query.prepare("SELECT rewards, datetag FROM fights WHERE name LIKE ?")
-                  if query.lastError().isValid():
-                        throwErrorMessage("LegendsDB Update: ",query.lastError().text())
-                        sys.exit(-1)
-                  query.addBindValue('%' + self.playerNameSearchBox.toPlainText() + '%')
-                  query.exec()
-                  model = QSqlTableModel()
-                  model.setQuery(query)
-                  self.legendsTable.setModel(model)
-                  self.legendsTable.setColumnWidth(0,50)
-                  self.legendsTable.show()
-            if fights == "pvp":
-                  query = QSqlQuery(QSqlDatabase.database("pvpdb"))
-                  query.prepare("SELECT rewards, datetag FROM fights WHERE name LIKE ?")
-                  if query.lastError().isValid():
-                        throwErrorMessage("pvpDB Update: ",query.lastError().text())
-                        sys.exit(-1)
-                  query.addBindValue('%' + self.playerNameSearchBox.toPlainText() + '%')
+                  query.addBindValue(f'%{name}%')
                   query.exec()
 
                   model = QSqlTableModel()
                   model.setQuery(query)
-                  self.pvpTable.setModel(model)
-                  self.pvpTable.setColumnWidth(0,50)
-                  self.pvpTable.show()            
+                  table_widget.setModel(model)
+                  table_widget.setColumnWidth(0,50)
+                  table_widget.show()
+            else:
+                  throwErrorMessage("Fights Table Error", "Invalid fights type")
       def submitTournamentData(self):
             todaysdate = str(date.today())
             tournament_data = [self.playerNameSearchBox.toPlainText(), str(self.starCount.value()), todaysdate]
@@ -392,7 +291,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tournyTable.clearSpans()
             self.updateFightTables("legends")
             legends_data.clear()
-      def pvpLegendsData(self):
+      def submitPVPData(self):
             todaysdate = str(date.today())
             pvp_data = [self.playerNameSearchBox.toPlainText(), str(self.trophyCount.value()), todaysdate]
             if not write_to_fights_database(pvp_data, "pvp"):
@@ -514,7 +413,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
             with open(filename, 'w', newline='') as csvfile:
                   writer = csv.writer(csvfile)
                   writer.writerows(self.starsTable)
-            print("Stars table data has been saved to", filename)
+#            print("Stars table data has been saved to", filename)
       def loadStarsTableFromCSV(self, filename):
             if os.path.exists(filename):
                   with open(filename, newline='') as csvfile:
@@ -531,7 +430,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
                   self.saveStarsTableToCSV(filename)
-            print("Stars table data has been loaded from", filename)
+    #        print("Stars table data has been loaded from", filename)
       def resetStarsTable(self):
             self.starsTable = [
                   [0,0,0,0,0,0,0],
@@ -600,7 +499,6 @@ class TournamentDialogBox(QtWidgets.QDialog):
       def calculateStarsGoal(self):
             if not self.starsErrorDialog.checkStarsErrors(self):
                   return
-            # Sort out day 1 planning first, then 2 should be easier and 3 shoudl be automatic then
                         
             start_value = Decimal(0)
             winsPerDay = Decimal(self.winsPerDayBox.toPlainText())
@@ -627,8 +525,105 @@ class TournamentDialogBox(QtWidgets.QDialog):
                         self.estStarsBox.insertPlainText(str(end_value))
             self.tournamentTable.show()
             self.saveStarsTableToCSV("starstable.csv")
+class ImportDialogBox(QtWidgets.QDialog):
+      def __init__(self):
+            super().__init__()
+            uic.loadUi('pss-ttt-importdialog.ui', self)
+            self.importTargetsButton.clicked.connect(self.import_data)
 
-## Startup
+      #def setLabelText(self, text):
+       #     self.importDialogLabel.setText(text)
+      def import_data(self):
+            self.importDialogLabel.setText("Data importing has begun.<br>Please note the application make appear to freeze<br>It is not frozen and just processing in the background<br>This will update once finished")
+            QApplication.processEvents()
+            file_path = self.importFilenameBox.toPlainText().strip()
+            
+            if not file_path:
+                  throwErrorMessage("Import Error", "No file provided or name is incorrect")
+                  return
+            if file_path.lower().endswith('.csv'):
+                  total_targets_imported = self.importCSV(file_path)
+                  file_type = "CSV"
+            elif file_path.lower().endswith(('.xls', '.xlsx')):
+                  total_targets_imported = self.importExcel(file_path)
+                  file_type = "Excel"
+            else:
+                  throwErrorMessage("Unsupported file format", "Only able to accept manicured excel formats or csv from Dolores 2.0 bot")
+                  return
+            
+            self.importDialogLabel.setText(f"Total Targets Import ({file_type}): {total_targets_imported} targets")
+      def importExcel(self, file_path):
+            counter = 0
+            workbook = load_workbook(file_path)
+            sheet = workbook.active
+            if not QSqlDatabase.database("targetsdb").open():
+                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
+                  return counter
+            query = QSqlQuery(QSqlDatabase.database("targetsdb"))
+            query.exec(f"CREATE TABLE IF NOT EXISTS players (playername TEXT, fleetname TEXT, laststars INT, beststars INT, trophies INT, maxtrophies INT, notes TEXT)")
+
+            for row in sheet.iter_rows(min_row=2, values_only=True):  # Start from the second row assuming the first row is header
+                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row
+                  query.prepare(f"INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) "
+                      "VALUES (?, ?, ?, ?, ?, ?, ?)")
+                  query.addBindValue(playername)
+                  query.addBindValue(fleetname)
+                  query.addBindValue(laststars)
+                  query.addBindValue(beststars)
+                  query.addBindValue(trophies)
+                  query.addBindValue(maxtrophies)
+                  query.addBindValue(notes)
+                  if query.exec():
+                        counter += 1
+                  else:
+                        throwErrorMessage("Targets Database Insertion Error:", query.lastError().text())
+            
+            QSqlDatabase.database("targetsdb").close()
+            return counter
+      def importCSV(self, file_path):
+            counter = 0
+            data_to_insert = []
+            with open(file_path, 'r', encoding='utf-8') as csvfile:
+                  reader = csv.reader(csvfile, delimiter=';')
+                  for row in reader:
+                        specific_data = (row[2], row[1], row[7], row[7], row[5], row[6], " ")
+                        data_to_insert.append(specific_data)
+    
+            db = QSqlDatabase.database("targetsdb")
+            if not db.open():
+                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
+                  return counter
+    
+            query = QSqlQuery(db)
+            query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
+    
+            for specific_data in data_to_insert:
+                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = specific_data
+                  count_query = QSqlQuery(db)
+                  count_query.prepare("SELECT COUNT(*) FROM players WHERE playername = ? AND fleetname = ?")
+                  count_query.addBindValue(playername)
+                  count_query.addBindValue(fleetname)
+                  count_query.exec()
+                  count_query.next()
+                  count = count_query.value(0)
+                  
+                  query.prepare("INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                  query.addBindValue(playername)
+                  query.addBindValue(fleetname)
+                  query.addBindValue(laststars)
+                  query.addBindValue(beststars)
+                  query.addBindValue(trophies)
+                  query.addBindValue(maxtrophies)
+                  query.addBindValue(notes)
+        
+                  if query.exec():
+                        counter += 1
+                  else:
+                        throwErrorMessage("Database Error", query.lastError().text())
+            db.commit()
+            print("oops?")
+            return counter
+## Startup and program operation
 if __name__ == "__main__":
       if create_connection():
             create_table()
