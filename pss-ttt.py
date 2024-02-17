@@ -11,8 +11,6 @@ import sys, csv, math, webbrowser, os
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
 Add column in fights db for hp remaining
-importing dialogbox for excel or csv
-be able to customize filename for import
 crew training calculator
 
 '''

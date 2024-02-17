@@ -1,6 +1,7 @@
-
+pss-ttt.spec
 legendfights.db
 tournyfights.db
 pvpfights.db
 targets.db
 starstable.csv
+build/
