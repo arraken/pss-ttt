@@ -12,7 +12,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_ImportDialog(object):
     def setupUi(self, ImportDialog):
         ImportDialog.setObjectName("ImportDialog")
-        ImportDialog.resize(327, 137)
+        ImportDialog.resize(327, 169)
         self.importDialogLabel = QtWidgets.QLabel(parent=ImportDialog)
         self.importDialogLabel.setGeometry(QtCore.QRect(10, 60, 311, 71))
         self.importDialogLabel.setText("")
@@ -28,12 +28,16 @@ class Ui_ImportDialog(object):
         self.importTargetsButton = QtWidgets.QPushButton(parent=ImportDialog)
         self.importTargetsButton.setGeometry(QtCore.QRect(214, 20, 101, 23))
         self.importTargetsButton.setObjectName("importTargetsButton")
+        self.importProgressBar = QtWidgets.QProgressBar(parent=ImportDialog)
+        self.importProgressBar.setGeometry(QtCore.QRect(10, 140, 311, 23))
+        self.importProgressBar.setProperty("value", 0)
+        self.importProgressBar.setObjectName("importProgressBar")
 
         self.retranslateUi(ImportDialog)
         QtCore.QMetaObject.connectSlotsByName(ImportDialog)
 
     def retranslateUi(self, ImportDialog):
         _translate = QtCore.QCoreApplication.translate
-        ImportDialog.setWindowTitle(_translate("ImportDialog", "Dialog"))
+        ImportDialog.setWindowTitle(_translate("ImportDialog", "Import Targets Data"))
         self.importFilenameLabel.setText(_translate("ImportDialog", "Import file name"))
         self.importTargetsButton.setText(_translate("ImportDialog", "Import targets"))

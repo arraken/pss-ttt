@@ -1,28 +1,25 @@
 from PyQt6 import QtWidgets, uic, QtCore
-from PyQt6.QtCore import Qt, QAbstractTableModel
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from datetime import date
 from openpyxl import load_workbook
 from decimal import Decimal
 import sys, csv, math, webbrowser, os
-
 '''
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
 Add column in fights db for hp remaining
-crew training calculator
-
+crew training calculator - help my head
+consolidate ui files into this script for ease of external download if possible
 '''
-
 def create_connection():
       databases = {
-            "targetsdb": "targets.db",
+            "targetdb": "targets.db",
             "tournydb": "tournyfights.db",
             "legendsdb": "legendfights.db",
             "pvpdb": "pvpfights.db"
       }
-
       for name, filename in databases.items():
             db = QSqlDatabase.addDatabase('QSQLITE', name)
             db.setDatabaseName(filename)
@@ -31,7 +28,7 @@ def create_connection():
                   return False
       return True
 def create_table():
-      targetsQuery = QSqlQuery(QSqlDatabase.database("targetsdb"))
+      targetsQuery = QSqlQuery(QSqlDatabase.database("targetdb"))
       tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
       legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
       pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
@@ -54,12 +51,12 @@ def write_to_fights_database(data, fights):
             return False
       return True
 def write_to_targets_database(data):
-      query = QSqlQuery(QSqlDatabase.database("targetsdb"))
+      query = QSqlQuery(QSqlDatabase.database("targetdb"))
       query.prepare("INSERT OR REPLACE INTO players(playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES(?, ?, ?, ?, ?, ?, ?)")
       for i in range(7):
             query.bindValue(i, data[i])
       if not query.exec():
-            throwErrorMessage("TargetsDB:", query.lastError().text())
+            throwErrorMessage("targetdb:", query.lastError().text())
             return False
       return True
 def throwErrorMessage(text, dump):
@@ -83,12 +80,12 @@ class FleetDialogBox(QtWidgets.QDialog):
             self.charLimiterCheckBox.stateChanged.connect(self.filterFleetListLength)
       def populateFleetList(self, fleet_name):
             self.fleetNameList.clear()
-            if not QSqlDatabase.database("targetsdb").isOpen():
-                  if not QSqlDatabase.database("targetsdb").open():
+            if not QSqlDatabase.database("targetdb").isOpen():
+                  if not QSqlDatabase.database("targetdb").open():
                         throwErrorMessage("Database Connection Failure", "Targets DB did not open properly")
                         return
 
-            query = QSqlQuery(QSqlDatabase.database("targetsdb"))
+            query = QSqlQuery(QSqlDatabase.database("targetdb"))
             query.prepare("SELECT playername FROM players WHERE fleetname = :fleet_name")
             query.bindValue(":fleet_name", fleet_name)
             if not query.exec():
@@ -142,6 +139,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.delTournyButton.clicked.connect(self.deleteTournamentLine)
             self.delPVPButton.clicked.connect(self.deletePVPLine)
             self.tournyStarsWindow.clicked.connect(self.open_tournamentStarsCalc)
+            self.crewTrainerButton.clicked.connect(self.open_crewTrainer)
             
             self.fleetBrowser = FleetDialogBox()
             self.fleetBrowser.copyFleetSearchClicked.connect(self.handleCopyFleetSearchClicked)
@@ -149,6 +147,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.starCalculator = TournamentDialogBox()
 
             self.importDialog = ImportDialogBox()
+
+            self.trainingDialog = CrewTrainerDialogBox()
 
       def open_fleetBrowser(self):
             self.fleetBrowser.populateFleetList(self.fleetName.toPlainText())
@@ -159,6 +159,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.importDialog.exec()
       def open_tournamentStarsCalc(self):
             self.starCalculator.exec()
+      def open_crewTrainer(self):
+            self.trainingDialog.exec()
       def handleCopyFleetSearchClicked(self, selected_text, close_dialog):
             self.resetDataFields()
             self.playerNameSearchBox.insertPlainText(selected_text)
@@ -167,7 +169,6 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.fleetBrowser.accept()
       def pixyshipURL(self):
             searchName = self.playerNameSearchBox.toPlainText()
-            print(searchName)
             if searchName == "":
                   return
             else:
@@ -195,7 +196,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   return
             self.resetDataFields()
             self.playerNameSearchBox.setPlainText(text)
-            query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetsdb"))
+            query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetdb"))
             query.prepare("SELECT * FROM players WHERE playername = :text")
             query.bindValue(":text", text)
             if query.exec():
@@ -250,7 +251,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if write_to_targets_database(player_data):
                   player_data.clear()
             else:
-                  throwErrorMessage("TargetsDB: Error writing data to the database - Dumping data", player_data)
+                  throwErrorMessage("targetdb: Error writing data to the database - Dumping data", player_data)
       def updateFightTables(self, fights):
             name = self.playerNameSearchBox.toPlainText()
             query_error_message = f"{fights.capitalize()}DB Update: "
@@ -381,10 +382,114 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pvpTable.model().clear()
             # Update the model to reflect changes in the database
             self.updateFightTables("pvp")
+class ImportDialogBox(QtWidgets.QDialog):
+      progress_signal = pyqtSignal(int)
+      counter = 0
+      max_counter = 0
+      def __init__(self):
+            super().__init__()
+            uic.loadUi('pss-ttt-importdialog.ui', self)
+            self.importTargetsButton.clicked.connect(self.import_data)
+
+            self.progress_signal.connect(self.updateProgressBar, QtCore.Qt.ConnectionType.DirectConnection)
+      def import_data(self):
+            self.importDialogLabel.setText("Data importing has begun.<br>Please note the application make appear to freeze<br>It is not frozen and just processing in the background<br>This will update once finished")
+            QApplication.processEvents()
+            file_path = self.importFilenameBox.toPlainText().strip()
+            
+            if not file_path:
+                  throwErrorMessage("Import Error", "No file provided or name is incorrect")
+                  return
+            if file_path.lower().endswith('.csv'):
+                  self.max_counter = total_targets_imported = self.importCSV(file_path)
+                  file_type = "CSV"
+            elif file_path.lower().endswith(('.xls', '.xlsx')):
+                  self.max_counter = total_targets_imported = self.importExcel(file_path)
+                  file_type = "Excel"
+            else:
+                  throwErrorMessage("Unsupported file format", "Only able to accept manicured excel formats or csv from Dolores 2.0 bot")
+                  return
+            self.importDialogLabel.setText(f"Total Targets Import ({file_type}): {total_targets_imported} targets")
+            for i in range(self.max_counter):
+                  self.progress_signal.emit(self.counter)
+      def updateProgressBar(self, value):
+            self.importProgressBar.setValue(int((value / self.max_counter) * 100))
+      def importExcel(self, file_path):
+            workbook = load_workbook(file_path)
+            sheet = workbook.active
+            if not QSqlDatabase.database("targetdb").open():
+                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
+                  return self.counter
+            query = QSqlQuery(QSqlDatabase.database("targetdb"))
+            query.exec(f"CREATE TABLE IF NOT EXISTS players (playername TEXT, fleetname TEXT, laststars INT, beststars INT, trophies INT, maxtrophies INT, notes TEXT)")
+
+            for row in sheet.iter_rows(min_row=2, values_only=True):  # Start from the second row assuming the first row is header
+                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row
+                  query.prepare(f"INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) "
+                      "VALUES (?, ?, ?, ?, ?, ?, ?)")
+                  query.addBindValue(playername)
+                  query.addBindValue(fleetname)
+                  query.addBindValue(laststars)
+                  query.addBindValue(beststars)
+                  query.addBindValue(trophies)
+                  query.addBindValue(maxtrophies)
+                  query.addBindValue(notes)
+                  if query.exec():
+                        self.counter += 1
+                        self.progress_signal.emit(self.counter)
+                  else:
+                        throwErrorMessage("Targets Database Insertion Error:", query.lastError().text())
+            
+            QSqlDatabase.database("targetdb").close()
+            return self.counter
+      def importCSV(self, file_path):
+            data_to_insert = []
+            with open(file_path, 'r', encoding='utf-8') as csvfile:
+                  reader = csv.reader(csvfile, delimiter=';')
+                  for row in reader:
+                        specific_data = (row[2], row[1], row[7], row[7], row[5], row[6], " ")
+                        data_to_insert.append(specific_data)
+    
+            db = QSqlDatabase.database("targetdb")
+            if not db.open():
+                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
+                  return self.counter
+    
+            query = QSqlQuery(db)
+            query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
+    
+            self.max_counter = len(data_to_insert)
+            for specific_data in data_to_insert:
+                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = specific_data
+                  count_query = QSqlQuery(db)
+                  count_query.prepare("SELECT COUNT(*) FROM players WHERE playername = ? AND fleetname = ?")
+                  count_query.addBindValue(playername)
+                  count_query.addBindValue(fleetname)
+                  count_query.exec()
+                  count_query.next()
+                  count = count_query.value(0)
+                  
+                  query.prepare("INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                  query.addBindValue(playername)
+                  query.addBindValue(fleetname)
+                  query.addBindValue(laststars)
+                  query.addBindValue(beststars)
+                  query.addBindValue(trophies)
+                  query.addBindValue(maxtrophies)
+                  query.addBindValue(notes)
+        
+                  if query.exec():
+                        self.counter += 1
+                        self.progress_signal.emit(self.counter)
+                  else:
+                        throwErrorMessage("Database Error", query.lastError().text())
+            db.commit()
+            return self.counter
 class TournamentDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
             uic.loadUi('pss-ttt-tsc.ui', self)
+            
             self.starTableHeaders = ['Star Goal', 'Fight 1', 'Fight 2', 'Fight 3', 'Fight 4', 'Fight 5', 'Fight 6']
             self.starsTable = [
                   [0,0,0,0,0,0,0],
@@ -411,7 +516,6 @@ class TournamentDialogBox(QtWidgets.QDialog):
             with open(filename, 'w', newline='') as csvfile:
                   writer = csv.writer(csvfile)
                   writer.writerows(self.starsTable)
-#            print("Stars table data has been saved to", filename)
       def loadStarsTableFromCSV(self, filename):
             if os.path.exists(filename):
                   with open(filename, newline='') as csvfile:
@@ -428,7 +532,6 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
                   self.saveStarsTableToCSV(filename)
-    #        print("Stars table data has been loaded from", filename)
       def resetStarsTable(self):
             self.starsTable = [
                   [0,0,0,0,0,0,0],
@@ -513,9 +616,6 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   else:
                         todaysStarsTarget = starsStarsTarget
                   end_value = todaysStarsTarget*winsPerDay+start_value
-                  #print("Day[",i,"] star target: ",todaysStarsTarget) debugging
-                  #print("Day[",i,"] start value: ",start_value)
-                  #print("Day[",i,"] end value", end_value)
                   index = self.model.index(0,i)
                   self.model.setData(index, todaysStarsTarget)
                   self.estStarsBox.clear()
@@ -523,110 +623,266 @@ class TournamentDialogBox(QtWidgets.QDialog):
                         self.estStarsBox.insertPlainText(str(end_value))
             self.tournamentTable.show()
             self.saveStarsTableToCSV("starstable.csv")
-class ImportDialogBox(QtWidgets.QDialog):
+class CrewTrainerDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
-            uic.loadUi('pss-ttt-importdialog.ui', self)
-            self.importTargetsButton.clicked.connect(self.import_data)
+            uic.loadUi('pss-ttt-crewtrainer.ui', self)
 
-      #def setLabelText(self, text):
-       #     self.importDialogLabel.setText(text)
-      def import_data(self):
-            self.importDialogLabel.setText("Data importing has begun.<br>Please note the application make appear to freeze<br>It is not frozen and just processing in the background<br>This will update once finished")
-            QApplication.processEvents()
-            file_path = self.importFilenameBox.toPlainText().strip()
-            
-            if not file_path:
-                  throwErrorMessage("Import Error", "No file provided or name is incorrect")
-                  return
-            if file_path.lower().endswith('.csv'):
-                  total_targets_imported = self.importCSV(file_path)
-                  file_type = "CSV"
-            elif file_path.lower().endswith(('.xls', '.xlsx')):
-                  total_targets_imported = self.importExcel(file_path)
-                  file_type = "Excel"
-            else:
-                  throwErrorMessage("Unsupported file format", "Only able to accept manicured excel formats or csv from Dolores 2.0 bot")
-                  return
-            
-            self.importDialogLabel.setText(f"Total Targets Import ({file_type}): {total_targets_imported} targets")
-      def importExcel(self, file_path):
-            counter = 0
-            workbook = load_workbook(file_path)
-            sheet = workbook.active
-            if not QSqlDatabase.database("targetsdb").open():
-                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
-                  return counter
-            query = QSqlQuery(QSqlDatabase.database("targetsdb"))
-            query.exec(f"CREATE TABLE IF NOT EXISTS players (playername TEXT, fleetname TEXT, laststars INT, beststars INT, trophies INT, maxtrophies INT, notes TEXT)")
+            self.trainingList = [
+                  ("ABL Common", "Paracetamol", [1,0,0,2,1,1,0,0,0]),
+                  ("ABL Elite", "Paracetamol Rapid", [2,0,0,4,1,2,0,0,0]),
+                  ("ABL Unique", "Ibuprofen", [3,0,0,8,3,3,0,0,1]),
+                  ("ABL Epic", "Ibuprofen Rapid", [5,0,0,16,3,5,0,0,2]),
+                  ("ABL Hero", "Ginkgo", [12,0,0,25,4,12,0,0,3]),
+                  ("ABL Special", "Brain Enhancer", [8,0,0,50,3,8,0,0,2]),
+                  ("ABL Legendary", "Super Brain Enhancer", [3,0,0,100,1,3,0,0,1]),
+                  ("ABL Green", "Steam Yoga", [0,0,0,4,1,0,0,0,0]),
+                  ("ABL Blue", "Crew vs Wild", [1,1,0,8,1,0,0,0,0]),
+                  ("ABL Gold", "Space Marine", [1,1,0,12,2,0,0,0,0]),
+                  ("ATK Common", "Chicken Skewer", [0,2,0,1,1,0,0,0,1]),
+                  ("ATK Elite", "Yakitori", [0,4,0,2,1,0,0,0,2]),
+                  ("ATK Unique", "Double Yakitori", [1,8,0,3,3,0,0,0,3]),
+                  ("ATK Epic", "Shish Kebabs", [2,16,0,5,3,0,0,0,5]),
+                  ("ATK Hero", "Drumsticks", [3,25,0,12,4,0,0,0,12]),
+                  ("ATK Special", "Steak", [2,50,0,8,3,0,0,0,8]),
+                  ("ATK Legendary", "Roast Turkey", [1,100,0,3,1,0,0,0,3]),
+                  ("ATK Green", "Kickbox", [0,4,0,0,1,0,0,0,0]),
+                  ("ATK Blue", "BJJ", [1,8,0,1,1,0,0,0,0]),
+                  ("ATK Gold", "Shaolin Tradition", [1,12,0,1,2,0,0,0,0]),
+                  ("ENG Common", "Standard Engineering Tool Kit", [0,0,1,0,1,0,1,2,0]),
+                  ("ENG Elite", "Obsolete Engineering Tool Kit", [0,0,2,0,1,0,2,4,0]),
+                  ("ENG Unique", "Starter Engineering Tool Kit", [0,0,3,0,3,1,3,8,0]),
+                  ("ENG Epic", "Advanced Engineering Tool Kit", [0,0,5,0,3,2,5,16,0]),
+                  ("ENG Hero", "Rare Engineering Tool Kit", [0,0,12,0,4,3,12,25,0]),
+                  ("ENG Special", "Prototype Engineering Tool Kit", [0,0,8,0,3,2,8,50,0]),
+                  ("ENG Legendary", "Alien Engineering Tool Kit", [0,0,3,0,1,1,3,100,0]),
+                  ("ENG Green", "Study Expert Engineering Manual", [0,0,1,0,0,0,0,4,0]),
+                  ("ENG Blue", "Engineering Summit", [0,0,1,0,0,1,1,8,0]),
+                  ("ENG Gold", "Engineering PHD", [0,0,2,0,0,0,0,12,1]),
+                  ("HP Common", "Small Protein Shake", [2,1,0,0,1,0,0,1,0]),
+                  ("HP Elite", "Regular Protein Shake", [4,2,0,0,1,0,0,2,0]),
+                  ("HP Unique", "Large Protein Shake", [8,3,0,1,3,0,0,3,0]),
+                  ("HP Epic", "Super Protein Shake", [16,5,0,2,3,0,0,5,0]),
+                  ("HP Hero", "HGH", [25,12,0,3,4,0,0,12,0]),
+                  ("HP Special", "Enhanced HGH", [50,8,0,2,3,0,0,8,0]),
+                  ("HP Legendary", "Prototype HGH", [100,3,0,1,1,0,0,3,0]),
+                  ("HP Green", "Bench Press", [4,0,0,0,1,0,0,0,0]),
+                  ("HP Blue", "Muscle Beach", [8,1,0,1,1,0,0,0,0]),
+                  ("HP Gold", "Olympic Weightlifting", [12,1,0,1,2,0,0,0,0]),
+                  ("PLT Common", "Street Map", [0,0,0,0,1,2,0,1,1]),
+                  ("PLT Elite", "Travel Map", [0,0,0,0,1,4,0,2,2]),
+                  ("PLT Unique", "World Map", [0,1,0,0,3,8,0,3,3]),
+                  ("PLT Epic", "Global Map", [0,2,0,0,3,16,0,5,5]),
+                  ("PLT Hero", "System Map", [0,3,0,0,4,25,0,12,12]),
+                  ("PLT Special", "Star Map", [0,2,0,0,3,50,0,8,8]),
+                  ("PLT Legendary", "Galactic Navigation Map", [0,1,0,0,1,100,0,3,3]),
+                  ("PLT Green", "Read Expert Pilot Handbook", [0,0,0,0,0,4,0,0,1]),
+                  ("PLT Blue", "Pilot Summit", [0,0,1,0,0,8,0,1,1]),
+                  ("PLT Gold", "Pilot Expert", [0,0,1,0,0,12,0,0,2]),
+                  ("RPR Common", "Repair Guide", [0,0,2,0,1,0,1,1,0]),
+                  ("RPR Elite", "New Repair Guide", [0,0,4,0,1,0,2,2,0]),
+                  ("RPR Unique", "Advanced Repair Guide", [0,0,8,1,3,0,3,3,0]),
+                  ("RPR Epic", "Epic Repair Guide", [0,0,16,2,3,0,5,5,0]),
+                  ("RPR Hero", "Lost Repair Guide", [0,0,25,3,4,0,12,12,0]),
+                  ("RPR Special", "Special Repair Guide", [0,0,50,2,3,0,8,8,0]),
+                  ("RPR Legendary", "Legendary Repair Guide", [0,0,100,1,1,0,3,3,0]),
+                  ("SCI Common", "Drop of Brain Juice", [0,0,1,1,1,0,2,0,0]),
+                  ("SCI Elite", "Sliver of Brain Juice", [0,0,2,2,1,0,4,0,0]),
+                  ("SCI Unique", "Brew of Brain Juice", [0,0,3,3,3,0,8,0,1]),
+                  ("SCI Epic", "Tincture of Brain Juice", [0,0,5,5,3,0,16,0,2]),
+                  ("SCI Hero", "Solution of Brain Juice", [0,0,12,12,4,0,25,0,3]),
+                  ("SCI Special", "Concentration of Brain Juice", [0,0,8,8,3,0,50,0,2]),
+                  ("SCI Legendary", "Elixir of Brain Juice", [0,0,3,3,1,0,100,0,1]),
+                  ("SCI Green", "Big Book of Science", [0,0,0,0,0,0,4,1,0]),
+                  ("SCI Blue", "Scientific Summit", [0,0,1,0,0,0,8,1,1]),
+                  ("SCI Gold", "Science PHD", [0,0,0,0,0,0,12,2,1]),
+                  ("STA Common", "Small Cola", [1,1,1,1,8,1,1,1,1]),
+                  ("STA Elite", "Large Cola", [1,1,1,1,12,1,1,1,1]),
+                  ("STA Unique", "Mountain Brew", [2,2,2,2,16,2,2,2,2]),
+                  ("STA Epic", "Pink Cow", [3,3,3,3,24,3,3,3,3]),
+                  ("STA Hero", "Large Pink Cow", [4,4,4,4,32,4,4,4,4]),
+                  ("STA Special", "U", [3,3,3,3,64,3,3,3,3]),
+                  ("STA Legendary", "Father", [2,2,2,2,110,2,2,2,2]),
+                  ("STA Green", "Weighted Run", [0,0,0,0,5,0,0,0,0]),
+                  ("STA Blue", "Hardcore Aerobics", [2,2,0,2,8,0,0,0,0]),
+                  ("STA Gold", "Everest Climb", [3,3,0,3,16,0,0,0,0]),
+                  ("WPN Common", "Military Recruit Handbook", [0,1,0,0,1,1,0,0,2]),
+                  ("WPN Elite", "Standard Combat Manual", [0,2,0,0,1,2,0,0,4]),
+                  ("WPN Unique", "Galetrooper Training Manual", [0,3,0,0,3,3,1,0,8]),
+                  ("WPN Epic", "Advanced Combat Manual", [0,5,0,0,3,5,2,0,16]),
+                  ("WPN Hero", "Veteran’s Guidebook", [0,12,0,0,4,12,3,0,25]),
+                  ("WPN Special", "How To Shoot Your Shot'", [0,8,0,0,3,8,2,0,50]),
+                  ("WPN Legendary", "Sharpshooter’s Cheatbook", [0,3,0,0,1,3,1,0,100]),
+                  ("WPN Green", "Read Expert Weapon Theory", [0,0,0,0,0,0,1,0,4]),
+                  ("WPN Blue", "Weapons Summit", [0,0,1,0,0,1,1,0,8]),
+                  ("WPN Gold", "Weapons PHD", [0,0,2,0,0,0,0,1,12])
+            ]
+            self.crewStats = [[0, 0] for _ in range(9)]
+            self.trainingStats = [[0] for _ in range(9)]
+            self.itemTrainingStats = [[0] for _ in range(9)]
 
-            for row in sheet.iter_rows(min_row=2, values_only=True):  # Start from the second row assuming the first row is header
-                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row
-                  query.prepare(f"INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) "
-                      "VALUES (?, ?, ?, ?, ?, ?, ?)")
-                  query.addBindValue(playername)
-                  query.addBindValue(fleetname)
-                  query.addBindValue(laststars)
-                  query.addBindValue(beststars)
-                  query.addBindValue(trophies)
-                  query.addBindValue(maxtrophies)
-                  query.addBindValue(notes)
-                  if query.exec():
-                        counter += 1
+            self.statsTable = self.findChild(QTableView, "crewStatTable")
+            self.model = self.StatsTableModel(self.crewStats, self)
+            self.trainingTable = self.findChild(QTableView, "trainingListValuesTable")
+            self.trainingmodel = self.TrainingListTableModel(self.itemTrainingStats, self)
+            self.statsTable.setModel(self.model)
+            self.statsTable.setColumnWidth(0,50)
+            self.statsTable.setColumnWidth(1,90)
+            self.statsTable.setColumnWidth(2,90)
+            self.trainingTable.setModel(self.trainingmodel)
+            self.trainingTable.setColumnWidth(0,50)
+            self.trainingTable.setColumnWidth(1,50)
+            self.trainingPointsBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
+            self.trainingStatBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
+            self.trainingLevelBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
+            self.fatigueBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
+
+            for i in range(9):
+                  if i == 1:
+                        self.trainingTable.setRowHeight(i,1)
                   else:
-                        throwErrorMessage("Targets Database Insertion Error:", query.lastError().text())
+                        self.trainingTable.setRowHeight(i,10)
+            self.testPushButton.clicked.connect(self.updateTrainingData)
+      def updateTrainingData(self): #This function will modify data in the table based on changing dropdown
+            max_training_points = int(self.trainingPointsBox.currentText())
+            total_tp = sum(int(self.crewStats[i][0]) for i in range (9))
+            training_stat = self.trainingStatBox.currentText()
+            training_level = self.trainingLevelBox.currentText()
+            fatigue = self.fatigueBox.currentText()
+            fatigue_m = {
+                  '0': 1,
+                  '1-50': 0.5,
+                  '51-99': 0.3,
+                  '100': 0
+            }
+            fatigue_m = fatigue_m.get(fatigue, 1)
+            crew_stats_m = {}
+
+            for i, (stat_name, _) in enumerate([('hp', 1), ('atk', 1), ('rpr', 1), ('abl', 1), ('sta', 1), ('plt', 1), ('sci', 1), ('eng', 1), ('wpn', 1)]):
+                  crew_stat_value = self.crewStats[i][0]
+                  crew_stats_m[stat_name] = int(fatigue_m) * (1 - (total_tp / max_training_points)) * (1 - (float(crew_stat_value) / max_training_points))
+            for i, (stat_name, _) in enumerate([('hp', 1), ('atk', 1), ('rpr', 1), ('abl', 1), ('sta', 1), ('plt', 1), ('sci', 1), ('eng', 1), ('wpn', 1)]):
+                  self.crewStats[i][1] = round(crew_stats_m[stat_name],3)
+
+
+            return
+      def onComboBoxValueChanged(self, index):
+            self.getConsumableName()            
+            self.updateTrainingData()
+      class TrainingStatTableModel(QAbstractTableModel):
+            def __init__(self, values, parent=None):
+                  super().__init__()
+                  self.values = values
+                  self.verticalHeaders = ['HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN']
+                  self.horizontalHeaders = ['']
+            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+                  if role == Qt.ItemDataRole.DisplayRole:
+                        if orientation == Qt.Orientation.Horizontal and section < len(self.horizontalHeaders):
+                              return self.horizontalHeaders[section]
+                        elif role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
+                              return self.verticalHeaders[section]
+                  return None
+            def rowCount(self, parent):
+                  return len(self.values)
+            def columnCount(self, parent):
+                  return 1  # Assuming you have only one column
+            def data(self, index, role):
+                  if role == Qt.ItemDataRole.DisplayRole:
+                        row = index.row()
+                        if 0 <= row < len(self.values):
+                              return str(self.values[row])
+                  return None
+      class TrainingListTableModel(QAbstractTableModel):
+            def __init__(self, data, parent=None):
+                  super().__init__()
+                  self._data = data
+                  self.parent = parent
+                  self.verticalHeaders = ['HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN']
+                  self.horizontalHeaders = ['']
+            def rowCount(self, index):
+                  return len(self._data)
+            def columnCount(self, index):
+                  return len(self._data[0])
+            def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+                  if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
+                        return str(self._data[index.row()][index.column()])
+            def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+                  if index.isValid():
+                        self._data[index.row()][index.column()] = value
+                        self.dataChanged.emit(index, index)
+                        self.parent.updateTrainingData()
+                        return True
+                  return False
+            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+                  if role == Qt.ItemDataRole.DisplayRole:
+                        if orientation == Qt.Orientation.Horizontal and section < len(self.horizontalHeaders):
+                              return self.horizontalHeaders[section]
+                        elif role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
+                              return self.verticalHeaders[section]
+                  return None
+            def getCellValue(self, row, column):
+                  return self._data[row][column]
+            def flags(self, index):
+                  return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+      class StatsTableModel(QAbstractTableModel):
+            def __init__(self, data, parent=None):
+                  super().__init__()
+                  self._data = data
+                  self.parent = parent
+                  self.verticalHeaders = ['HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN']
+                  self.horizontalHeaders = ['Current', 'Multiplier', '% Required']
+            def rowCount(self, index):
+                  return len(self._data)
+            def columnCount(self, index):
+                  return len(self._data[0])
+            def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+                  if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
+                        return str(self._data[index.row()][index.column()])
+            def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+                  if index.isValid():
+                        self._data[index.row()][index.column()] = value
+                        self.dataChanged.emit(index, index)
+                        self.parent.updateTrainingData()
+                        return True
+                  return False
+            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+                  if role == Qt.ItemDataRole.DisplayRole:
+                        if orientation == Qt.Orientation.Horizontal and section < len(self.horizontalHeaders):
+                              return self.horizontalHeaders[section]
+                        elif role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
+                              return self.verticalHeaders[section]
+                  return None
+            def getCellValue(self, row, column):
+                  return self._data[row][column]
+            def flags(self, index):
+                  if index.column() >= 1:
+                        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+                  else:
+                        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
+      def getConsumableName(self):          
+            training_stat = self.trainingStatBox.currentText()
+            training_level = self.trainingLevelBox.currentText()
             
-            QSqlDatabase.database("targetsdb").close()
-            return counter
-      def importCSV(self, file_path):
-            counter = 0
-            data_to_insert = []
-            with open(file_path, 'r', encoding='utf-8') as csvfile:
-                  reader = csv.reader(csvfile, delimiter=';')
-                  for row in reader:
-                        specific_data = (row[2], row[1], row[7], row[7], row[5], row[6], " ")
-                        data_to_insert.append(specific_data)
-    
-            db = QSqlDatabase.database("targetsdb")
-            if not db.open():
-                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
-                  return counter
-    
-            query = QSqlQuery(db)
-            query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
-    
-            for specific_data in data_to_insert:
-                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = specific_data
-                  count_query = QSqlQuery(db)
-                  count_query.prepare("SELECT COUNT(*) FROM players WHERE playername = ? AND fleetname = ?")
-                  count_query.addBindValue(playername)
-                  count_query.addBindValue(fleetname)
-                  count_query.exec()
-                  count_query.next()
-                  count = count_query.value(0)
-                  
-                  query.prepare("INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
-                  query.addBindValue(playername)
-                  query.addBindValue(fleetname)
-                  query.addBindValue(laststars)
-                  query.addBindValue(beststars)
-                  query.addBindValue(trophies)
-                  query.addBindValue(maxtrophies)
-                  query.addBindValue(notes)
-        
-                  if query.exec():
-                        counter += 1
+            parseName = training_stat+" "+training_level
+            result = next((item for item in self.trainingList if item[0] == parseName), None)
+            self.trainingTypeName.setText(result[1])
+            self.trainingTable.setModel(None)
+
+            if result[2]:
+                  values = result[2]
+                  model = self.TrainingStatTableModel(values)
+                  self.trainingTable.setModel(model)
+            for i in range(9):
+                  if i == 1:
+                        self.trainingTable.setRowHeight(i,1)
                   else:
-                        throwErrorMessage("Database Error", query.lastError().text())
-            db.commit()
-            print("oops?")
-            return counter
+                        self.trainingTable.setRowHeight(i,10)
 ## Startup and program operation
 if __name__ == "__main__":
+      app = QtWidgets.QApplication(sys.argv)
       if create_connection():
             create_table()
       else:
             sys.exit(1)
-      app = QtWidgets.QApplication(sys.argv)
       window = MainWindow()
       app.exec()
