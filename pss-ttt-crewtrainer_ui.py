@@ -12,7 +12,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_CrewTrainer(object):
     def setupUi(self, CrewTrainer):
         CrewTrainer.setObjectName("CrewTrainer")
-        CrewTrainer.resize(513, 447)
+        CrewTrainer.resize(526, 675)
         self.crewStatTable = QtWidgets.QTableView(parent=CrewTrainer)
         self.crewStatTable.setGeometry(QtCore.QRect(80, 10, 181, 301))
         self.crewStatTable.setAlternatingRowColors(True)
@@ -87,6 +87,9 @@ class Ui_CrewTrainer(object):
         self.trainingTypeName.setText("")
         self.trainingTypeName.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.trainingTypeName.setObjectName("trainingTypeName")
+        self.trainingChartTable = QtWidgets.QTableView(parent=CrewTrainer)
+        self.trainingChartTable.setGeometry(QtCore.QRect(10, 320, 511, 331))
+        self.trainingChartTable.setObjectName("trainingChartTable")
 
         self.retranslateUi(CrewTrainer)
         QtCore.QMetaObject.connectSlotsByName(CrewTrainer)
