@@ -37,32 +37,7 @@
    </property>
    <item>
     <property name="text">
-     <string>50</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>60</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>70</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>80</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>90</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>100</string>
+     <string>200</string>
     </property>
    </item>
    <item>
@@ -72,7 +47,32 @@
    </item>
    <item>
     <property name="text">
-     <string>200</string>
+     <string>100</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>90</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>80</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>70</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>60</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>50</string>
     </property>
    </item>
   </widget>

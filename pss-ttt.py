@@ -1,7 +1,8 @@
 from PyQt6 import QtWidgets, uic, QtCore
-from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QSize
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
+from PyQt6.QtGui import QColor
 from datetime import date
 from openpyxl import load_workbook
 from decimal import Decimal
@@ -629,93 +630,182 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             uic.loadUi('pss-ttt-crewtrainer.ui', self)
 
             self.trainingList = [
-                  ("ABL Common", "Paracetamol", [1,0,0,2,1,1,0,0,0]),
-                  ("ABL Elite", "Paracetamol Rapid", [2,0,0,4,1,2,0,0,0]),
-                  ("ABL Unique", "Ibuprofen", [3,0,0,8,3,3,0,0,1]),
-                  ("ABL Epic", "Ibuprofen Rapid", [5,0,0,16,3,5,0,0,2]),
-                  ("ABL Hero", "Ginkgo", [12,0,0,25,4,12,0,0,3]),
-                  ("ABL Special", "Brain Enhancer", [8,0,0,50,3,8,0,0,2]),
-                  ("ABL Legendary", "Super Brain Enhancer", [3,0,0,100,1,3,0,0,1]),
-                  ("ABL Green", "Steam Yoga", [0,0,0,4,1,0,0,0,0]),
-                  ("ABL Blue", "Crew vs Wild", [1,1,0,8,1,0,0,0,0]),
-                  ("ABL Gold", "Space Marine", [1,1,0,12,2,0,0,0,0]),
-                  ("ATK Common", "Chicken Skewer", [0,2,0,1,1,0,0,0,1]),
-                  ("ATK Elite", "Yakitori", [0,4,0,2,1,0,0,0,2]),
-                  ("ATK Unique", "Double Yakitori", [1,8,0,3,3,0,0,0,3]),
-                  ("ATK Epic", "Shish Kebabs", [2,16,0,5,3,0,0,0,5]),
-                  ("ATK Hero", "Drumsticks", [3,25,0,12,4,0,0,0,12]),
-                  ("ATK Special", "Steak", [2,50,0,8,3,0,0,0,8]),
-                  ("ATK Legendary", "Roast Turkey", [1,100,0,3,1,0,0,0,3]),
-                  ("ATK Green", "Kickbox", [0,4,0,0,1,0,0,0,0]),
-                  ("ATK Blue", "BJJ", [1,8,0,1,1,0,0,0,0]),
-                  ("ATK Gold", "Shaolin Tradition", [1,12,0,1,2,0,0,0,0]),
-                  ("ENG Common", "Standard Engineering Tool Kit", [0,0,1,0,1,0,1,2,0]),
-                  ("ENG Elite", "Obsolete Engineering Tool Kit", [0,0,2,0,1,0,2,4,0]),
-                  ("ENG Unique", "Starter Engineering Tool Kit", [0,0,3,0,3,1,3,8,0]),
-                  ("ENG Epic", "Advanced Engineering Tool Kit", [0,0,5,0,3,2,5,16,0]),
-                  ("ENG Hero", "Rare Engineering Tool Kit", [0,0,12,0,4,3,12,25,0]),
-                  ("ENG Special", "Prototype Engineering Tool Kit", [0,0,8,0,3,2,8,50,0]),
-                  ("ENG Legendary", "Alien Engineering Tool Kit", [0,0,3,0,1,1,3,100,0]),
-                  ("ENG Green", "Study Expert Engineering Manual", [0,0,1,0,0,0,0,4,0]),
-                  ("ENG Blue", "Engineering Summit", [0,0,1,0,0,1,1,8,0]),
-                  ("ENG Gold", "Engineering PHD", [0,0,2,0,0,0,0,12,1]),
-                  ("HP Common", "Small Protein Shake", [2,1,0,0,1,0,0,1,0]),
-                  ("HP Elite", "Regular Protein Shake", [4,2,0,0,1,0,0,2,0]),
-                  ("HP Unique", "Large Protein Shake", [8,3,0,1,3,0,0,3,0]),
-                  ("HP Epic", "Super Protein Shake", [16,5,0,2,3,0,0,5,0]),
-                  ("HP Hero", "HGH", [25,12,0,3,4,0,0,12,0]),
-                  ("HP Special", "Enhanced HGH", [50,8,0,2,3,0,0,8,0]),
-                  ("HP Legendary", "Prototype HGH", [100,3,0,1,1,0,0,3,0]),
-                  ("HP Green", "Bench Press", [4,0,0,0,1,0,0,0,0]),
-                  ("HP Blue", "Muscle Beach", [8,1,0,1,1,0,0,0,0]),
-                  ("HP Gold", "Olympic Weightlifting", [12,1,0,1,2,0,0,0,0]),
-                  ("PLT Common", "Street Map", [0,0,0,0,1,2,0,1,1]),
-                  ("PLT Elite", "Travel Map", [0,0,0,0,1,4,0,2,2]),
-                  ("PLT Unique", "World Map", [0,1,0,0,3,8,0,3,3]),
-                  ("PLT Epic", "Global Map", [0,2,0,0,3,16,0,5,5]),
-                  ("PLT Hero", "System Map", [0,3,0,0,4,25,0,12,12]),
-                  ("PLT Special", "Star Map", [0,2,0,0,3,50,0,8,8]),
-                  ("PLT Legendary", "Galactic Navigation Map", [0,1,0,0,1,100,0,3,3]),
+                  ("ABL Green", "Steam Yoga", [0,0,4,1,0,0,0,0,0]),
+                  ("ABL Blue", "Crew vs Wild", [1,1,8,1,0,0,0,0,0]),
+                  ("ABL Gold", "Space Marine", [1,1,12,2,0,0,0,0,0]),
+                  ("ABL Common", "Paracetamol", [1,0,2,1,0,1,0,0,0]),
+                  ("ABL Elite", "Paracetamol Rapid", [2,0,4,1,0,2,0,0,0]),
+                  ("ABL Unique", "Ibuprofen", [3,0,8,3,0,3,0,0,1]),
+                  ("ABL Epic", "Ibuprofen Rapid", [5,0,16,3,0,5,0,0,2]),
+                  ("ABL Hero", "Ginkgo", [12,0,24,4,0,12,0,0,3]),
+                  ("ABL Special", "Brain Enhancer", [8,0,48,3,0,8,0,0,2]),
+                  ("ABL Legendary", "Super Brain Enhancer", [3,0,96,1,0,3,0,0,1]),
+                  ("ATK Green", "Kickbox", [0,4,0,1,0,0,0,0,0]),
+                  ("ATK Blue", "BJJ", [1,8,1,1,0,0,0,0,0]),
+                  ("ATK Gold", "Shaolin Tradition", [1,12,1,2,0,0,0,0,0]),
+                  ("ATK Common", "Chicken Skewer", [0,2,1,1,0,0,0,0,1]),
+                  ("ATK Elite", "Yakitori", [0,4,2,1,0,0,0,0,2]),
+                  ("ATK Unique", "Double Yakitori", [1,8,3,3,0,0,0,0,3]),
+                  ("ATK Epic", "Shish Kebabs", [2,16,5,3,0,0,0,0,5]),
+                  ("ATK Hero", "Drumsticks", [3,24,12,4,0,0,0,0,12]),
+                  ("ATK Special", "Steak", [2,48,8,3,0,0,0,0,8]),
+                  ("ATK Legendary", "Roast Turkey", [1,96,3,1,0,0,0,0,3]),
+                  ("ENG Green", "Study Expert Engineering Manual", [0,0,0,0,1,0,0,4,0]),
+                  ("ENG Blue", "Engineering Summit", [0,0,0,0,1,1,1,8,0]),
+                  ("ENG Gold", "Engineering PhD", [0,0,0,0,2,0,0,12,1]),
+                  ("ENG Common", "Standard Engineering Tool Kit", [0,0,0,1,1,0,1,2,0]),
+                  ("ENG Elite", "Obsolete Engineering Tool Kit", [0,0,0,1,2,0,2,4,0]),
+                  ("ENG Unique", "Starter Engineering Tool Kit", [0,0,0,3,3,1,3,8,0]),
+                  ("ENG Epic", "Advanced Engineering Tool Kit", [0,0,0,3,5,2,5,16,0]),
+                  ("ENG Hero", "Rare Engineering Tool Kit", [0,0,0,4,12,3,12,24,0]),
+                  ("ENG Special", "Prototype Engineering Tool Kit", [0,0,0,3,8,2,8,48,0]),
+                  ("ENG Legendary", "Alien Engineering Tool Kit", [0,0,0,1,3,1,3,96,0]),
+                  ("HP Green", "Bench Press", [4,0,0,1,0,0,0,0,0]),
+                  ("HP Blue", "Muscle Beach", [8,1,1,1,0,0,0,0,0]),
+                  ("HP Gold", "Olympic Weightlifting", [12,1,1,2,0,0,0,0,0]),
+                  ("HP Common", "Small Protein Shake", [2,1,0,1,0,0,0,1,0]),
+                  ("HP Elite", "Regular Protein Shake", [4,2,0,1,0,0,0,2,0]),
+                  ("HP Unique", "Large Protein Shake", [8,3,1,3,0,0,0,3,0]),
+                  ("HP Epic", "Super Protein Shake", [16,5,2,3,0,0,0,5,0]),
+                  ("HP Hero", "HGH", [24,12,3,4,0,0,0,12,0]),
+                  ("HP Special", "Enhanced HGH", [48,8,2,3,0,0,0,8,0]),
+                  ("HP Legendary", "Prototype HGH", [96,3,1,1,0,0,0,3,0]),
                   ("PLT Green", "Read Expert Pilot Handbook", [0,0,0,0,0,4,0,0,1]),
-                  ("PLT Blue", "Pilot Summit", [0,0,1,0,0,8,0,1,1]),
-                  ("PLT Gold", "Pilot Expert", [0,0,1,0,0,12,0,0,2]),
-                  ("RPR Common", "Repair Guide", [0,0,2,0,1,0,1,1,0]),
-                  ("RPR Elite", "New Repair Guide", [0,0,4,0,1,0,2,2,0]),
-                  ("RPR Unique", "Advanced Repair Guide", [0,0,8,1,3,0,3,3,0]),
-                  ("RPR Epic", "Epic Repair Guide", [0,0,16,2,3,0,5,5,0]),
-                  ("RPR Hero", "Lost Repair Guide", [0,0,25,3,4,0,12,12,0]),
-                  ("RPR Special", "Special Repair Guide", [0,0,50,2,3,0,8,8,0]),
-                  ("RPR Legendary", "Legendary Repair Guide", [0,0,100,1,1,0,3,3,0]),
-                  ("SCI Common", "Drop of Brain Juice", [0,0,1,1,1,0,2,0,0]),
-                  ("SCI Elite", "Sliver of Brain Juice", [0,0,2,2,1,0,4,0,0]),
-                  ("SCI Unique", "Brew of Brain Juice", [0,0,3,3,3,0,8,0,1]),
-                  ("SCI Epic", "Tincture of Brain Juice", [0,0,5,5,3,0,16,0,2]),
-                  ("SCI Hero", "Solution of Brain Juice", [0,0,12,12,4,0,25,0,3]),
-                  ("SCI Special", "Concentration of Brain Juice", [0,0,8,8,3,0,50,0,2]),
-                  ("SCI Legendary", "Elixir of Brain Juice", [0,0,3,3,1,0,100,0,1]),
+                  ("PLT Blue", "Pilot Summit", [0,0,0,0,1,8,0,1,1]),
+                  ("PLT Gold", "Pilot Expert", [0,0,0,0,1,12,0,0,2]),
+                  ("PLT Common", "Street Map", [0,0,0,1,0,2,0,1,1]),
+                  ("PLT Elite", "Travel Map", [0,0,0,1,0,4,0,2,2]),
+                  ("PLT Unique", "World Map", [0,1,0,3,0,8,0,3,3]),
+                  ("PLT Epic", "Global Map", [0,2,0,3,0,16,0,5,5]),
+                  ("PLT Hero", "System Map", [0,3,0,4,0,24,0,12,12]),
+                  ("PLT Special", "Star Map", [0,2,0,3,0,48,0,8,8]),
+                  ("PLT Legendary", "Galactic Navigation Map", [0,1,0,1,0,96,0,3,3]),
+                  ("RPR Common", "Repair Guide", [0,0,0,1,2,0,1,1,0]),
+                  ("RPR Elite", "New Repair Guide", [0,0,0,1,4,0,2,2,0]),
+                  ("RPR Unique", "Advanced Repair Guide", [0,0,1,3,8,0,3,3,0]),
+                  ("RPR Epic", "Epic Repair Guide", [0,0,2,3,16,0,5,5,0]),
+                  ("RPR Hero", "Lost Repair Guide", [0,0,3,4,24,0,12,12,0]),
+                  ("RPR Special", "Special Repair Guide", [0,0,2,3,48,0,8,8,0]),
+                  ("RPR Legendary", "Legendary Repair Guide", [0,0,1,1,96,0,3,3,0]),
                   ("SCI Green", "Big Book of Science", [0,0,0,0,0,0,4,1,0]),
-                  ("SCI Blue", "Scientific Summit", [0,0,1,0,0,0,8,1,1]),
-                  ("SCI Gold", "Science PHD", [0,0,0,0,0,0,12,2,1]),
-                  ("STA Common", "Small Cola", [1,1,1,1,8,1,1,1,1]),
-                  ("STA Elite", "Large Cola", [1,1,1,1,12,1,1,1,1]),
-                  ("STA Unique", "Mountain Brew", [2,2,2,2,16,2,2,2,2]),
-                  ("STA Epic", "Pink Cow", [3,3,3,3,24,3,3,3,3]),
-                  ("STA Hero", "Large Pink Cow", [4,4,4,4,32,4,4,4,4]),
-                  ("STA Special", "U", [3,3,3,3,64,3,3,3,3]),
-                  ("STA Legendary", "Father", [2,2,2,2,110,2,2,2,2]),
-                  ("STA Green", "Weighted Run", [0,0,0,0,5,0,0,0,0]),
-                  ("STA Blue", "Hardcore Aerobics", [2,2,0,2,8,0,0,0,0]),
-                  ("STA Gold", "Everest Climb", [3,3,0,3,16,0,0,0,0]),
-                  ("WPN Common", "Military Recruit Handbook", [0,1,0,0,1,1,0,0,2]),
-                  ("WPN Elite", "Standard Combat Manual", [0,2,0,0,1,2,0,0,4]),
-                  ("WPN Unique", "Galetrooper Training Manual", [0,3,0,0,3,3,1,0,8]),
-                  ("WPN Epic", "Advanced Combat Manual", [0,5,0,0,3,5,2,0,16]),
-                  ("WPN Hero", "Veteran’s Guidebook", [0,12,0,0,4,12,3,0,25]),
-                  ("WPN Special", "How To Shoot Your Shot'", [0,8,0,0,3,8,2,0,50]),
-                  ("WPN Legendary", "Sharpshooter’s Cheatbook", [0,3,0,0,1,3,1,0,100]),
+                  ("SCI Blue", "Scientific Summit", [0,0,0,0,1,0,8,1,1]),
+                  ("SCI Gold", "Science PhD", [0,0,0,0,0,0,12,2,1]),
+                  ("SCI Common", "Drop of Brain Juice", [0,0,1,1,1,0,2,0,0]),
+                  ("SCI Elite", "Sliver of Brain Juice", [0,0,2,1,2,0,4,0,0]),
+                  ("SCI Unique", "Brew of Brain Juice", [0,0,3,3,3,0,8,0,1]),
+                  ("SCI Epic", "Tincture of Brain Juice", [0,0,5,3,5,0,16,0,2]),
+                  ("SCI Hero", "Solution of Brain Juice", [0,0,12,4,12,0,24,0,3]),
+                  ("SCI Special", "Concentrate of Brain Juice", [0,0,8,3,8,0,48,0,2]),
+                  ("SCI Legendary", "Elixir of Brain Juice", [0,0,3,1,3,0,96,0,1]),
+                  ("STA Green", "Weighted Run", [0,0,0,5,0,0,0,0,0]),
+                  ("STA Blue", "Hardcore Aerobics", [2,2,2,8,0,0,0,0,0]),
+                  ("STA Gold", "Everest Climb", [3,3,3,16,0,0,0,0,0]),
+                  ("STA Common", "Small Cola", [1,1,1,2,1,1,1,1,1]),
+                  ("STA Elite", "Large Cola", [1,1,1,4,1,1,1,1,1]),
+                  ("STA Unique", "Mountain Brew", [2,2,2,8,2,2,2,2,2]),
+                  ("STA Epic", "Pink Cow", [3,3,3,16,3,3,3,3,3]),
+                  ("STA Hero", "Large Pink Cow", [4,4,4,24,4,4,4,4,4]),
+                  ("STA Special", "U", [3,3,3,48,3,3,3,3,3]),
+                  ("STA Legendary", "Father", [2,2,2,96,2,2,2,2,2]),
                   ("WPN Green", "Read Expert Weapon Theory", [0,0,0,0,0,0,1,0,4]),
-                  ("WPN Blue", "Weapons Summit", [0,0,1,0,0,1,1,0,8]),
-                  ("WPN Gold", "Weapons PHD", [0,0,2,0,0,0,0,1,12])
+                  ("WPN Blue", "Weapons Summit", [0,0,0,0,1,1,1,0,8]),
+                  ("WPN Gold", "Weapons PhD", [0,0,0,0,2,0,0,1,12]),
+                  ("WPN Common", "Military Recruit Handbook", [0,1,0,1,0,1,0,0,2]),
+                  ("WPN Elite", "Standard Combat Manual", [0,2,0,1,0,2,0,0,4]),
+                  ("WPN Unique", "Galetrooper Training Manual", [0,3,0,3,0,3,1,0,8]),
+                  ("WPN Epic", "Elite Combat Manual", [0,5,0,3,0,5,2,0,16]),
+                  ("WPN Hero", "Veteran's Guidebook", [0,12,0,4,0,12,3,0,24]),
+                  ("WPN Special", "How To Shoot Your Shot'", [0,8,0,3,0,8,2,0,48]),
+                  ("WPN Legendary", "Sharpshooter's Cheatbook", [0,3,0,1,0,3,1,0,96]),
+            ]
+            self.baseTrainingList = [
+                  ("ABL Green", "Steam Yoga", [0,0,4,1,0,0,0,0,0]),
+                  ("ABL Blue", "Crew vs Wild", [1,1,8,1,0,0,0,0,0]),
+                  ("ABL Gold", "Space Marine", [1,1,12,2,0,0,0,0,0]),
+                  ("ABL Common", "Paracetamol", [1,0,2,1,0,1,0,0,0]),
+                  ("ABL Elite", "Paracetamol Rapid", [2,0,4,1,0,2,0,0,0]),
+                  ("ABL Unique", "Ibuprofen", [3,0,8,3,0,3,0,0,1]),
+                  ("ABL Epic", "Ibuprofen Rapid", [5,0,16,3,0,5,0,0,2]),
+                  ("ABL Hero", "Ginkgo", [12,0,24,4,0,12,0,0,3]),
+                  ("ABL Special", "Brain Enhancer", [8,0,48,3,0,8,0,0,2]),
+                  ("ABL Legendary", "Super Brain Enhancer", [3,0,96,1,0,3,0,0,1]),
+                  ("ATK Green", "Kickbox", [0,4,0,1,0,0,0,0,0]),
+                  ("ATK Blue", "BJJ", [1,8,1,1,0,0,0,0,0]),
+                  ("ATK Gold", "Shaolin Tradition", [1,12,1,2,0,0,0,0,0]),
+                  ("ATK Common", "Chicken Skewer", [0,2,1,1,0,0,0,0,1]),
+                  ("ATK Elite", "Yakitori", [0,4,2,1,0,0,0,0,2]),
+                  ("ATK Unique", "Double Yakitori", [1,8,3,3,0,0,0,0,3]),
+                  ("ATK Epic", "Shish Kebabs", [2,16,5,3,0,0,0,0,5]),
+                  ("ATK Hero", "Drumsticks", [3,24,12,4,0,0,0,0,12]),
+                  ("ATK Special", "Steak", [2,48,8,3,0,0,0,0,8]),
+                  ("ATK Legendary", "Roast Turkey", [1,96,3,1,0,0,0,0,3]),
+                  ("ENG Green", "Study Expert Engineering Manual", [0,0,0,0,1,0,0,4,0]),
+                  ("ENG Blue", "Engineering Summit", [0,0,0,0,1,1,1,8,0]),
+                  ("ENG Gold", "Engineering PhD", [0,0,0,0,2,0,0,12,1]),
+                  ("ENG Common", "Standard Engineering Tool Kit", [0,0,0,1,1,0,1,2,0]),
+                  ("ENG Elite", "Obsolete Engineering Tool Kit", [0,0,0,1,2,0,2,4,0]),
+                  ("ENG Unique", "Starter Engineering Tool Kit", [0,0,0,3,3,1,3,8,0]),
+                  ("ENG Epic", "Advanced Engineering Tool Kit", [0,0,0,3,5,2,5,16,0]),
+                  ("ENG Hero", "Rare Engineering Tool Kit", [0,0,0,4,12,3,12,24,0]),
+                  ("ENG Special", "Prototype Engineering Tool Kit", [0,0,0,3,8,2,8,48,0]),
+                  ("ENG Legendary", "Alien Engineering Tool Kit", [0,0,0,1,3,1,3,96,0]),
+                  ("HP Green", "Bench Press", [4,0,0,1,0,0,0,0,0]),
+                  ("HP Blue", "Muscle Beach", [8,1,1,1,0,0,0,0,0]),
+                  ("HP Gold", "Olympic Weightlifting", [12,1,1,2,0,0,0,0,0]),
+                  ("HP Common", "Small Protein Shake", [2,1,0,1,0,0,0,1,0]),
+                  ("HP Elite", "Regular Protein Shake", [4,2,0,1,0,0,0,2,0]),
+                  ("HP Unique", "Large Protein Shake", [8,3,1,3,0,0,0,3,0]),
+                  ("HP Epic", "Super Protein Shake", [16,5,2,3,0,0,0,5,0]),
+                  ("HP Hero", "HGH", [24,12,3,4,0,0,0,12,0]),
+                  ("HP Special", "Enhanced HGH", [48,8,2,3,0,0,0,8,0]),
+                  ("HP Legendary", "Prototype HGH", [96,3,1,1,0,0,0,3,0]),
+                  ("PLT Green", "Read Expert Pilot Handbook", [0,0,0,0,0,4,0,0,1]),
+                  ("PLT Blue", "Pilot Summit", [0,0,0,0,1,8,0,1,1]),
+                  ("PLT Gold", "Pilot Expert", [0,0,0,0,1,12,0,0,2]),
+                  ("PLT Common", "Street Map", [0,0,0,1,0,2,0,1,1]),
+                  ("PLT Elite", "Travel Map", [0,0,0,1,0,4,0,2,2]),
+                  ("PLT Unique", "World Map", [0,1,0,3,0,8,0,3,3]),
+                  ("PLT Epic", "Global Map", [0,2,0,3,0,16,0,5,5]),
+                  ("PLT Hero", "System Map", [0,3,0,4,0,24,0,12,12]),
+                  ("PLT Special", "Star Map", [0,2,0,3,0,48,0,8,8]),
+                  ("PLT Legendary", "Galactic Navigation Map", [0,1,0,1,0,96,0,3,3]),
+                  ("RPR Common", "Repair Guide", [0,0,0,1,2,0,1,1,0]),
+                  ("RPR Elite", "New Repair Guide", [0,0,0,1,4,0,2,2,0]),
+                  ("RPR Unique", "Advanced Repair Guide", [0,0,1,3,8,0,3,3,0]),
+                  ("RPR Epic", "Epic Repair Guide", [0,0,2,3,16,0,5,5,0]),
+                  ("RPR Hero", "Lost Repair Guide", [0,0,3,4,24,0,12,12,0]),
+                  ("RPR Special", "Special Repair Guide", [0,0,2,3,48,0,8,8,0]),
+                  ("RPR Legendary", "Legendary Repair Guide", [0,0,1,1,96,0,3,3,0]),
+                  ("SCI Green", "Big Book of Science", [0,0,0,0,0,0,4,1,0]),
+                  ("SCI Blue", "Scientific Summit", [0,0,0,0,1,0,8,1,1]),
+                  ("SCI Gold", "Science PhD", [0,0,0,0,0,0,12,2,1]),
+                  ("SCI Common", "Drop of Brain Juice", [0,0,1,1,1,0,2,0,0]),
+                  ("SCI Elite", "Sliver of Brain Juice", [0,0,2,1,2,0,4,0,0]),
+                  ("SCI Unique", "Brew of Brain Juice", [0,0,3,3,3,0,8,0,1]),
+                  ("SCI Epic", "Tincture of Brain Juice", [0,0,5,3,5,0,16,0,2]),
+                  ("SCI Hero", "Solution of Brain Juice", [0,0,12,4,12,0,24,0,3]),
+                  ("SCI Special", "Concentrate of Brain Juice", [0,0,8,3,8,0,48,0,2]),
+                  ("SCI Legendary", "Elixir of Brain Juice", [0,0,3,1,3,0,96,0,1]),
+                  ("STA Green", "Weighted Run", [0,0,0,5,0,0,0,0,0]),
+                  ("STA Blue", "Hardcore Aerobics", [2,2,2,8,0,0,0,0,0]),
+                  ("STA Gold", "Everest Climb", [3,3,3,16,0,0,0,0,0]),
+                  ("STA Common", "Small Cola", [1,1,1,2,1,1,1,1,1]),
+                  ("STA Elite", "Large Cola", [1,1,1,4,1,1,1,1,1]),
+                  ("STA Unique", "Mountain Brew", [2,2,2,8,2,2,2,2,2]),
+                  ("STA Epic", "Pink Cow", [3,3,3,16,3,3,3,3,3]),
+                  ("STA Hero", "Large Pink Cow", [4,4,4,24,4,4,4,4,4]),
+                  ("STA Special", "U", [3,3,3,48,3,3,3,3,3]),
+                  ("STA Legendary", "Father", [2,2,2,96,2,2,2,2,2]),
+                  ("WPN Green", "Read Expert Weapon Theory", [0,0,0,0,0,0,1,0,4]),
+                  ("WPN Blue", "Weapons Summit", [0,0,0,0,1,1,1,0,8]),
+                  ("WPN Gold", "Weapons PhD", [0,0,0,0,2,0,0,1,12]),
+                  ("WPN Common", "Military Recruit Handbook", [0,1,0,1,0,1,0,0,2]),
+                  ("WPN Elite", "Standard Combat Manual", [0,2,0,1,0,2,0,0,4]),
+                  ("WPN Unique", "Galetrooper Training Manual", [0,3,0,3,0,3,1,0,8]),
+                  ("WPN Epic", "Elite Combat Manual", [0,5,0,3,0,5,2,0,16]),
+                  ("WPN Hero", "Veteran's Guidebook", [0,12,0,4,0,12,3,0,24]),
+                  ("WPN Special", "How To Shoot Your Shot'", [0,8,0,3,0,8,2,0,48]),
+                  ("WPN Legendary", "Sharpshooter's Cheatbook", [0,3,0,1,0,3,1,0,96]),
             ]
             self.trainingChart = [
                   (" ", " ", [0,0,0,0,0,0,0,0,0]),
@@ -738,7 +828,8 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             self.trainingTable = self.findChild(QTableView, "trainingListValuesTable")
             self.trainingmodel = self.TrainingListTableModel(self.itemTrainingStats, self)
             self.chartTable = self.findChild(QTableView, "trainingChartTable")
-            self.chartModel = self.TrainingChartTableModel(self.trainingChart, self)
+            self.chartModel = self.TrainingChartTableModel(self.trainingChart, self.trainingStatBox)
+            self.trainignStatBox = self.findChild(QtWidgets.QComboBox, "trainingStatBox")
             self.statsTable.setModel(self.model)
             self.statsTable.setColumnWidth(0,50)
             self.statsTable.setColumnWidth(1,90)
@@ -759,12 +850,12 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         self.trainingTable.setRowHeight(i,10)
             for i in range(10):
                   if i == 0:
-                        self.chartTable.setColumnWidth(i,150)
+                        self.chartTable.setColumnWidth(i,125)
                   else:
                         self.chartTable.setColumnWidth(i,1)
-            self.testPushButton.clicked.connect(self.calculateTrainingChart)
+            self.testPushButton.clicked.connect(self.wipeCrewStats)
+            self.onComboBoxValueChanged()
       def calculateTrainingChart(self): #Builds training chart for the selected
-            #training_chart = {}
             selected_item = self.trainingStatBox.currentText()
             selected_key = selected_item[:3]
             selected_data_list = []
@@ -773,20 +864,12 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   key, name, data = item[0], item[1], item[2]
                   if key.startswith(selected_key):
                         selected_data_list.append((name, data))
-            self.model = self.TrainingChartTableModel(selected_data_list)
+            self.model = self.TrainingChartTableModel(selected_data_list, self.trainingStatBox)
             self.chartTable.setModel(self.model)
-
-            #for row, (name, data) in enumerate(selected_data_list):
-             #     self.model.setItem(row, 0, QStandardItem(name))
-              #    for col, value in enumerate(data):
-               #         self.model.setItem(row, col + 1, QStandardItem(str(value)))
-            
             return
       def updateFatigueMod(self): #Calculates training modifer based on fatigue
             max_training_points = int(self.trainingPointsBox.currentText())
             total_tp = sum(int(self.crewStats[i][0]) for i in range (9))
- #           training_stat = self.trainingStatBox.currentText()
-#            training_level = self.trainingLevelBox.currentText()
             fatigue = self.fatigueBox.currentText()
             fatigue_m = {
                   '0': 1,
@@ -796,16 +879,13 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             }
             fatigue_m = fatigue_m.get(fatigue, 1)
             crew_stats_m = {}
-
-            for i, (stat_name, _) in enumerate([('hp', 1), ('atk', 1), ('rpr', 1), ('abl', 1), ('sta', 1), ('plt', 1), ('sci', 1), ('eng', 1), ('wpn', 1)]):
+            for i, (stat_name, _) in enumerate([('hp', 1), ('atk', 1), ('abl', 1), ('sta', 1), ('rpr', 1), ('plt', 1), ('sci', 1), ('eng', 1), ('wpn', 1)]):
                   crew_stat_value = self.crewStats[i][0]
-                  crew_stats_m[stat_name] = int(fatigue_m) * (1 - (total_tp / max_training_points)) * (1 - (float(crew_stat_value) / max_training_points))
-            for i, (stat_name, _) in enumerate([('hp', 1), ('atk', 1), ('rpr', 1), ('abl', 1), ('sta', 1), ('plt', 1), ('sci', 1), ('eng', 1), ('wpn', 1)]):
+                  crew_stats_m[stat_name] = float(fatigue_m) * (1 - (total_tp / max_training_points)) * (1 - (float(crew_stat_value) / max_training_points))
+            for i, (stat_name, _) in enumerate([('hp', 1), ('atk', 1), ('abl', 1), ('sta', 1), ('rpr', 1), ('plt', 1), ('sci', 1), ('eng', 1), ('wpn', 1)]):
                   self.crewStats[i][1] = round(crew_stats_m[stat_name],3)
+            self.statsTable.viewport().update()
             return
-      def onComboBoxValueChanged(self, index):
-            self.getConsumableName()            
-            self.updateFatigueMod()
       def getConsumableName(self):
             training_stat = self.trainingStatBox.currentText()
             training_level = self.trainingLevelBox.currentText()
@@ -824,11 +904,127 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         self.trainingTable.setRowHeight(i,1)
                   else:
                         self.trainingTable.setRowHeight(i,10)
+      def modifyTrainingMethods(self):
+            selected_training_stat = self.trainingStatBox.currentText()            
+            modified_data_list = []
+            for item in self.trainingList:
+                  key, name, data = item[0], item[1], item[2]
+                  if key.startswith(selected_training_stat[:3]):
+                        modified_data_list.append((name, key, data))
+            self.resetTrainingData()
+            if selected_training_stat == "RPR":
+                  for i in range(7):
+                        for j in range(9):
+                              modified_data_list[i][2][j] *= self.crewStats[j][1]
+                              modified_data_list[i][2][j] = math.floor(modified_data_list[i][2][j])
+            else:
+                  for i in range(10):
+                        for j in range(9):
+                              modified_data_list[i][2][j] *= self.crewStats[j][1]
+                              modified_data_list[i][2][j] = math.floor(modified_data_list[i][2][j])
+      def onComboBoxValueChanged(self):
+            self.getConsumableName()
+            self.updateFatigueMod()
+            self.calculateTrainingChart()
+            self.modifyTrainingMethods()
+      def resetTrainingData(self):
+            self.trainingList = [
+                  ("ABL Green", "Steam Yoga", [0,0,4,1,0,0,0,0,0]),
+                  ("ABL Blue", "Crew vs Wild", [1,1,8,1,0,0,0,0,0]),
+                  ("ABL Gold", "Space Marine", [1,1,12,2,0,0,0,0,0]),
+                  ("ABL Common", "Paracetamol", [1,0,2,1,0,1,0,0,0]),
+                  ("ABL Elite", "Paracetamol Rapid", [2,0,4,1,0,2,0,0,0]),
+                  ("ABL Unique", "Ibuprofen", [3,0,8,3,0,3,0,0,1]),
+                  ("ABL Epic", "Ibuprofen Rapid", [5,0,16,3,0,5,0,0,2]),
+                  ("ABL Hero", "Ginkgo", [12,0,24,4,0,12,0,0,3]),
+                  ("ABL Special", "Brain Enhancer", [8,0,48,3,0,8,0,0,2]),
+                  ("ABL Legendary", "Super Brain Enhancer", [3,0,96,1,0,3,0,0,1]),
+                  ("ATK Green", "Kickbox", [0,4,0,1,0,0,0,0,0]),
+                  ("ATK Blue", "BJJ", [1,8,1,1,0,0,0,0,0]),
+                  ("ATK Gold", "Shaolin Tradition", [1,12,1,2,0,0,0,0,0]),
+                  ("ATK Common", "Chicken Skewer", [0,2,1,1,0,0,0,0,1]),
+                  ("ATK Elite", "Yakitori", [0,4,2,1,0,0,0,0,2]),
+                  ("ATK Unique", "Double Yakitori", [1,8,3,3,0,0,0,0,3]),
+                  ("ATK Epic", "Shish Kebabs", [2,16,5,3,0,0,0,0,5]),
+                  ("ATK Hero", "Drumsticks", [3,24,12,4,0,0,0,0,12]),
+                  ("ATK Special", "Steak", [2,48,8,3,0,0,0,0,8]),
+                  ("ATK Legendary", "Roast Turkey", [1,96,3,1,0,0,0,0,3]),
+                  ("ENG Green", "Study Expert Engineering Manual", [0,0,0,0,1,0,0,4,0]),
+                  ("ENG Blue", "Engineering Summit", [0,0,0,0,1,1,1,8,0]),
+                  ("ENG Gold", "Engineering PhD", [0,0,0,0,2,0,0,12,1]),
+                  ("ENG Common", "Standard Engineering Tool Kit", [0,0,0,1,1,0,1,2,0]),
+                  ("ENG Elite", "Obsolete Engineering Tool Kit", [0,0,0,1,2,0,2,4,0]),
+                  ("ENG Unique", "Starter Engineering Tool Kit", [0,0,0,3,3,1,3,8,0]),
+                  ("ENG Epic", "Advanced Engineering Tool Kit", [0,0,0,3,5,2,5,16,0]),
+                  ("ENG Hero", "Rare Engineering Tool Kit", [0,0,0,4,12,3,12,24,0]),
+                  ("ENG Special", "Prototype Engineering Tool Kit", [0,0,0,3,8,2,8,48,0]),
+                  ("ENG Legendary", "Alien Engineering Tool Kit", [0,0,0,1,3,1,3,96,0]),
+                  ("HP Green", "Bench Press", [4,0,0,1,0,0,0,0,0]),
+                  ("HP Blue", "Muscle Beach", [8,1,1,1,0,0,0,0,0]),
+                  ("HP Gold", "Olympic Weightlifting", [12,1,1,2,0,0,0,0,0]),
+                  ("HP Common", "Small Protein Shake", [2,1,0,1,0,0,0,1,0]),
+                  ("HP Elite", "Regular Protein Shake", [4,2,0,1,0,0,0,2,0]),
+                  ("HP Unique", "Large Protein Shake", [8,3,1,3,0,0,0,3,0]),
+                  ("HP Epic", "Super Protein Shake", [16,5,2,3,0,0,0,5,0]),
+                  ("HP Hero", "HGH", [24,12,3,4,0,0,0,12,0]),
+                  ("HP Special", "Enhanced HGH", [48,8,2,3,0,0,0,8,0]),
+                  ("HP Legendary", "Prototype HGH", [96,3,1,1,0,0,0,3,0]),
+                  ("PLT Green", "Read Expert Pilot Handbook", [0,0,0,0,0,4,0,0,1]),
+                  ("PLT Blue", "Pilot Summit", [0,0,0,0,1,8,0,1,1]),
+                  ("PLT Gold", "Pilot Expert", [0,0,0,0,1,12,0,0,2]),
+                  ("PLT Common", "Street Map", [0,0,0,1,0,2,0,1,1]),
+                  ("PLT Elite", "Travel Map", [0,0,0,1,0,4,0,2,2]),
+                  ("PLT Unique", "World Map", [0,1,0,3,0,8,0,3,3]),
+                  ("PLT Epic", "Global Map", [0,2,0,3,0,16,0,5,5]),
+                  ("PLT Hero", "System Map", [0,3,0,4,0,24,0,12,12]),
+                  ("PLT Special", "Star Map", [0,2,0,3,0,48,0,8,8]),
+                  ("PLT Legendary", "Galactic Navigation Map", [0,1,0,1,0,96,0,3,3]),
+                  ("RPR Common", "Repair Guide", [0,0,0,1,2,0,1,1,0]),
+                  ("RPR Elite", "New Repair Guide", [0,0,0,1,4,0,2,2,0]),
+                  ("RPR Unique", "Advanced Repair Guide", [0,0,1,3,8,0,3,3,0]),
+                  ("RPR Epic", "Epic Repair Guide", [0,0,2,3,16,0,5,5,0]),
+                  ("RPR Hero", "Lost Repair Guide", [0,0,3,4,24,0,12,12,0]),
+                  ("RPR Special", "Special Repair Guide", [0,0,2,3,48,0,8,8,0]),
+                  ("RPR Legendary", "Legendary Repair Guide", [0,0,1,1,96,0,3,3,0]),
+                  ("SCI Green", "Big Book of Science", [0,0,0,0,0,0,4,1,0]),
+                  ("SCI Blue", "Scientific Summit", [0,0,0,0,1,0,8,1,1]),
+                  ("SCI Gold", "Science PhD", [0,0,0,0,0,0,12,2,1]),
+                  ("SCI Common", "Drop of Brain Juice", [0,0,1,1,1,0,2,0,0]),
+                  ("SCI Elite", "Sliver of Brain Juice", [0,0,2,1,2,0,4,0,0]),
+                  ("SCI Unique", "Brew of Brain Juice", [0,0,3,3,3,0,8,0,1]),
+                  ("SCI Epic", "Tincture of Brain Juice", [0,0,5,3,5,0,16,0,2]),
+                  ("SCI Hero", "Solution of Brain Juice", [0,0,12,4,12,0,24,0,3]),
+                  ("SCI Special", "Concentrate of Brain Juice", [0,0,8,3,8,0,48,0,2]),
+                  ("SCI Legendary", "Elixir of Brain Juice", [0,0,3,1,3,0,96,0,1]),
+                  ("STA Green", "Weighted Run", [0,0,0,5,0,0,0,0,0]),
+                  ("STA Blue", "Hardcore Aerobics", [2,2,2,8,0,0,0,0,0]),
+                  ("STA Gold", "Everest Climb", [3,3,3,16,0,0,0,0,0]),
+                  ("STA Common", "Small Cola", [1,1,1,2,1,1,1,1,1]),
+                  ("STA Elite", "Large Cola", [1,1,1,4,1,1,1,1,1]),
+                  ("STA Unique", "Mountain Brew", [2,2,2,8,2,2,2,2,2]),
+                  ("STA Epic", "Pink Cow", [3,3,3,16,3,3,3,3,3]),
+                  ("STA Hero", "Large Pink Cow", [4,4,4,24,4,4,4,4,4]),
+                  ("STA Special", "U", [3,3,3,48,3,3,3,3,3]),
+                  ("STA Legendary", "Father", [2,2,2,96,2,2,2,2,2]),
+                  ("WPN Green", "Read Expert Weapon Theory", [0,0,0,0,0,0,1,0,4]),
+                  ("WPN Blue", "Weapons Summit", [0,0,0,0,1,1,1,0,8]),
+                  ("WPN Gold", "Weapons PhD", [0,0,0,0,2,0,0,1,12]),
+                  ("WPN Common", "Military Recruit Handbook", [0,1,0,1,0,1,0,0,2]),
+                  ("WPN Elite", "Standard Combat Manual", [0,2,0,1,0,2,0,0,4]),
+                  ("WPN Unique", "Galetrooper Training Manual", [0,3,0,3,0,3,1,0,8]),
+                  ("WPN Epic", "Elite Combat Manual", [0,5,0,3,0,5,2,0,16]),
+                  ("WPN Hero", "Veteran's Guidebook", [0,12,0,4,0,12,3,0,24]),
+                  ("WPN Special", "How To Shoot Your Shot'", [0,8,0,3,0,8,2,0,48]),
+                  ("WPN Legendary", "Sharpshooter's Cheatbook", [0,3,0,1,0,3,1,0,96]),
+            ]
+      def wipeCrewStats(self):
+            for i in range(9):
+                  self.crewStats[i][0] = 0
       class TrainingStatTableModel(QAbstractTableModel):
             def __init__(self, values, parent=None):
                   super().__init__()
                   self.values = values
-                  self.verticalHeaders = ['HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN']
+                  self.verticalHeaders = ['HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN']
                   self.horizontalHeaders = ['']
             def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
                   if role == Qt.ItemDataRole.DisplayRole:
@@ -847,12 +1043,22 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         if 0 <= row < len(self.values):
                               return str(self.values[row])
                   return None
+            def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+                  if index.isValid() and role == Qt.ItemDataRole.EditRole:
+                        if isinstance(value, int):
+                              self.values[index.row()] = value
+                              self.dataChanged.emit(index, index)
+                              self.parent.onComboBoxValueChanged()
+                              return True
+                        else:
+                              return False
+                  return False
       class TrainingListTableModel(QAbstractTableModel):
             def __init__(self, data, parent=None):
                   super().__init__()
                   self._data = data
                   self.parent = parent
-                  self.verticalHeaders = ['HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN']
+                  self.verticalHeaders = ['HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN']
                   self.horizontalHeaders = ['']
             def rowCount(self, index):
                   return len(self._data)
@@ -865,7 +1071,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   if index.isValid():
                         self._data[index.row()][index.column()] = value
                         self.dataChanged.emit(index, index)
-                        self.parent.updateTrainingData()
+                        self.parent.onComboBoxValueChanged()
                         return True
                   return False
             def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
@@ -880,40 +1086,59 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             def flags(self, index):
                   return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
       class TrainingChartTableModel(QAbstractTableModel):
-            def __init__(self, data, parent=None):
-                  super().__init__()
+            def __init__(self, data, trainingStatBox, parent=None):
+                  super().__init__(parent)
                   self._data = data
-                  self.parent = parent
-                  self.horizontalHeaders = ['Training', 'HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN']
-                  self.verticalHeaders = ['','','','','','','','','','']
-                  
+                  self.trainingStatBox = trainingStatBox
+                  self.horizontalHeaders = ['Training', 'HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN']
+                  self.verticalHeaders = [''] * len(data)
             def rowCount(self, index):
                   return len(self._data)
             def columnCount(self, index):
-                  return 10
+                  return len(self.horizontalHeaders)
             def data(self, index, role=Qt.ItemDataRole.DisplayRole):
                   if role == Qt.ItemDataRole.DisplayRole:
                         row = index.row()
                         col = index.column()
                         if col == 0:
-                              return self._data[row][0]
+                              return self._data[row][0]  # First column data
+                        elif 0 < col <= len(self.horizontalHeaders) - 1:
+                              item_data = self._data[row][1]
+                              if isinstance(item_data, str):
+                                    return ""  # Return an empty string for non-existent data
+                              else:
+                                    return item_data[col - 1]  # Data values (adjusting for the first column)
+                  elif role == Qt.ItemDataRole.BackgroundRole:
+                        value = self.data(index, Qt.ItemDataRole.DisplayRole)
+                        col = index.column()
+                        if value == 0:
+                              return QColor(198,239,206)
+                        elif self.trainingStatBox.currentText() == self.horizontalHeaders[col]:
+                              return QColor(189,215,238)
                         else:
-                              return self._data[row][1][col - 1]
+                              return QColor(255,255,255)
+                  return None
             def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-                  if index.isValid():
-                        self._data[index.row()][index.column()] = value
+                  if role == Qt.ItemDataRole.EditRole and index.isValid():
+                        row = index.row()
+                        col = index.column()
+                        self._data[row][2][col - 1] = value
                         self.dataChanged.emit(index, index)
                         return True
                   return False
+            def updateData(self, data):
+                  self.beginResetModel()
+                  self._data = data
+                  self.endResetModel()
             def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
                   if role == Qt.ItemDataRole.DisplayRole:
                         if orientation == Qt.Orientation.Horizontal:
                               if section == 0:
                                     return "Name"
                               else:
-                                    return f"Data {section}"
+                                    return f"{self.horizontalHeaders[section]}"
                         else:
-                              return f"{section + 1}"
+                              return str(section + 1)
                   return None
             def getCellValue(self, row, column):
                   return self._data[row][column]
@@ -924,7 +1149,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   super().__init__()
                   self._data = data
                   self.parent = parent
-                  self.verticalHeaders = ['HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN']
+                  self.verticalHeaders = ['HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN']
                   self.horizontalHeaders = ['Current', 'Multiplier', '% Required']
             def rowCount(self, index):
                   return len(self._data)
@@ -934,10 +1159,14 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
                         return str(self._data[index.row()][index.column()])
             def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-                  if index.isValid():
-                        self._data[index.row()][index.column()] = value
+                  if index.isValid() and role == Qt.ItemDataRole.EditRole:
+                        try:
+                              int_value = int(value)
+                        except ValueError:
+                              int_value = 0
+                        self._data[index.row()][index.column()] = int_value
                         self.dataChanged.emit(index, index)
-                        self.parent.updateFatigueMod()
+                        self.parent.onComboBoxValueChanged()
                         return True
                   return False
             def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
