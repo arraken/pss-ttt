@@ -1,3 +1,6 @@
+*.spec
+*.db
+*.csv
 pss-ttt.spec
 legendfights.db
 tournyfights.db
