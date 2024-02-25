@@ -1,6 +1,7 @@
 *.spec
 *.db
 *.csv
+*.appinstaller
 pss-ttt.spec
 legendfights.db
 tournyfights.db
