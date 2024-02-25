@@ -10,9 +10,10 @@ import sys, csv, math, webbrowser, os
 '''
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
-Add column in fights db for hp remaining
-crew training calculator - help my head
-consolidate ui files into this script for ease of external download if possible
+MAIN - Better star tracking for tournaments - dolores bot massive download maybe?
+FIGHTS - Add Column in databases for remaining hp
+CTC - crew training calculator: error checking and prevention of invalid values
+Consolidate ui.py files into this script for pyinstaller only so the file needed is only the exe for 3rd party use
 '''
 def create_connection():
       databases = {
@@ -822,32 +823,25 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             self.crewStats = [[0, 0] for _ in range(9)]
             self.trainingStats = [[0] for _ in range(9)]
             self.itemTrainingStats = [[0] for _ in range(9)]
-
             self.statsTable = self.findChild(QTableView, "crewStatTable")
             self.model = self.StatsTableModel(self.crewStats, self)
-            self.trainingTable = self.findChild(QTableView, "trainingListValuesTable")
-            self.trainingmodel = self.TrainingListTableModel(self.itemTrainingStats, self)
+            #self.trainingTable = self.findChild(QTableView, "trainingListValuesTable")
+            #self.trainingmodel = self.TrainingListTableModel(self.itemTrainingStats, self)
             self.chartTable = self.findChild(QTableView, "trainingChartTable")
             self.chartModel = self.TrainingChartTableModel(self.trainingChart, self.trainingStatBox)
-            self.trainignStatBox = self.findChild(QtWidgets.QComboBox, "trainingStatBox")
+            self.trainingStatBox = self.findChild(QtWidgets.QComboBox, "trainingStatBox")
             self.statsTable.setModel(self.model)
             self.statsTable.setColumnWidth(0,50)
             self.statsTable.setColumnWidth(1,90)
             self.statsTable.setColumnWidth(2,90)
-            self.trainingTable.setModel(self.trainingmodel)
-            self.trainingTable.setColumnWidth(0,50)
-            self.trainingTable.setColumnWidth(1,50)
+            #self.trainingTable.setModel(self.trainingmodel)
+            #self.trainingTable.setColumnWidth(0,50)
+            #self.trainingTable.setColumnWidth(1,50)
             self.chartTable.setModel(self.chartModel)
             self.trainingPointsBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
             self.trainingStatBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
             self.trainingLevelBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
             self.fatigueBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
-
-            for i in range(9):
-                  if i == 1:
-                        self.trainingTable.setRowHeight(i,1)
-                  else:
-                        self.trainingTable.setRowHeight(i,10)
             for i in range(10):
                   if i == 0:
                         self.chartTable.setColumnWidth(i,125)
@@ -855,18 +849,12 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         self.chartTable.setColumnWidth(i,1)
             self.testPushButton.clicked.connect(self.wipeCrewStats)
             self.onComboBoxValueChanged()
-      def calculateTrainingChart(self): #Builds training chart for the selected
+      def calculateTrainingChart(self):
             selected_item = self.trainingStatBox.currentText()
             selected_key = selected_item[:3]
-            selected_data_list = []
-
-            for item in self.trainingList:
-                  key, name, data = item[0], item[1], item[2]
-                  if key.startswith(selected_key):
-                        selected_data_list.append((name, data))
+            selected_data_list = [(name, data) for key, name, data in self.trainingList if key.startswith(selected_key)]
             self.model = self.TrainingChartTableModel(selected_data_list, self.trainingStatBox)
             self.chartTable.setModel(self.model)
-            return
       def updateFatigueMod(self): #Calculates training modifer based on fatigue
             max_training_points = int(self.trainingPointsBox.currentText())
             total_tp = sum(int(self.crewStats[i][0]) for i in range (9))
@@ -879,31 +867,14 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             }
             fatigue_m = fatigue_m.get(fatigue, 1)
             crew_stats_m = {}
-            for i, (stat_name, _) in enumerate([('hp', 1), ('atk', 1), ('abl', 1), ('sta', 1), ('rpr', 1), ('plt', 1), ('sci', 1), ('eng', 1), ('wpn', 1)]):
+            stat_names = [('hp', 1), ('atk', 1), ('abl', 1), ('sta', 1), ('rpr', 1), ('plt', 1), ('sci', 1), ('eng', 1), ('wpn', 1)]
+            for i, (stat_name, _) in enumerate(stat_names):
                   crew_stat_value = self.crewStats[i][0]
                   crew_stats_m[stat_name] = float(fatigue_m) * (1 - (total_tp / max_training_points)) * (1 - (float(crew_stat_value) / max_training_points))
-            for i, (stat_name, _) in enumerate([('hp', 1), ('atk', 1), ('abl', 1), ('sta', 1), ('rpr', 1), ('plt', 1), ('sci', 1), ('eng', 1), ('wpn', 1)]):
+            for i, (stat_name, _) in enumerate(stat_names):
                   self.crewStats[i][1] = round(crew_stats_m[stat_name],3)
             self.statsTable.viewport().update()
             return
-      def getConsumableName(self):
-            training_stat = self.trainingStatBox.currentText()
-            training_level = self.trainingLevelBox.currentText()
-            
-            parseName = training_stat+" "+training_level
-            result = next((item for item in self.trainingList if item[0] == parseName), None)
-            self.trainingTypeName.setText(result[1])
-            self.trainingTable.setModel(None)
-
-            if result[2]:
-                  values = result[2]
-                  model = self.TrainingStatTableModel(values)
-                  self.trainingTable.setModel(model)
-            for i in range(9):
-                  if i == 1:
-                        self.trainingTable.setRowHeight(i,1)
-                  else:
-                        self.trainingTable.setRowHeight(i,10)
       def modifyTrainingMethods(self):
             selected_training_stat = self.trainingStatBox.currentText()            
             modified_data_list = []
@@ -923,7 +894,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                               modified_data_list[i][2][j] *= self.crewStats[j][1]
                               modified_data_list[i][2][j] = math.floor(modified_data_list[i][2][j])
       def onComboBoxValueChanged(self):
-            self.getConsumableName()
+            #self.getConsumableName()
             self.updateFatigueMod()
             self.calculateTrainingChart()
             self.modifyTrainingMethods()
@@ -1020,6 +991,8 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
       def wipeCrewStats(self):
             for i in range(9):
                   self.crewStats[i][0] = 0
+            self.statsTable.viewport().update()
+            self.onComboBoxValueChanged()
       class TrainingStatTableModel(QAbstractTableModel):
             def __init__(self, values, parent=None):
                   super().__init__()
@@ -1053,38 +1026,6 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         else:
                               return False
                   return False
-      class TrainingListTableModel(QAbstractTableModel):
-            def __init__(self, data, parent=None):
-                  super().__init__()
-                  self._data = data
-                  self.parent = parent
-                  self.verticalHeaders = ['HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN']
-                  self.horizontalHeaders = ['']
-            def rowCount(self, index):
-                  return len(self._data)
-            def columnCount(self, index):
-                  return len(self._data[0])
-            def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-                  if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
-                        return str(self._data[index.row()][index.column()])
-            def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-                  if index.isValid():
-                        self._data[index.row()][index.column()] = value
-                        self.dataChanged.emit(index, index)
-                        self.parent.onComboBoxValueChanged()
-                        return True
-                  return False
-            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-                  if role == Qt.ItemDataRole.DisplayRole:
-                        if orientation == Qt.Orientation.Horizontal and section < len(self.horizontalHeaders):
-                              return self.horizontalHeaders[section]
-                        elif role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
-                              return self.verticalHeaders[section]
-                  return None
-            def getCellValue(self, row, column):
-                  return self._data[row][column]
-            def flags(self, index):
-                  return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
       class TrainingChartTableModel(QAbstractTableModel):
             def __init__(self, data, trainingStatBox, parent=None):
                   super().__init__(parent)

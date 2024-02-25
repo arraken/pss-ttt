@@ -12,7 +12,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_CrewTrainer(object):
     def setupUi(self, CrewTrainer):
         CrewTrainer.setObjectName("CrewTrainer")
-        CrewTrainer.resize(526, 675)
+        CrewTrainer.resize(797, 337)
         self.crewStatTable = QtWidgets.QTableView(parent=CrewTrainer)
         self.crewStatTable.setGeometry(QtCore.QRect(80, 10, 181, 301))
         self.crewStatTable.setAlternatingRowColors(True)
@@ -79,16 +79,8 @@ class Ui_CrewTrainer(object):
         self.testPushButton = QtWidgets.QPushButton(parent=CrewTrainer)
         self.testPushButton.setGeometry(QtCore.QRect(10, 170, 61, 23))
         self.testPushButton.setObjectName("testPushButton")
-        self.trainingListValuesTable = QtWidgets.QTableView(parent=CrewTrainer)
-        self.trainingListValuesTable.setGeometry(QtCore.QRect(290, 30, 101, 251))
-        self.trainingListValuesTable.setObjectName("trainingListValuesTable")
-        self.trainingTypeName = QtWidgets.QLabel(parent=CrewTrainer)
-        self.trainingTypeName.setGeometry(QtCore.QRect(270, 0, 141, 31))
-        self.trainingTypeName.setText("")
-        self.trainingTypeName.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.trainingTypeName.setObjectName("trainingTypeName")
         self.trainingChartTable = QtWidgets.QTableView(parent=CrewTrainer)
-        self.trainingChartTable.setGeometry(QtCore.QRect(10, 320, 511, 331))
+        self.trainingChartTable.setGeometry(QtCore.QRect(280, 0, 511, 331))
         self.trainingChartTable.setObjectName("trainingChartTable")
 
         self.retranslateUi(CrewTrainer)
@@ -132,4 +124,4 @@ class Ui_CrewTrainer(object):
         self.label_2.setText(_translate("CrewTrainer", "Target Stat"))
         self.label_3.setText(_translate("CrewTrainer", "Training/Cons"))
         self.label_4.setText(_translate("CrewTrainer", "Fatigue"))
-        self.testPushButton.setText(_translate("CrewTrainer", "PushButton"))
+        self.testPushButton.setText(_translate("CrewTrainer", "Reset"))
