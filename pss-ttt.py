@@ -74,7 +74,7 @@ class FleetDialogBox(QtWidgets.QDialog):
 
       def __init__(self):
             super().__init__()
-            uic.loadUi('pss-ttt-fleetbrowser.ui', self)
+            uic.loadUi('_internal\pss-ttt-fleetbrowser.ui', self)
             self.fleetSearchClose.clicked.connect(self.accept)
             self.copyFleetSearch.clicked.connect(self.onCopyFleetSearchClicked)
             self.fleetFilterBox.textChanged.connect(self.filterFleetList)
@@ -124,7 +124,7 @@ class FleetDialogBox(QtWidgets.QDialog):
 class MainWindow(QtWidgets.QMainWindow):
       def __init__(self):
             super(MainWindow, self).__init__() 
-            uic.loadUi('pss-ttt.ui', self) 
+            uic.loadUi('_internal\pss-ttt.ui', self) 
             self.show()
             
             self.lockUnlockButton.clicked.connect(self.changeButtonText)
@@ -390,7 +390,7 @@ class ImportDialogBox(QtWidgets.QDialog):
       max_counter = 0
       def __init__(self):
             super().__init__()
-            uic.loadUi('pss-ttt-importdialog.ui', self)
+            uic.loadUi('_internal\pss-ttt-importdialog.ui', self)
             self.importTargetsButton.clicked.connect(self.import_data)
 
             self.progress_signal.connect(self.updateProgressBar, QtCore.Qt.ConnectionType.DirectConnection)
@@ -490,7 +490,7 @@ class ImportDialogBox(QtWidgets.QDialog):
 class TournamentDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
-            uic.loadUi('pss-ttt-tsc.ui', self)
+            uic.loadUi('_internal\pss-ttt-tsc.ui', self)
             
             self.starTableHeaders = ['Star Goal', 'Fight 1', 'Fight 2', 'Fight 3', 'Fight 4', 'Fight 5', 'Fight 6']
             self.starsTable = [
@@ -628,7 +628,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
 class CrewTrainerDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
-            uic.loadUi('pss-ttt-crewtrainer.ui', self)
+            uic.loadUi('_internal\pss-ttt-crewtrainer.ui', self)
 
             self.trainingList = [
                   ("ABL Green", "Steam Yoga", [0,0,4,1,0,0,0,0,0]),

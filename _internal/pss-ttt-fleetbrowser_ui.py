@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'c:\Users\Kamguh\Documents\GitHub\pss-ttt\pss-ttt-fleetbrowser.ui'
+# Form implementation generated from reading ui file 'c:\Users\Kamguh\Documents\GitHub\pss-ttt\_internal\pss-ttt-fleetbrowser.ui'
 #
 # Created by: PyQt6 UI code generator 6.6.1
 #
