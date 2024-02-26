@@ -478,10 +478,8 @@ class ImportDialogBox(QtWidgets.QDialog):
                               beststars_db = int(query.value(1))
                               notes_db = int(query.value(2))
                               if laststars_int < laststars_db: #overwrites old star data
-                                    print("Replacing last stars for",playername," Old[",laststars_db,"] New[",laststars_int,"]")
                                     laststars_int = laststars_db
                               if beststars_int < beststars_db: # overwrites old star data
-                                    print("Replacing best stars for",playername," Old[",beststars_db,"] New[",beststars_int,"]")
                                     beststars_int = beststars_db
                               if notes_db != ' ': # prevent overwriting of notes *facepalm*
                                     notes_str = notes_db
