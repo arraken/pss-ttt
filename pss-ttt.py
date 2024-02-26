@@ -483,7 +483,7 @@ class ImportDialogBox(QtWidgets.QDialog):
                               if beststars_int < beststars_db: # overwrites old star data
                                     print("Replacing best stars for",playername," Old[",beststars_db,"] New[",beststars_int,"]")
                                     beststars_int = beststars_db
-                              if notes_db != " ": # prevent overwriting of notes *facepalm*
+                              if notes_db != ' ': # prevent overwriting of notes *facepalm*
                                     notes_str = notes_db
                         data_to_insert.append((playername, fleetname, laststars_int, beststars_int, trophies, maxtrophies, notes_str))
     
