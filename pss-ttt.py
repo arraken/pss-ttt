@@ -11,8 +11,13 @@ import sys, csv, math, webbrowser, os
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
 MAIN - Better star tracking for tournaments - dolores bot massive download maybe?
+      - Import should have some algo when updating to look at if star data is higher and only update if higher
+      - ^ Above will let me pull /pastfleets command for last day of tourny and then day before tourny, importing both will update fleet names and trophy
+            counts as well as update stars without zeroing them out
 FIGHTS - Add Column in databases for remaining hp
 CTC - crew training calculator: error checking and prevention of invalid values
+STT - Star Target Tracking module
+      Plan out targets for future days, shows their previous star counts and current star count
 Consolidate ui.py files into this script for pyinstaller only so the file needed is only the exe for 3rd party use
 '''
 def create_connection():
@@ -69,58 +74,6 @@ def throwErrorMessage(text, dump):
       msg.setInformativeText(dump)
       msg.setWindowTitle("Error")
       msg.exec()
-class FleetDialogBox(QtWidgets.QDialog):
-      copyFleetSearchClicked = QtCore.pyqtSignal(str, bool)
-
-      def __init__(self):
-            super().__init__()
-            uic.loadUi('_internal\pss-ttt-fleetbrowser.ui', self)
-            self.fleetSearchClose.clicked.connect(self.accept)
-            self.copyFleetSearch.clicked.connect(self.onCopyFleetSearchClicked)
-            self.fleetFilterBox.textChanged.connect(self.filterFleetList)
-            self.charLimiter.valueChanged.connect(self.filterFleetListLength)
-            self.charLimiterCheckBox.stateChanged.connect(self.filterFleetListLength)
-      def populateFleetList(self, fleet_name):
-            self.fleetNameList.clear()
-            if not QSqlDatabase.database("targetdb").isOpen():
-                  if not QSqlDatabase.database("targetdb").open():
-                        throwErrorMessage("Database Connection Failure", "Targets DB did not open properly")
-                        return
-
-            query = QSqlQuery(QSqlDatabase.database("targetdb"))
-            query.prepare("SELECT playername FROM players WHERE fleetname = :fleet_name")
-            query.bindValue(":fleet_name", fleet_name)
-            if not query.exec():
-                  throwErrorMessage("Query Exection Failure", query.lastError().text())
-                  return
-            while query.next():
-                  player_name = query.value(0)
-                  item = QListWidgetItem(player_name)
-                  self.fleetNameList.addItem(item)
-      def onCopyFleetSearchClicked(self):
-            selected_item = self.fleetNameList.currentItem()
-            if selected_item:
-                  selected_text = selected_item.text()
-                  self.copyFleetSearchClicked.emit(selected_text, True)
-      def filterFleetList(self):
-            filter_text = self.fleetFilterBox.toPlainText().lower()
-            for i in range(self.fleetNameList.count()):
-                  item = self.fleetNameList.item(i)
-                  item_text = item.text().lower()
-                  if filter_text in item_text:
-                        item.setHidden(False)
-                  else:
-                        item.setHidden(True)
-      def filterFleetListLength(self):
-            if self.charLimiterCheckBox.isChecked():
-                  length_threshold = self.charLimiter.value()
-                  for i in range(self.fleetNameList.count()):
-                        item = self.fleetNameList.item(i)
-                        item_text = item.text()
-                        if len(item_text) == length_threshold:
-                              item.setHidden(False)
-                        else:
-                              item.setHidden(True)
 class MainWindow(QtWidgets.QMainWindow):
       def __init__(self):
             super(MainWindow, self).__init__() 
@@ -142,6 +95,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.delPVPButton.clicked.connect(self.deletePVPLine)
             self.tournyStarsWindow.clicked.connect(self.open_tournamentStarsCalc)
             self.crewTrainerButton.clicked.connect(self.open_crewTrainer)
+            self.starTargetTrackButton.clicked.connect(self.open_stt)
             
             self.fleetBrowser = FleetDialogBox()
             self.fleetBrowser.copyFleetSearchClicked.connect(self.handleCopyFleetSearchClicked)
@@ -151,6 +105,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.importDialog = ImportDialogBox()
 
             self.trainingDialog = CrewTrainerDialogBox()
+
+            self.starTargetTrack = StarTargetTrackDialogBox()
 
       def open_fleetBrowser(self):
             self.fleetBrowser.populateFleetList(self.fleetName.toPlainText())
@@ -163,6 +119,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.starCalculator.exec()
       def open_crewTrainer(self):
             self.trainingDialog.exec()
+      def open_stt(self):
+            self.starTargetTrack.exec()
       def handleCopyFleetSearchClicked(self, selected_text, close_dialog):
             self.resetDataFields()
             self.playerNameSearchBox.insertPlainText(selected_text)
@@ -384,6 +342,58 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pvpTable.model().clear()
             # Update the model to reflect changes in the database
             self.updateFightTables("pvp")
+class FleetDialogBox(QtWidgets.QDialog):
+      copyFleetSearchClicked = QtCore.pyqtSignal(str, bool)
+
+      def __init__(self):
+            super().__init__()
+            uic.loadUi('_internal\pss-ttt-fleetbrowser.ui', self)
+            self.fleetSearchClose.clicked.connect(self.accept)
+            self.copyFleetSearch.clicked.connect(self.onCopyFleetSearchClicked)
+            self.fleetFilterBox.textChanged.connect(self.filterFleetList)
+            self.charLimiter.valueChanged.connect(self.filterFleetListLength)
+            self.charLimiterCheckBox.stateChanged.connect(self.filterFleetListLength)
+      def populateFleetList(self, fleet_name):
+            self.fleetNameList.clear()
+            if not QSqlDatabase.database("targetdb").isOpen():
+                  if not QSqlDatabase.database("targetdb").open():
+                        throwErrorMessage("Database Connection Failure", "Targets DB did not open properly")
+                        return
+
+            query = QSqlQuery(QSqlDatabase.database("targetdb"))
+            query.prepare("SELECT playername FROM players WHERE fleetname = :fleet_name")
+            query.bindValue(":fleet_name", fleet_name)
+            if not query.exec():
+                  throwErrorMessage("Query Exection Failure", query.lastError().text())
+                  return
+            while query.next():
+                  player_name = query.value(0)
+                  item = QListWidgetItem(player_name)
+                  self.fleetNameList.addItem(item)
+      def onCopyFleetSearchClicked(self):
+            selected_item = self.fleetNameList.currentItem()
+            if selected_item:
+                  selected_text = selected_item.text()
+                  self.copyFleetSearchClicked.emit(selected_text, True)
+      def filterFleetList(self):
+            filter_text = self.fleetFilterBox.toPlainText().lower()
+            for i in range(self.fleetNameList.count()):
+                  item = self.fleetNameList.item(i)
+                  item_text = item.text().lower()
+                  if filter_text in item_text:
+                        item.setHidden(False)
+                  else:
+                        item.setHidden(True)
+      def filterFleetListLength(self):
+            if self.charLimiterCheckBox.isChecked():
+                  length_threshold = self.charLimiter.value()
+                  for i in range(self.fleetNameList.count()):
+                        item = self.fleetNameList.item(i)
+                        item_text = item.text()
+                        if len(item_text) == length_threshold:
+                              item.setHidden(False)
+                        else:
+                              item.setHidden(True)
 class ImportDialogBox(QtWidgets.QDialog):
       progress_signal = pyqtSignal(int)
       counter = 0
@@ -448,9 +458,34 @@ class ImportDialogBox(QtWidgets.QDialog):
             data_to_insert = []
             with open(file_path, 'r', encoding='utf-8') as csvfile:
                   reader = csv.reader(csvfile, delimiter=';')
+                  next(reader)
                   for row in reader:
-                        specific_data = (row[2], row[1], row[7], row[7], row[5], row[6], " ")
-                        data_to_insert.append(specific_data)
+                        #specific_data = (row[2], row[1], row[7], row[7], row[5], row[6], " ")
+                        #data_to_insert.append(specific_data)
+                        playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row[2], row[1], row[7], row[7], row[5], row[6], ' '
+                        laststars_int = int(laststars)
+                        beststars_int = int(beststars)
+                        notes_str = notes
+            
+                        db = QSqlDatabase.database("targetdb")
+                        query = QSqlQuery(db)
+                        query.prepare("SELECT laststars, beststars, notes FROM players WHERE playername = ? AND fleetname = ?")
+                        query.addBindValue(playername)
+                        query.addBindValue(fleetname)
+                        query.exec()
+                        if query.next():
+                              laststars_db = int(query.value(0))
+                              beststars_db = int(query.value(1))
+                              notes_db = int(query.value(2))
+                              if laststars_int < laststars_db: #overwrites old star data
+                                    print("Replacing last stars for",playername," Old[",laststars_db,"] New[",laststars_int,"]")
+                                    laststars_int = laststars_db
+                              if beststars_int < beststars_db: # overwrites old star data
+                                    print("Replacing best stars for",playername," Old[",beststars_db,"] New[",beststars_int,"]")
+                                    beststars_int = beststars_db
+                              if notes_db != " ": # prevent overwriting of notes *facepalm*
+                                    notes_str = notes_db
+                        data_to_insert.append((playername, fleetname, laststars_int, beststars_int, trophies, maxtrophies, notes_str))
     
             db = QSqlDatabase.database("targetdb")
             if not db.open():
@@ -1035,6 +1070,15 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
                   else:
                         return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
+''' Main ideas for the STT
+Entry text box for player name - Does same as mainwindow call (see if we can do a parent.function() calls for it)
+Player Name - Fleet Name - Day Target
+list of targets for each day, will need to be 7 QTableViews with Name and previous tourny star count
+'''
+class StarTargetTrackDialogBox(QtWidgets.QDialog):
+      def __init__(self):
+            super().__init__()
+            uic.loadUi('_internal\pss-ttt-stt.ui', self)
 ## Startup and program operation
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
