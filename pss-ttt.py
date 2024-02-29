@@ -1077,6 +1077,39 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
             uic.loadUi('_internal\pss-ttt-stt.ui', self)
+
+            self.dayOneTargets, self.dayTwoTargets, self.dayThreeTargets, self.dayFourTargets, self.dayFiveTargets, self.daySixTargets = self.StarsTargetTableModel(self)
+            #Table will have the following columns
+            #Playername, Fleetname, LastStars
+
+      class StarsTargetTableModel(QAbstractTableModel):
+            def __init__(self, data, parent):
+                  super().__init__(parent)
+                  self._data = data
+                  self.parent = parent
+                  self.horizontalHeaders = ['Player', 'Fleet', 'Last Stars']
+            def rowCount(self, index):
+                  return len(self._data)
+            def columnCount(self, index):
+                  return len(self._data[0])
+            def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+                  return str(self._data[index.row()][index.column()])
+            def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+                  if role == Qt.ItemDataRole.EditRole and index.isValid():
+                        self._data[index.row()][index.column()] = value
+                        self.dataChanged.emit(index, index)
+                        return True
+                  return False
+            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+                  if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+                        return section
+                  if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
+                        return self.verticalHeaders[section]
+            def getCellValue(self, row, column):
+                  return self._data[row][column]
+            def flags(self, index):
+                  if index.isValid():
+                        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
 ## Startup and program operation
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
