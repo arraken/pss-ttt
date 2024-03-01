@@ -1078,12 +1078,12 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             super().__init__()
             uic.loadUi('_internal\pss-ttt-stt.ui', self)
 
-            self.dayOneTargets, self.dayTwoTargets, self.dayThreeTargets, self.dayFourTargets, self.dayFiveTargets, self.daySixTargets = self.StarsTargetTableModel(self)
+            dayOneTargets, dayTwoTargets, dayThreeTargets, dayFourTargets, dayFiveTargets, daySixTargets = self.StarsTargetTableModel(self)
             #Table will have the following columns
             #Playername, Fleetname, LastStars
 
       class StarsTargetTableModel(QAbstractTableModel):
-            def __init__(self, data, parent):
+            def __init__(self, data, parent=None):
                   super().__init__(parent)
                   self._data = data
                   self.parent = parent
