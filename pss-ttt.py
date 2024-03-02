@@ -536,7 +536,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
-            self.loadStarsTableFromCSV("starstable.csv")
+            self.loadStarsTableFromCSV("_internal\starstable.csv")
             self.tournamentTable = self.findChild(QTableView, "starsTableView")
             self.model = self.TournamentTableModel(self.starsTable, self)
             self.tournamentTable.setModel(self.model)
@@ -547,7 +547,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
       def updateActualStarsBox(self):
             total_sum = sum(self.model.getCellValue(7, col) for col in range(self.model.columnCount(None)))
             self.actualStarsBox.setPlainText(str(total_sum))
-            self.saveStarsTableToCSV("starstable.csv")
+            self.saveStarsTableToCSV("_internal\starstable.csv")
       def saveStarsTableToCSV(self, filename):
             with open(filename, 'w', newline='') as csvfile:
                   writer = csv.writer(csvfile)
@@ -578,7 +578,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
-            self.saveStarsTableToCSV("starstable.csv")
+            self.saveStarsTableToCSV("_internal\starstable.csv")
             self.model = self.TournamentTableModel(self.starsTable, self)
             self.tournamentTable.setModel(self.model)
       class starsErrorDialog(QtWidgets.QDialog):
@@ -658,7 +658,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   if i == 6:
                         self.estStarsBox.insertPlainText(str(end_value))
             self.tournamentTable.show()
-            self.saveStarsTableToCSV("starstable.csv")
+            self.saveStarsTableToCSV("_internal\starstable.csv")
 class CrewTrainerDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
@@ -1082,8 +1082,6 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             super().__init__()
             uic.loadUi('_internal\pss-ttt-stt.ui', self)
 
-            self.loadStarsCSV()
-
             self.table_widgets = {
             "dayFour": {"button_add": self.dayFourAdd, "button_remove": self.dayFourRemove, "model": QtGui.QStandardItemModel()},
             "dayFive": {"button_add": self.dayFiveAdd, "button_remove": self.dayFiveRemove, "model": QtGui.QStandardItemModel()},
@@ -1096,11 +1094,21 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                   table.setColumnWidth(1, 100)
                   table.setColumnWidth(2, 50)
                   table.setColumnWidth(3, 75)
-                  widgets["model"].setHorizontalHeaderLabels(['Player Name', 'Fleet Name', 'Stars', 'Trophies'])
+                  widgets["model"].setHorizontalHeaderLabels(['Player Name', 'Fleet Name', 'Stars', 'Max Trophy'])
                   table.setModel(widgets["model"])
                   widgets["button_add"].clicked.connect(lambda _, day=day: self.addToTargetTable(day))
                   widgets["button_remove"].clicked.connect(lambda _, day=day: self.removeTargetTable(day))
+            self.loadStarsCSV()
             self.trackerResetButton.clicked.connect(self.resetStarsTargetList)
+      def keyPressEvent(self, event):
+            if event.key() == QtCore.Qt.Key.Key_Escape:
+                  self.close()
+            else:
+                  super().keyPressEvent(event)
+      def closeEvent(self, event):
+            print("Saving Data")
+            self.saveStarsCSV()
+            super().closeEvent(event)
       def addToTargetTable(self, day):
             player_name = self.playerNameSTTBox.toPlainText()
             fleet_name = self.fleetNameSTTBox.toPlainText()
@@ -1149,7 +1157,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             confirmation_dialog = self.StarsTargetTrackConfirmationDialog(self)
             confirmation_dialog.exec()
       def saveStarsCSV(self):
-            with open('starstrack.csv', 'w', newline='') as csvfile:
+            with open("_internal\starstrack.csv", 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
                   # Write data for each table
                   for day, widgets in self.table_widgets.items():
@@ -1159,7 +1167,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                               writer.writerow([day] + data)
       def loadStarsCSV(self):
             try:
-                  with open('starstrack.csv', 'r', newline='') as csvfile:
+                  with open("_internal\starstrack.csv", 'r', newline='', encoding='utf-8') as csvfile:
                         reader = csv.reader(csvfile)
                         # Read data for each table
                         for row in reader:
@@ -1168,6 +1176,11 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                               widgets = self.table_widgets[day]
                               model = widgets["model"]
                               model.appendRow([QtGui.QStandardItem(item) for item in data])
+                              table = getattr(self, f"{day}Table")
+                              table.setColumnWidth(0, 90)
+                              table.setColumnWidth(1, 100)
+                              table.setColumnWidth(2, 25)
+                              table.setColumnWidth(3, 75)
             except FileNotFoundError:
                   print("CSV file not found, no data loaded.")
       class StarsTargetTrackConfirmationDialog(QtWidgets.QDialog):
