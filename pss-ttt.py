@@ -1,8 +1,8 @@
-from PyQt6 import QtWidgets, uic, QtCore
+from PyQt6 import QtWidgets, QtCore, uic, QtGui
 from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QStandardItem
 from datetime import date
 from openpyxl import load_workbook
 from decimal import Decimal
@@ -77,7 +77,7 @@ def throwErrorMessage(text, dump):
 class MainWindow(QtWidgets.QMainWindow):
       def __init__(self):
             super(MainWindow, self).__init__() 
-            uic.loadUi('_internal\pss-ttt.ui', self) 
+            uic.loadUi(r'_internal\pss-ttt.ui', self)
             self.show()
             
             self.lockUnlockButton.clicked.connect(self.changeButtonText)
@@ -120,6 +120,7 @@ class MainWindow(QtWidgets.QMainWindow):
       def open_crewTrainer(self):
             self.trainingDialog.exec()
       def open_stt(self):
+            self.starTargetTrack.populateSTT(self.playerNameSearchBox.toPlainText())
             self.starTargetTrack.exec()
       def handleCopyFleetSearchClicked(self, selected_text, close_dialog):
             self.resetDataFields()
@@ -347,7 +348,7 @@ class FleetDialogBox(QtWidgets.QDialog):
 
       def __init__(self):
             super().__init__()
-            uic.loadUi('_internal\pss-ttt-fleetbrowser.ui', self)
+            uic.loadUi(r'_internal\pss-ttt-fleetbrowser.ui', self)
             self.fleetSearchClose.clicked.connect(self.accept)
             self.copyFleetSearch.clicked.connect(self.onCopyFleetSearchClicked)
             self.fleetFilterBox.textChanged.connect(self.filterFleetList)
@@ -400,7 +401,7 @@ class ImportDialogBox(QtWidgets.QDialog):
       max_counter = 0
       def __init__(self):
             super().__init__()
-            uic.loadUi('_internal\pss-ttt-importdialog.ui', self)
+            uic.loadUi(r'_internal\pss-ttt-importdialog.ui', self)
             self.importTargetsButton.clicked.connect(self.import_data)
 
             self.progress_signal.connect(self.updateProgressBar, QtCore.Qt.ConnectionType.DirectConnection)
@@ -476,7 +477,7 @@ class ImportDialogBox(QtWidgets.QDialog):
                         if query.next():
                               laststars_db = int(query.value(0))
                               beststars_db = int(query.value(1))
-                              notes_db = int(query.value(2))
+                              notes_db = str(query.value(2))
                               if laststars_int < laststars_db: #overwrites old star data
                                     laststars_int = laststars_db
                               if beststars_int < beststars_db: # overwrites old star data
@@ -523,7 +524,7 @@ class ImportDialogBox(QtWidgets.QDialog):
 class TournamentDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
-            uic.loadUi('_internal\pss-ttt-tsc.ui', self)
+            uic.loadUi(r'_internal\pss-ttt-tsc.ui', self)
             
             self.starTableHeaders = ['Star Goal', 'Fight 1', 'Fight 2', 'Fight 3', 'Fight 4', 'Fight 5', 'Fight 6']
             self.starsTable = [
@@ -661,7 +662,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
 class CrewTrainerDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
-            uic.loadUi('_internal\pss-ttt-crewtrainer.ui', self)
+            uic.loadUi(r'_internal\pss-ttt-crewtrainer.ui', self)
 
             self.trainingList = [
                   ("ABL Green", "Steam Yoga", [0,0,4,1,0,0,0,0,0]),
@@ -1074,43 +1075,121 @@ Player Name - Fleet Name - Day Target
 list of targets for each day, will need to be 7 QTableViews with Name and previous tourny star count
 '''
 class StarTargetTrackDialogBox(QtWidgets.QDialog):
+      copyStarsTargetTrackClicked = QtCore.pyqtSignal(str, bool)
+      currentStarsTarget = ' '
+      
       def __init__(self):
             super().__init__()
             uic.loadUi('_internal\pss-ttt-stt.ui', self)
 
-            dayOneTargets, dayTwoTargets, dayThreeTargets, dayFourTargets, dayFiveTargets, daySixTargets = self.StarsTargetTableModel(self)
-            #Table will have the following columns
-            #Playername, Fleetname, LastStars
+            self.loadStarsCSV()
 
-      class StarsTargetTableModel(QAbstractTableModel):
-            def __init__(self, data, parent=None):
+            self.table_widgets = {
+            "dayFour": {"button_add": self.dayFourAdd, "button_remove": self.dayFourRemove, "model": QtGui.QStandardItemModel()},
+            "dayFive": {"button_add": self.dayFiveAdd, "button_remove": self.dayFiveRemove, "model": QtGui.QStandardItemModel()},
+            "daySix": {"button_add": self.daySixAdd, "button_remove": self.daySixRemove, "model": QtGui.QStandardItemModel()},
+            "daySeven": {"button_add": self.daySevenAdd, "button_remove": self.daySevenRemove, "model": QtGui.QStandardItemModel()}
+            }
+
+            for day, widgets in self.table_widgets.items():
+                  table = getattr(self, f"{day}Table")
+                  table.setColumnWidth(1, 100)
+                  table.setColumnWidth(2, 50)
+                  table.setColumnWidth(3, 75)
+                  widgets["model"].setHorizontalHeaderLabels(['Player Name', 'Fleet Name', 'Stars', 'Trophies'])
+                  table.setModel(widgets["model"])
+                  widgets["button_add"].clicked.connect(lambda _, day=day: self.addToTargetTable(day))
+                  widgets["button_remove"].clicked.connect(lambda _, day=day: self.removeTargetTable(day))
+            self.trackerResetButton.clicked.connect(self.resetStarsTargetList)
+      def addToTargetTable(self, day):
+            player_name = self.playerNameSTTBox.toPlainText()
+            fleet_name = self.fleetNameSTTBox.toPlainText()
+            last_stars = self.lastStarsSTTBox.toPlainText()
+            max_trophies = self.maxTrophiesSTTBox.toPlainText()
+
+            target_table = getattr(self, f"{day}Table")
+            new_row = [QtGui.QStandardItem(player_name), QtGui.QStandardItem(fleet_name), QtGui.QStandardItem(last_stars), QtGui.QStandardItem(max_trophies)]
+
+            target_model = target_table.model()
+            target_table.setColumnWidth(1,100)
+            target_table.setColumnWidth(2,50)
+            target_table.setColumnWidth(3,75)
+            if target_model is not None:
+                  target_model.appendRow(new_row)
+            else:
+                  print("No model set for the target table")
+            self.saveStarsCSV()
+      def populateSTT(self, player_name):
+            self.playerNameSTTBox.setPlainText(player_name)
+            if not QSqlDatabase.database("targetdb").isOpen():
+                  if not QSqlDatabase.database("targetdb").open():
+                        throwErrorMessage("Database Connection Failure", "Targets DB did not open properly")
+                        return
+            query = QSqlQuery(QSqlDatabase.database("targetdb"))
+            query.prepare("SELECT playername, fleetname, laststars, maxtrophies FROM players WHERE playername = :player_name")
+            query.bindValue(":player_name", player_name)
+            if not query.exec():
+                  throwErrorMessage("Database Query Error", query.lastError().text())
+                  return
+    
+            if query.next():
+                  fleet_name, last_stars, max_trophies = query.value(1), query.value(2), query.value(3)
+                  self.fleetNameSTTBox.setPlainText(fleet_name)
+                  self.lastStarsSTTBox.setPlainText(str(last_stars))
+                  self.maxTrophiesSTTBox.setPlainText(str(max_trophies))
+            else:
+                  throwErrorMessage("Player Not Found", "Player name not found in the database")
+      def removeTargetTable(self, day):
+            target_table = getattr(self, f"{day}Table")
+            selected_indexes = target_table.selectionModel().selectedRows()
+            for index in selected_indexes:
+                  target_table.model().removeRow(index.row())
+            self.saveStarsCSV()
+      def resetStarsTargetList(self):
+            confirmation_dialog = self.StarsTargetTrackConfirmationDialog(self)
+            confirmation_dialog.exec()
+      def saveStarsCSV(self):
+            with open('starstrack.csv', 'w', newline='') as csvfile:
+                  writer = csv.writer(csvfile)
+                  # Write data for each table
+                  for day, widgets in self.table_widgets.items():
+                        model = widgets["model"]
+                        for row in range(model.rowCount()):
+                              data = [model.index(row, col).data() for col in range(model.columnCount())]
+                              writer.writerow([day] + data)
+      def loadStarsCSV(self):
+            try:
+                  with open('starstrack.csv', 'r', newline='') as csvfile:
+                        reader = csv.reader(csvfile)
+                        # Read data for each table
+                        for row in reader:
+                              day = row[0]
+                              data = row[1:]
+                              widgets = self.table_widgets[day]
+                              model = widgets["model"]
+                              model.appendRow([QtGui.QStandardItem(item) for item in data])
+            except FileNotFoundError:
+                  print("CSV file not found, no data loaded.")
+      class StarsTargetTrackConfirmationDialog(QtWidgets.QDialog):
+            def __init__(self, parent=None):
                   super().__init__(parent)
-                  self._data = data
-                  self.parent = parent
-                  self.horizontalHeaders = ['Player', 'Fleet', 'Last Stars']
-            def rowCount(self, index):
-                  return len(self._data)
-            def columnCount(self, index):
-                  return len(self._data[0])
-            def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-                  return str(self._data[index.row()][index.column()])
-            def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-                  if role == Qt.ItemDataRole.EditRole and index.isValid():
-                        self._data[index.row()][index.column()] = value
-                        self.dataChanged.emit(index, index)
-                        return True
-                  return False
-            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-                  if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-                        return section
-                  if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
-                        return self.verticalHeaders[section]
-            def getCellValue(self, row, column):
-                  return self._data[row][column]
-            def flags(self, index):
-                  if index.isValid():
-                        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
-## Startup and program operation
+                  uic.loadUi('_internal\pss-ttt-stt-confirm.ui', self)
+
+                  self.cancelButton.clicked.connect(self.reject)
+                  self.confirmButton.clicked.connect(self.accept)
+            def accept(self):
+                  super().accept()
+
+                  if self.parent():
+                        self.parent().dayFourTable.model().clear()
+                        self.parent().dayFiveTable.model().clear()
+                        self.parent().daySixTable.model().clear()
+                        self.parent().daySevenTable.model().clear()
+                  else:
+                        print("Parent not found")
+            def reject(self):
+                  super().reject()
+      ## Startup and program operation
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection():
