@@ -22,10 +22,10 @@ Consolidate ui.py files into this script for pyinstaller only so the file needed
 '''
 def create_connection():
       databases = {
-            "targetdb": "targets.db",
-            "tournydb": "tournyfights.db",
-            "legendsdb": "legendfights.db",
-            "pvpdb": "pvpfights.db"
+            "targetdb": "_internal\targets.db",
+            "tournydb": "_internal\tournyfights.db",
+            "legendsdb": "_internal\legendfights.db",
+            "pvpdb": "_internal\pvpfights.db"
       }
       for name, filename in databases.items():
             db = QSqlDatabase.addDatabase('QSQLITE', name)
