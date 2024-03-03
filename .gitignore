@@ -9,3 +9,4 @@ pvpfights.db
 targets.db
 starstable.csv
 build/
+.vscode/
