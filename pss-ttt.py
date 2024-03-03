@@ -6,7 +6,7 @@ from PyQt6.QtGui import QColor, QStandardItem
 from datetime import date
 from openpyxl import load_workbook
 from decimal import Decimal
-import sys, csv, math, webbrowser, os
+import sys, csv, math, webbrowser, os, traceback
 '''
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
@@ -106,7 +106,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.trainingDialog = CrewTrainerDialogBox()
 
-            self.starTargetTrack = StarTargetTrackDialogBox()
+            self.starTargetTrack = StarTargetTrackDialogBox(parent=self)
 
       def open_fleetBrowser(self):
             self.fleetBrowser.populateFleetList(self.fleetName.toPlainText())
@@ -124,7 +124,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.starTargetTrack.exec()
       def handleCopyFleetSearchClicked(self, selected_text, close_dialog):
             self.resetDataFields()
-            self.playerNameSearchBox.insertPlainText(selected_text)
+            self.playerNameSearchBox.setPlainText(selected_text)
             self.searchPlayer()
             if close_dialog:
                   self.fleetBrowser.accept()
@@ -656,7 +656,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   self.model.setData(index, todaysStarsTarget)
                   self.estStarsBox.clear()
                   if i == 6:
-                        self.estStarsBox.insertPlainText(str(end_value))
+                        self.estStarsBox.setPlainText(str(end_value))
             self.tournamentTable.show()
             self.saveStarsTableToCSV("_internal\starstable.csv")
 class CrewTrainerDialogBox(QtWidgets.QDialog):
@@ -770,8 +770,6 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             self.itemTrainingStats = [[0] for _ in range(9)]
             self.statsTable = self.findChild(QTableView, "crewStatTable")
             self.model = self.StatsTableModel(self.crewStats, self)
-            #self.trainingTable = self.findChild(QTableView, "trainingListValuesTable")
-            #self.trainingmodel = self.TrainingListTableModel(self.itemTrainingStats, self)
             self.chartTable = self.findChild(QTableView, "trainingChartTable")
             self.chartModel = self.TrainingChartTableModel(self.trainingChart, self.trainingStatBox)
             self.trainingStatBox = self.findChild(QtWidgets.QComboBox, "trainingStatBox")
@@ -779,9 +777,6 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             self.statsTable.setColumnWidth(0,50)
             self.statsTable.setColumnWidth(1,90)
             self.statsTable.setColumnWidth(2,90)
-            #self.trainingTable.setModel(self.trainingmodel)
-            #self.trainingTable.setColumnWidth(0,50)
-            #self.trainingTable.setColumnWidth(1,50)
             self.chartTable.setModel(self.chartModel)
             self.trainingPointsBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
             self.trainingStatBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
@@ -1069,17 +1064,11 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
                   else:
                         return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
-''' Main ideas for the STT
-Entry text box for player name - Does same as mainwindow call (see if we can do a parent.function() calls for it)
-Player Name - Fleet Name - Day Target
-list of targets for each day, will need to be 7 QTableViews with Name and previous tourny star count
-'''
 class StarTargetTrackDialogBox(QtWidgets.QDialog):
       copyStarsTargetTrackClicked = QtCore.pyqtSignal(str, bool)
       currentStarsTarget = ' '
-      
-      def __init__(self):
-            super().__init__()
+      def __init__(self, parent=None):
+            super().__init__(parent)
             uic.loadUi('_internal\pss-ttt-stt.ui', self)
 
             self.table_widgets = {
@@ -1091,22 +1080,36 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
 
             for day, widgets in self.table_widgets.items():
                   table = getattr(self, f"{day}Table")
-                  table.setColumnWidth(1, 100)
-                  table.setColumnWidth(2, 50)
-                  table.setColumnWidth(3, 75)
                   widgets["model"].setHorizontalHeaderLabels(['Player Name', 'Fleet Name', 'Stars', 'Max Trophy'])
                   table.setModel(widgets["model"])
                   widgets["button_add"].clicked.connect(lambda _, day=day: self.addToTargetTable(day))
                   widgets["button_remove"].clicked.connect(lambda _, day=day: self.removeTargetTable(day))
             self.loadStarsCSV()
             self.trackerResetButton.clicked.connect(self.resetStarsTargetList)
+            for day in ["dayFour", "dayFive", "daySix", "daySeven"]:
+                        getattr(self, f"{day}Copy").clicked.connect(lambda _, day=day: self.copyDayToSearchBox(day))
+      def copyDayToSearchBox(self, day):
+            table = getattr(self, f"{day}Table")
+            selected_indexes = table.selectionModel().selectedRows()
+            if not selected_indexes:
+                  throwErrorMessage("No row selected", "Please select a row")
+                  return
+
+            selected_row = selected_indexes[0].row()            
+            player_name = table.model().index(selected_row, 0).data()
+            parent_widget = self.parent()
+            if parent_widget:
+                  parent_widget.playerNameSearchBox.setPlainText(player_name)
+                  parent_widget.searchPlayer()
+                  self.close()
+            else:
+                  throwErrorMessage("Error finding Main Window", "Close and reopen the application fully")
       def keyPressEvent(self, event):
             if event.key() == QtCore.Qt.Key.Key_Escape:
                   self.close()
             else:
                   super().keyPressEvent(event)
       def closeEvent(self, event):
-            print("Saving Data")
             self.saveStarsCSV()
             super().closeEvent(event)
       def addToTargetTable(self, day):
@@ -1116,6 +1119,10 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             max_trophies = self.maxTrophiesSTTBox.toPlainText()
 
             target_table = getattr(self, f"{day}Table")
+            target_model = target_table.model()
+
+            if target_model is None:
+                  throwErrorMessage("Error", traceback.extract_stack()[-2].lineno)
             new_row = [QtGui.QStandardItem(player_name), QtGui.QStandardItem(fleet_name), QtGui.QStandardItem(last_stars), QtGui.QStandardItem(max_trophies)]
 
             target_model = target_table.model()
@@ -1146,7 +1153,10 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                   self.lastStarsSTTBox.setPlainText(str(last_stars))
                   self.maxTrophiesSTTBox.setPlainText(str(max_trophies))
             else:
-                  throwErrorMessage("Player Not Found", "Player name not found in the database")
+                  self.fleetNameSTTBox.setPlainText(" ")
+                  self.lastStarsSTTBox.setPlainText(" ")
+                  self.maxTrophiesSTTBox.setPlainText(" ")
+                  self.playerNameSTTBox.setPlainText(" ")
       def removeTargetTable(self, day):
             target_table = getattr(self, f"{day}Table")
             selected_indexes = target_table.selectionModel().selectedRows()
