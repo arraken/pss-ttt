@@ -10,15 +10,17 @@ import sys, csv, math, webbrowser, os, traceback
 '''
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
-MAIN - Better star tracking for tournaments - dolores bot massive download maybe?
-      - Import should have some algo when updating to look at if star data is higher and only update if higher
-      - ^ Above will let me pull /pastfleets command for last day of tourny and then day before tourny, importing both will update fleet names and trophy
-            counts as well as update stars without zeroing them out
-FIGHTS - Add Column in databases for remaining hp
+MAIN - make player names not be case sensitive when searching
+     - partial name searches
+      - build a full readme to walkthrough how to operate all windows
+      - pull all fights data and print it out into excel or csv?
+      - tournament filter to colorize a row if the fight was during a normal tournament time
+TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
+      - add a way to check most recent tournament targets and what day they were done on
+IMPORT - check filepath for where the file is in different parts of the computer
+            also is there a file browser that can be opened possibly for the above?
+FIGHTS - Add Column in databases for remaining hp, win or loss - colorize wins vs losses
 CTC - crew training calculator: error checking and prevention of invalid values
-STT - Star Target Tracking module
-      Plan out targets for future days, shows their previous star counts and current star count
-Consolidate ui.py files into this script for pyinstaller only so the file needed is only the exe for 3rd party use
 '''
 def create_connection():
       databases = {
@@ -614,10 +616,17 @@ class TournamentDialogBox(QtWidgets.QDialog):
                         return str(self._data[index.row()][index.column()])
             def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
                   if role == Qt.ItemDataRole.EditRole and index.isValid():
-                        self._data[index.row()][index.column()] = value
+                        try:
+                              int_value = int(value)
+                              self._data[index.row()][index.column()] = int_value
+                        except ValueError:
+                              self._data[index.row()][index.column()] = 0
                         self.dataChanged.emit(index, index)
                         for col in range(self.columnCount(None)):
+                              try:
                                     self._data[7][col] = sum(int(self._data[i][col]) for i in range(1,7))
+                              except ValueError:
+                                    self._data[7][col] = 0
                         self.parent.updateActualStarsBox()
                         return True
                   return False
