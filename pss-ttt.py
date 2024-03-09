@@ -1,8 +1,8 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
-from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QDate
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
-from PyQt6.QtGui import QColor, QStandardItem
+from PyQt6.QtGui import QColor
 from datetime import date, datetime, timedelta
 from openpyxl import load_workbook
 from decimal import Decimal
@@ -14,8 +14,7 @@ MAIN - build a full readme to walkthrough how to operate all windows
       - pull all fights data and print it out into excel or csv?
 TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
       - add a way to check most recent tournament targets and what day they were done on
-IMPORT - check filepath for where the file is in different parts of the computer
-            also is there a file browser that can be opened possibly for the above?
+IMPORT - 
 FIGHTS - Add Column in databases for remaining hp, win or loss - colorize wins vs losses
 CTC - crew training calculator: error checking and prevention of invalid values
 '''
@@ -369,7 +368,6 @@ class MainWindow(QtWidgets.QMainWindow):
                         if (last_day_of_month - datetag_date).days <= 7:
                               return QColor(181,214,232)
                   return super().data(index, role)
-
 class PlayerDiaglogBox(QtWidgets.QDialog):
       copyPlayerSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self):
@@ -480,8 +478,18 @@ class ImportDialogBox(QtWidgets.QDialog):
             super().__init__()
             uic.loadUi(r'_internal\pss-ttt-importdialog.ui', self)
             self.importTargetsButton.clicked.connect(self.import_data)
+            self.importBrowse.clicked.connect(self.open_fileBrowser)
 
             self.progress_signal.connect(self.updateProgressBar, QtCore.Qt.ConnectionType.DirectConnection)
+      def open_fileBrowser(self):
+            options = QFileDialog.Option.DontUseNativeDialog
+        
+            # Display the file dialog
+            selected_files, _ = QFileDialog.getOpenFileNames(self, "Select File", "", "All Files (*)", options=options)
+        
+            # Copy the selected file paths to the QPlainTextEdit widget
+            for file_path in selected_files:
+                  self.importFilenameBox.appendPlainText(file_path)
       def import_data(self):
             self.importDialogLabel.setText("Data importing has begun.<br>Please note the application make appear to freeze<br>It is not frozen and just processing in the background<br>This will update once finished")
             QApplication.processEvents()
