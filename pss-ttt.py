@@ -91,6 +91,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.legendsSubmit.clicked.connect(self.submitLegendsData)
             self.pvpSubmit.clicked.connect(self.submitPVPData)
             self.importDialogButton.clicked.connect(self.open_importDialog)
+            self.playerBrowserSearchButton.clicked.connect(self.open_playerBrowser)
             self.fleetSearchButton.clicked.connect(self.open_fleetBrowser)
             self.delLegendsButton.clicked.connect(self.deleteLegendsLine)
             self.delTournyButton.clicked.connect(self.deleteTournamentLine)
@@ -112,7 +113,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.trainingDialog = CrewTrainerDialogBox()
 
             self.starTargetTrack = StarTargetTrackDialogBox(parent=self)
-
+      def open_playerBrowser(self):
+            self.playerBrowser.populatePlayerList()
+            self.playerBrowser.exec()
       def open_fleetBrowser(self):
             self.fleetBrowser.populateFleetList(self.fleetName.toPlainText())
             self.fleetBrowser.exec()
@@ -358,13 +361,13 @@ class PlayerDiaglogBox(QtWidgets.QDialog):
       copyPlayerSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self):
             super().__init__()
-            uic.loadUi(r'internal\pss-ttt-psb.ui', self)
+            uic.loadUi(r'_internal\pss-ttt-psb.ui', self)
             self.playerSearchClose.clicked.connect(self.accept)
             self.copyPlayerSearch.clicked.connect(self.onCopyPlayerSearchClicked)
             self.playerFilterBox.textChanged.connect(self.filterPlayerList)
             self.playerCharLimiter.valueChanged.connect(self.filterPlayerListLength)
-            self.playerCharLimiterCheckBox.stateChanged.connect(self.filterPlayerListLength)
-      def populatePlayerList(self, player_name):
+            self.playerNameCharLimit.stateChanged.connect(self.filterPlayerListLength)
+      def populatePlayerList(self):
             self.playerNameList.clear()
             if not QSqlDatabase.database("targetdb").isOpen():
                   if not QSqlDatabase.database("targetdb").open():
@@ -373,7 +376,6 @@ class PlayerDiaglogBox(QtWidgets.QDialog):
             
             query = QSqlQuery(QSqlDatabase.database("targetdb"))
             query.prepare("SELECT playername FROM players")
-            query.bindValue(player_name)
             if not query.exec():
                   throwErrorMessage("Query Execution Failre", query.lastError().text())
                   return

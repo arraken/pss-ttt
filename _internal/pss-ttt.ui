@@ -246,9 +246,16 @@
      <rect>
       <x>190</x>
       <y>10</y>
-      <width>81</width>
+      <width>111</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Arial Black</family>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
     </property>
     <property name="text">
      <string>Search</string>
@@ -532,8 +539,8 @@
    <widget class="QPushButton" name="saveNewData">
     <property name="geometry">
      <rect>
-      <x>440</x>
-      <y>60</y>
+      <x>520</x>
+      <y>50</y>
       <width>101</width>
       <height>41</height>
      </rect>
@@ -587,8 +594,8 @@
    <widget class="QPushButton" name="resetButton">
     <property name="geometry">
      <rect>
-      <x>440</x>
-      <y>20</y>
+      <x>520</x>
+      <y>10</y>
       <width>101</width>
       <height>41</height>
      </rect>
@@ -606,8 +613,8 @@
    <widget class="QPushButton" name="pixyshipLayoutButton">
     <property name="geometry">
      <rect>
-      <x>270</x>
-      <y>30</y>
+      <x>340</x>
+      <y>20</y>
       <width>101</width>
       <height>31</height>
      </rect>
@@ -640,9 +647,16 @@
      <rect>
       <x>170</x>
       <y>100</y>
-      <width>81</width>
+      <width>101</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Arial Black</family>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
     </property>
     <property name="text">
      <string>Fleet Search</string>
@@ -726,14 +740,21 @@
      <string>Star Target Track</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="playerBrowserSearchButton">
     <property name="geometry">
      <rect>
       <x>190</x>
       <y>40</y>
-      <width>81</width>
+      <width>111</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Arial Black</family>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
     </property>
     <property name="text">
      <string>Search Browser</string>
