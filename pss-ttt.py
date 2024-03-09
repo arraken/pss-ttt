@@ -1,20 +1,17 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
-from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QDate
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtGui import QColor, QStandardItem
-from datetime import date
+from datetime import date, datetime, timedelta
 from openpyxl import load_workbook
 from decimal import Decimal
 import sys, csv, math, webbrowser, os, traceback
 '''
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
-MAIN - make player names not be case sensitive when searching
-     - partial name searches
-      - build a full readme to walkthrough how to operate all windows
+MAIN - build a full readme to walkthrough how to operate all windows
       - pull all fights data and print it out into excel or csv?
-      - tournament filter to colorize a row if the fight was during a normal tournament time
 TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
       - add a way to check most recent tournament targets and what day they were done on
 IMPORT - check filepath for where the file is in different parts of the computer
@@ -242,7 +239,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   query.addBindValue(f'%{name}%')
                   query.exec()
 
-                  model = QSqlTableModel()
+                  model = self.CustomSqlTableModel()
                   model.setQuery(query)
                   table_widget.setModel(model)
                   table_widget.setColumnWidth(0,50)
@@ -357,6 +354,22 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pvpTable.model().clear()
             # Update the model to reflect changes in the database
             self.updateFightTables("pvp")
+      class CustomSqlTableModel(QSqlTableModel):
+            def __init__(self, parent=None):
+                  super().__init__(parent)
+            def data(self, index, role):
+                  if not index.isValid():
+                        return None
+                  if role == Qt.ItemDataRole.BackgroundRole:
+                        column_name = "datetag"  # Replace this with the actual column name
+                        datetag_value = self.record(index.row()).value(column_name)
+                        datetag_date = datetime.strptime(datetag_value, "%Y-%m-%d")
+                        last_day_of_month = datetime(datetag_date.year, datetag_date.month, 1) + timedelta(days=32)
+                        last_day_of_month = last_day_of_month.replace(day=1) - timedelta(days=1)
+                        if (last_day_of_month - datetag_date).days <= 7:
+                              return QColor(181,214,232)
+                  return super().data(index, role)
+
 class PlayerDiaglogBox(QtWidgets.QDialog):
       copyPlayerSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self):
@@ -398,7 +411,7 @@ class PlayerDiaglogBox(QtWidgets.QDialog):
                   else:
                         item.setHidden(True)
       def filterPlayerListLength(self):
-            if self.playerCharLimit.isChecked():
+            if self.playerNameCharLimit.isChecked():
                   length_threshhold = self.playerCharLimiter.value()
                   for i in range(self.playerNameList.count()):
                         item = self.playerNameList.item(i)
