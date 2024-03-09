@@ -102,6 +102,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fleetBrowser = FleetDialogBox()
             self.fleetBrowser.copyFleetSearchClicked.connect(self.handleCopyFleetSearchClicked)
 
+            self.playerBrowser = PlayerDiaglogBox()
+            self.playerBrowser.copyPlayerSearchClicked.connect(self.handleCopyPlayerSearchClicked)
+
             self.starCalculator = TournamentDialogBox()
 
             self.importDialog = ImportDialogBox()
@@ -130,6 +133,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.searchPlayer()
             if close_dialog:
                   self.fleetBrowser.accept()
+      def handleCopyPlayerSearchClicked(self, selected_text, close_dialog):
+            self.resetDataFields()
+            self.playerNameSearchBox.setPlainText(selected_text)
+            self.searchPlayer()
+            if close_dialog:
+                  self.playerBrowser.accept()
       def pixyshipURL(self):
             searchName = self.playerNameSearchBox.toPlainText()
             if searchName == "":
@@ -345,6 +354,57 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pvpTable.model().clear()
             # Update the model to reflect changes in the database
             self.updateFightTables("pvp")
+class PlayerDiaglogBox(QtWidgets.QDialog):
+      copyPlayerSearchClicked = QtCore.pyqtSignal(str, bool)
+      def __init__(self):
+            super().__init__()
+            uic.loadUi(r'internal\pss-ttt-psb.ui', self)
+            self.playerSearchClose.clicked.connect(self.accept)
+            self.copyPlayerSearch.clicked.connect(self.onCopyPlayerSearchClicked)
+            self.playerFilterBox.textChanged.connect(self.filterPlayerList)
+            self.playerCharLimiter.valueChanged.connect(self.filterPlayerListLength)
+            self.playerCharLimiterCheckBox.stateChanged.connect(self.filterPlayerListLength)
+      def populatePlayerList(self, player_name):
+            self.playerNameList.clear()
+            if not QSqlDatabase.database("targetdb").isOpen():
+                  if not QSqlDatabase.database("targetdb").open():
+                        throwErrorMessage("Database Connection Failure", "Targets DB did not open properly")
+                        return
+            
+            query = QSqlQuery(QSqlDatabase.database("targetdb"))
+            query.prepare("SELECT playername FROM players")
+            query.bindValue(player_name)
+            if not query.exec():
+                  throwErrorMessage("Query Execution Failre", query.lastError().text())
+                  return
+            while query.next():
+                  player_name = query.value(0)
+                  item = QListWidgetItem(player_name)
+                  self.playerNameList.addItem(item)
+      def onCopyPlayerSearchClicked(self):
+            selected_item = self.playerNameList.currentItem()
+            if selected_item:
+                  selected_text = selected_item.text()
+                  self.copyPlayerSearchClicked.emit(selected_text, True)
+      def filterPlayerList(self):
+            filter_text = self.playerFilterBox.toPlainText().lower()
+            for i in range(self.playerNameList.count()):
+                  item = self.playerNameList.item(i)
+                  item_text = item.text().lower()
+                  if filter_text in item_text:
+                        item.setHidden(False)
+                  else:
+                        item.setHidden(True)
+      def filterPlayerListLength(self):
+            if self.playerCharLimit.isChecked():
+                  length_threshhold = self.playerCharLimiter.value()
+                  for i in range(self.playerNameList.count()):
+                        item = self.playerNameList.item(i)
+                        item_text = item.text()
+                        if len(item_text) == length_threshhold:
+                              item.setHidden(False)
+                        else:
+                              item.setHidden(True)
 class FleetDialogBox(QtWidgets.QDialog):
       copyFleetSearchClicked = QtCore.pyqtSignal(str, bool)
 
@@ -367,7 +427,7 @@ class FleetDialogBox(QtWidgets.QDialog):
             query.prepare("SELECT playername FROM players WHERE fleetname = :fleet_name")
             query.bindValue(":fleet_name", fleet_name)
             if not query.exec():
-                  throwErrorMessage("Query Exection Failure", query.lastError().text())
+                  throwErrorMessage("Query Execution Failure", query.lastError().text())
                   return
             while query.next():
                   player_name = query.value(0)
