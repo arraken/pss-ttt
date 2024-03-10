@@ -48,7 +48,7 @@ def write_to_fights_database(data, fights):
             query = QSqlQuery(QSqlDatabase.database("legendsdb"))
       if fights == "pvp":
             query = QSqlQuery(QSqlDatabase.database("pvpdb"))
-      query.prepare("INSERT OR REPLACE INTO fights(name, rewards, datetag, hpremain, winloss) VALUES(?, ?, ?)")
+      query.prepare("INSERT OR REPLACE INTO fights(name, rewards, datetag, hpremain, winloss) VALUES(?, ?, ?, ?, ?)")
       for i in range(5):
             query.bindValue(i, data[i].strip())
       if not query.exec():
@@ -283,8 +283,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.submitFightData(rewards, remainhp, result, fight)
       def submitFightData(self, rewards, remainhp, result, fight):
             todaysdate = str(date.today())
-            fight_data = [self.playerNameSearchBox.toPlainText(), str(rewards), todaysdate, str(remainhp), result, fight]
+            fight_data = [self.playerNameSearchBox.toPlainText(), str(rewards), todaysdate, str(remainhp), result]
             if not write_to_fights_database(fight_data, fight):
+                  print(fight_data, " | ", fight)
                   throwErrorMessage("FightsDB: Error writing data to the database - Dumping data", fight_data)
             getattr(self, f"{fight}Table").clearSpans()
             self.updateFightTables(fight) 
