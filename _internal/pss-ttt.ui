@@ -457,8 +457,8 @@
    <widget class="QPushButton" name="saveNewData">
     <property name="geometry">
      <rect>
-      <x>470</x>
-      <y>200</y>
+      <x>450</x>
+      <y>220</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -514,8 +514,8 @@
    <widget class="QPushButton" name="resetButton">
     <property name="geometry">
      <rect>
-      <x>470</x>
-      <y>230</y>
+      <x>450</x>
+      <y>250</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -535,8 +535,8 @@
    <widget class="QPushButton" name="pixyshipLayoutButton">
     <property name="geometry">
      <rect>
-      <x>470</x>
-      <y>170</y>
+      <x>450</x>
+      <y>190</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -644,7 +644,7 @@
     <property name="geometry">
      <rect>
       <x>480</x>
-      <y>60</y>
+      <y>90</y>
       <width>101</width>
       <height>31</height>
      </rect>
@@ -664,7 +664,7 @@
     <property name="geometry">
      <rect>
       <x>480</x>
-      <y>30</y>
+      <y>60</y>
       <width>101</width>
       <height>31</height>
      </rect>
@@ -684,7 +684,7 @@
     <property name="geometry">
      <rect>
       <x>480</x>
-      <y>90</y>
+      <y>120</y>
       <width>101</width>
       <height>31</height>
      </rect>
@@ -732,6 +732,26 @@
     </property>
     <property name="text">
      <string>Submit Fight Data</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton">
+    <property name="geometry">
+     <rect>
+      <x>480</x>
+      <y>30</y>
+      <width>101</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>9</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Export Fights</string>
     </property>
    </widget>
   </widget>

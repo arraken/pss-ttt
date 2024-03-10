@@ -15,7 +15,7 @@ MAIN - build a full readme to walkthrough how to operate all windows
 TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
       - add a way to check most recent tournament targets and what day they were done on
 IMPORT - 
-FIGHTS - Add Column in databases for remaining hp, win or loss - colorize wins vs losses
+FIGHTS - 
 CTC - crew training calculator: error checking and prevention of invalid values
 '''
 def create_connection():
