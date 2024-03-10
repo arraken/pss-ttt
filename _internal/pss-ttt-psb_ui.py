@@ -23,7 +23,7 @@ class Ui_playerbrowser(object):
     def setupUi(self, playerbrowser):
         if not playerbrowser.objectName():
             playerbrowser.setObjectName(u"playerbrowser")
-        playerbrowser.resize(343, 329)
+        playerbrowser.resize(343, 332)
         self.playerNameList = QListWidget(playerbrowser)
         self.playerNameList.setObjectName(u"playerNameList")
         self.playerNameList.setGeometry(QRect(10, 10, 231, 231))

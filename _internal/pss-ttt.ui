@@ -154,35 +154,6 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="pvpSubmit">
-    <property name="geometry">
-     <rect>
-      <x>376</x>
-      <y>480</y>
-      <width>131</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Submit PvP Data</string>
-    </property>
-   </widget>
-   <widget class="QSpinBox" name="starCount">
-    <property name="geometry">
-     <rect>
-      <x>136</x>
-      <y>480</y>
-      <width>31</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>-40</number>
-    </property>
-    <property name="maximum">
-     <number>40</number>
-    </property>
-   </widget>
    <widget class="QLabel" name="starsLastTournamentLabel">
     <property name="geometry">
      <rect>
@@ -221,22 +192,6 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QSpinBox" name="trophyCount">
-    <property name="geometry">
-     <rect>
-      <x>506</x>
-      <y>480</y>
-      <width>31</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>-40</number>
-    </property>
-    <property name="maximum">
-     <number>40</number>
-    </property>
-   </widget>
    <widget class="QTextBrowser" name="maxTrophies">
     <property name="geometry">
      <rect>
@@ -261,7 +216,8 @@
     </property>
     <property name="font">
      <font>
-      <family>Arial Black</family>
+      <family>Calibri</family>
+      <pointsize>9</pointsize>
       <weight>75</weight>
       <bold>true</bold>
      </font>
@@ -293,35 +249,6 @@
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="legendsSubmit">
-    <property name="geometry">
-     <rect>
-      <x>196</x>
-      <y>480</y>
-      <width>131</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Submit LLPvP Data</string>
-    </property>
-   </widget>
-   <widget class="QSpinBox" name="legendTrophyCount">
-    <property name="geometry">
-     <rect>
-      <x>326</x>
-      <y>480</y>
-      <width>31</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>-40</number>
-    </property>
-    <property name="maximum">
-     <number>40</number>
     </property>
    </widget>
    <widget class="QLabel" name="currentTrophiesLabel">
@@ -436,24 +363,6 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="tournamentSubmit">
-    <property name="geometry">
-     <rect>
-      <x>6</x>
-      <y>480</y>
-      <width>131</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>8</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Submit Tournament Data</string>
-    </property>
-   </widget>
    <widget class="QTextBrowser" name="currentTrophies">
     <property name="geometry">
      <rect>
@@ -556,8 +465,8 @@
     </property>
     <property name="font">
      <font>
-      <family>Arial Black</family>
-      <pointsize>10</pointsize>
+      <family>Calibri</family>
+      <pointsize>9</pointsize>
       <weight>75</weight>
       <bold>true</bold>
      </font>
@@ -613,8 +522,8 @@
     </property>
     <property name="font">
      <font>
-      <family>Arial Black</family>
-      <pointsize>10</pointsize>
+      <family>Calibri</family>
+      <pointsize>9</pointsize>
       <weight>75</weight>
       <bold>true</bold>
      </font>
@@ -634,7 +543,8 @@
     </property>
     <property name="font">
      <font>
-      <family>Arial Black</family>
+      <family>Calibri</family>
+      <pointsize>9</pointsize>
       <weight>75</weight>
       <bold>true</bold>
      </font>
@@ -651,6 +561,14 @@
       <width>101</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Calibri</family>
+      <pointsize>9</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
     </property>
     <property name="toolTip">
      <string extracomment="Targets Import.xls file located in same folder and loads DB with data"/>
@@ -673,7 +591,8 @@
     </property>
     <property name="font">
      <font>
-      <family>Arial Black</family>
+      <family>Calibri</family>
+      <pointsize>9</pointsize>
       <weight>75</weight>
       <bold>true</bold>
      </font>
@@ -730,6 +649,13 @@
       <height>31</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>9</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
     <property name="text">
      <string>Tourny Stars Calc</string>
     </property>
@@ -743,6 +669,13 @@
       <height>31</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>9</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
     <property name="text">
      <string>Crew Trainer</string>
     </property>
@@ -755,6 +688,13 @@
       <width>101</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>9</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
     </property>
     <property name="text">
      <string>Star Target Track</string>
@@ -771,13 +711,27 @@
     </property>
     <property name="font">
      <font>
-      <family>Arial Black</family>
+      <family>Calibri</family>
+      <pointsize>9</pointsize>
       <weight>75</weight>
       <bold>true</bold>
      </font>
     </property>
     <property name="text">
      <string>Search Browser</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="submitNewDataButton">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>480</y>
+      <width>531</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Submit Fight Data</string>
     </property>
    </widget>
   </widget>
@@ -800,12 +754,6 @@
   <tabstop>playerNotes</tabstop>
   <tabstop>saveNewData</tabstop>
   <tabstop>resetButton</tabstop>
-  <tabstop>starCount</tabstop>
-  <tabstop>tournamentSubmit</tabstop>
-  <tabstop>legendTrophyCount</tabstop>
-  <tabstop>legendsSubmit</tabstop>
-  <tabstop>trophyCount</tabstop>
-  <tabstop>pvpSubmit</tabstop>
   <tabstop>tournyTable</tabstop>
   <tabstop>legendsTable</tabstop>
   <tabstop>pvpTable</tabstop>

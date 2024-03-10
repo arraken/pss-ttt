@@ -75,7 +75,7 @@ def throwErrorMessage(text, dump):
 class MainWindow(QtWidgets.QMainWindow):
       def __init__(self):
             super(MainWindow, self).__init__() 
-            uic.loadUi(r'_internal\pss-ttt.ui', self)
+            uic.loadUi(os.path.join('_internal','pss-ttt.ui'), self)
             self.show()
             
             self.lockUnlockButton.clicked.connect(self.changeButtonText)
@@ -83,9 +83,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.saveNewData.clicked.connect(self.submitNewPlayerData)
             self.resetButton.clicked.connect(self.resetDataFields)
             self.pixyshipLayoutButton.clicked.connect(self.pixyshipURL)
-            self.tournamentSubmit.clicked.connect(self.submitTournamentData)
-            self.legendsSubmit.clicked.connect(self.submitLegendsData)
-            self.pvpSubmit.clicked.connect(self.submitPVPData)
+            self.submitNewDataButton.clicked.connect(self.open_fightDialog)
             self.importDialogButton.clicked.connect(self.open_importDialog)
             self.playerBrowserSearchButton.clicked.connect(self.open_playerBrowser)
             self.fleetSearchButton.clicked.connect(self.open_fleetBrowser)
@@ -96,6 +94,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.crewTrainerButton.clicked.connect(self.open_crewTrainer)
             self.starTargetTrackButton.clicked.connect(self.open_stt)
             
+            self.fightDialog = FightDataConfirmation(parent=self)
+            self.fightDialog.fightDataSaved.connect(self.receiveFightData)
+
             self.fleetBrowser = FleetDialogBox()
             self.fleetBrowser.copyFleetSearchClicked.connect(self.handleCopyFleetSearchClicked)
 
@@ -109,6 +110,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.trainingDialog = CrewTrainerDialogBox()
 
             self.starTargetTrack = StarTargetTrackDialogBox(parent=self)
+      def open_fightDialog(self):
+            self.fightDialog.exec()
       def open_playerBrowser(self):
             self.playerBrowser.populatePlayerList()
             self.playerBrowser.exec()
@@ -245,7 +248,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   table_widget.show()
             else:
                   throwErrorMessage("Fights Table Error", "Invalid fights type")
-      def submitTournamentData(self):
+      '''def submitTournamentData(self):
             todaysdate = str(date.today())
             tournament_data = [self.playerNameSearchBox.toPlainText(), str(self.starCount.value()), todaysdate]
             if not write_to_fights_database(tournament_data, "tourny"):
@@ -268,7 +271,17 @@ class MainWindow(QtWidgets.QMainWindow):
                   throwErrorMessage("FightsDB: Error writing data to the database - Dumping data", pvp_data)
             self.tournyTable.clearSpans()
             self.updateFightTables("pvp")
-            pvp_data.clear()
+            pvp_data.clear()'''
+      def receiveFightData(self, rewards, remainhp, result, fight):
+            self.submitFightData(rewards, remainhp, result, fight)
+      def submitFightData(self, rewards, remainhp, result, fight):
+            todaysdate = str(date.today())
+            fight_data = [self.playerNameSearchBox.toPlainText(), str(rewards), todaysdate, str(remainhp), result, fight]
+            if not write_to_fights_database(fight_data, fight):
+                  throwErrorMessage("FightsDB: Error writing data to the database - Dumping data", fight_data)
+            getattr(self, f"{fight}Table").clearSpans()
+            self.updateFightTables(fight)
+            fight_data.clear()
       def deleteTournamentLine(self):
             selected_indexes = self.tournyTable.selectionModel().selectedRows()
             db = QSqlDatabase.database("tournydb")
@@ -368,11 +381,25 @@ class MainWindow(QtWidgets.QMainWindow):
                         if (last_day_of_month - datetag_date).days <= 7:
                               return QColor(181,214,232)
                   return super().data(index, role)
+class FightDataConfirmation(QtWidgets.QDialog):
+      fightDataSaved = pyqtSignal(int, float, str, str)
+      def __init__(self, parent=None):
+            super().__init__(parent)
+            uic.loadUi(os.path.join('_internal','pss-ttt-fdb.ui'), self)
+
+            self.submitFightDataButton.clicked.connect(self.saveFightData)
+      def saveFightData(self):
+            rewards = int(self.fightRewardBox.toPlainText())
+            remainhp = float(self.fightHPBox.toPlainText())
+            result = str(self.fightResultBox.currentText())
+            fight = str(self.fightTypeBox.currentText())
+            self.fightDataSaved.emit(rewards, remainhp, result, fight)
+            self.accept()
 class PlayerDiaglogBox(QtWidgets.QDialog):
       copyPlayerSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self):
             super().__init__()
-            uic.loadUi(r'_internal\pss-ttt-psb.ui', self)
+            uic.loadUi(os.path.join('_internal', 'pss-ttt-psb.ui'), self)
             self.playerSearchClose.clicked.connect(self.accept)
             self.copyPlayerSearch.clicked.connect(self.onCopyPlayerSearchClicked)
             self.playerFilterBox.textChanged.connect(self.filterPlayerList)
@@ -423,7 +450,7 @@ class FleetDialogBox(QtWidgets.QDialog):
 
       def __init__(self):
             super().__init__()
-            uic.loadUi(r'_internal\pss-ttt-fleetbrowser.ui', self)
+            uic.loadUi(os.path.join('_internal','pss-ttt-fleetbrowser.ui'), self)
             self.fleetSearchClose.clicked.connect(self.accept)
             self.copyFleetSearch.clicked.connect(self.onCopyFleetSearchClicked)
             self.fleetFilterBox.textChanged.connect(self.filterFleetList)
@@ -476,7 +503,7 @@ class ImportDialogBox(QtWidgets.QDialog):
       max_counter = 0
       def __init__(self):
             super().__init__()
-            uic.loadUi(r'_internal\pss-ttt-importdialog.ui', self)
+            uic.loadUi(os.path.join('_internal','pss-ttt-importdialog.ui'), self)
             self.importTargetsButton.clicked.connect(self.import_data)
             self.importBrowse.clicked.connect(self.open_fileBrowser)
 
@@ -609,7 +636,7 @@ class ImportDialogBox(QtWidgets.QDialog):
 class TournamentDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
-            uic.loadUi(r'_internal\pss-ttt-tsc.ui', self)
+            uic.loadUi(os.path.join('_internal','pss-ttt-tsc.ui'), self)
             
             self.starTableHeaders = ['Star Goal', 'Fight 1', 'Fight 2', 'Fight 3', 'Fight 4', 'Fight 5', 'Fight 6']
             self.starsTable = [
@@ -621,7 +648,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
-            self.loadStarsTableFromCSV("_internal\starstable.csv")
+            self.loadStarsTableFromCSV(os.path.join('_internal','starstable.csv'))
             self.tournamentTable = self.findChild(QTableView, "starsTableView")
             self.model = self.TournamentTableModel(self.starsTable, self)
             self.tournamentTable.setModel(self.model)
@@ -632,7 +659,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
       def updateActualStarsBox(self):
             total_sum = sum(self.model.getCellValue(7, col) for col in range(self.model.columnCount(None)))
             self.actualStarsBox.setPlainText(str(total_sum))
-            self.saveStarsTableToCSV("_internal\starstable.csv")
+            self.saveStarsTableToCSV(os.path.join('_internal','starstable.csv'))
       def saveStarsTableToCSV(self, filename):
             with open(filename, 'w', newline='') as csvfile:
                   writer = csv.writer(csvfile)
@@ -663,7 +690,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
-            self.saveStarsTableToCSV("_internal\starstable.csv")
+            self.saveStarsTableToCSV(os.path.join('_internal','starstable.csv'))
             self.model = self.TournamentTableModel(self.starsTable, self)
             self.tournamentTable.setModel(self.model)
       class starsErrorDialog(QtWidgets.QDialog):
@@ -750,11 +777,11 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   if i == 6:
                         self.estStarsBox.setPlainText(str(end_value))
             self.tournamentTable.show()
-            self.saveStarsTableToCSV("_internal\starstable.csv")
+            self.saveStarsTableToCSV(os.path.join('_internal','starstable.csv'))
 class CrewTrainerDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
-            uic.loadUi(r'_internal\pss-ttt-crewtrainer.ui', self)
+            uic.loadUi(os.path.join('_internal','pss-ttt-crewtrainer.ui'), self)
 
             self.trainingList = [
                   ("ABL Green", "Steam Yoga", [0,0,4,1,0,0,0,0,0]),
@@ -1161,7 +1188,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
       currentStarsTarget = ' '
       def __init__(self, parent=None):
             super().__init__(parent)
-            uic.loadUi('_internal\pss-ttt-stt.ui', self)
+            uic.loadUi(os.path.join('_internal','pss-ttt-stt.ui'), self)
 
             self.table_widgets = {
             "dayFour": {"button_add": self.dayFourAdd, "button_remove": self.dayFourRemove, "model": QtGui.QStandardItemModel()},
@@ -1259,7 +1286,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             confirmation_dialog = self.StarsTargetTrackConfirmationDialog(self)
             confirmation_dialog.exec()
       def saveStarsCSV(self):
-            with open("_internal\starstrack.csv", 'w', newline='', encoding='utf-8') as csvfile:
+            with open(os.path.join('_internal','starstrack.csv'), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
                   # Write data for each table
                   for day, widgets in self.table_widgets.items():
@@ -1269,7 +1296,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                               writer.writerow([day] + data)
       def loadStarsCSV(self):
             try:
-                  with open("_internal\starstrack.csv", 'r', newline='', encoding='utf-8') as csvfile:
+                  with open(os.path.join('_internal','starstrack.csv'), 'r', newline='', encoding='utf-8') as csvfile:
                         reader = csv.reader(csvfile)
                         # Read data for each table
                         for row in reader:
@@ -1288,7 +1315,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
       class StarsTargetTrackConfirmationDialog(QtWidgets.QDialog):
             def __init__(self, parent=None):
                   super().__init__(parent)
-                  uic.loadUi('_internal\pss-ttt-stt-confirm.ui', self)
+                  uic.loadUi(os.path.join('_internal','pss-ttt-stt-confirm.ui'), self)
 
                   self.cancelButton.clicked.connect(self.reject)
                   self.confirmButton.clicked.connect(self.accept)
