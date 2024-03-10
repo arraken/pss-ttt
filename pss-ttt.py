@@ -110,6 +110,34 @@ class MainWindow(QtWidgets.QMainWindow):
             self.trainingDialog = CrewTrainerDialogBox()
 
             self.starTargetTrack = StarTargetTrackDialogBox(parent=self)
+            
+            tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
+            legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
+            pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
+            self.update_SQL(tournyQuery, "Tourny")
+            self.update_SQL(legendQuery, "Legend")
+            self.update_SQL(pvpQuery, "PVP")
+      def update_SQL(self, query, db_name):
+            alter_queries = [
+                  "ALTER TABLE fights ADD COLUMN hpremain INTEGER DEFAULT 0",
+                  "ALTER TABLE fights ADD COLUMN winloss TEXT DEFAULT 'Draw'"
+                  ]
+            # Define UPDATE query to set default values
+            update_query = (
+                  "UPDATE fights "
+                  "SET hpremain = 0, winloss = 'Draw' "
+                  "WHERE hpremain IS NULL OR winloss IS NULL"
+                  )
+
+            # Execute ALTER TABLE queries
+            for alter_query in alter_queries:
+                  if not query.exec(alter_query):
+                        print(f"Error: {db_name} Alter")
+                        print("Error:", query.lastError().text())
+            # Execute UPDATE query
+            if not query.exec(update_query):
+                  print(f"Error: {db_name} Update")
+                  print("Error:", query.lastError().text())
       def open_fightDialog(self):
             self.fightDialog.exec()
       def open_playerBrowser(self):
@@ -255,7 +283,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.submitFightData(rewards, remainhp, result, fight)
       def submitFightData(self, rewards, remainhp, result, fight):
             todaysdate = str(date.today())
-            #★/🏆
             fight_data = [self.playerNameSearchBox.toPlainText(), str(rewards), todaysdate, str(remainhp), result, fight]
             if not write_to_fights_database(fight_data, fight):
                   throwErrorMessage("FightsDB: Error writing data to the database - Dumping data", fight_data)
