@@ -38,9 +38,9 @@ def create_table():
       legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
       pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
       targetsQuery.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
-      tournyQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, UNIQUE(name, rewards, datetag))")
-      legendQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, UNIQUE(name, rewards, datetag))")
-      pvpQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, UNIQUE(name, rewards, datetag))")
+      tournyQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, hpremain INTEGER NOT NULL, winloss TEXT NOT NULL, UNIQUE(name, rewards, datetag, hpremain, winloss))")
+      legendQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, hpremain INTEGER NOT NULL, winloss TEXT NOT NULL, UNIQUE(name, rewards, datetag, hpremain, winloss))")
+      pvpQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, hpremain INTEGER NOT NULL, winloss TEXT NOT NULL, UNIQUE(name, rewards, datetag, hpremain, winloss))")
 def write_to_fights_database(data, fights):
       if fights == "tourny":
             query = QSqlQuery(QSqlDatabase.database("tournydb"))
@@ -48,8 +48,8 @@ def write_to_fights_database(data, fights):
             query = QSqlQuery(QSqlDatabase.database("legendsdb"))
       if fights == "pvp":
             query = QSqlQuery(QSqlDatabase.database("pvpdb"))
-      query.prepare("INSERT OR REPLACE INTO fights(name, rewards, datetag) VALUES(?, ?, ?)")
-      for i in range(3):
+      query.prepare("INSERT OR REPLACE INTO fights(name, rewards, datetag, hpremain, winloss) VALUES(?, ?, ?)")
+      for i in range(5):
             query.bindValue(i, data[i].strip())
       if not query.exec():
             throwErrorMessage("FightsDB:", query.lastError().text())
@@ -234,7 +234,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   db_name = f"{fights}db"
                   table_widget = getattr(self, f"{fights}Table")
                   query = QSqlQuery(QSqlDatabase.database(db_name))
-                  query.prepare("SELECT rewards, datetag FROM fights WHERE name LIKE ?")
+                  query.prepare("SELECT rewards, datetag, hpremain, winloss FROM fights WHERE name LIKE ?")
                   if query.lastError().isValid():
                         throwErrorMessage(query_error_message, query.lastError().text())
                         sys.exit(-1)
@@ -244,43 +244,23 @@ class MainWindow(QtWidgets.QMainWindow):
                   model = self.CustomSqlTableModel()
                   model.setQuery(query)
                   table_widget.setModel(model)
-                  table_widget.setColumnWidth(0,50)
+                  table_widget.setColumnWidth(0,40)
+                  table_widget.setColumnWidth(1,70)
+                  table_widget.setColumnWidth(2,25)
+                  table_widget.setColumnWidth(3,40)
                   table_widget.show()
             else:
                   throwErrorMessage("Fights Table Error", "Invalid fights type")
-      '''def submitTournamentData(self):
-            todaysdate = str(date.today())
-            tournament_data = [self.playerNameSearchBox.toPlainText(), str(self.starCount.value()), todaysdate]
-            if not write_to_fights_database(tournament_data, "tourny"):
-                  throwErrorMessage("FightsDB: Error writing data to the database - Dumping data", tournament_data)
-            self.tournyTable.clearSpans()
-            self.updateFightTables("tourny")
-            tournament_data.clear()
-      def submitLegendsData(self):
-            todaysdate = str(date.today())
-            legends_data = [self.playerNameSearchBox.toPlainText(), str(self.legendTrophyCount.value()), todaysdate]
-            if not write_to_fights_database(legends_data, "legends"):
-                  throwErrorMessage("FightsDB: Error writing data to the database - Dumping data", legends_data)
-            self.tournyTable.clearSpans()
-            self.updateFightTables("legends")
-            legends_data.clear()
-      def submitPVPData(self):
-            todaysdate = str(date.today())
-            pvp_data = [self.playerNameSearchBox.toPlainText(), str(self.trophyCount.value()), todaysdate]
-            if not write_to_fights_database(pvp_data, "pvp"):
-                  throwErrorMessage("FightsDB: Error writing data to the database - Dumping data", pvp_data)
-            self.tournyTable.clearSpans()
-            self.updateFightTables("pvp")
-            pvp_data.clear()'''
       def receiveFightData(self, rewards, remainhp, result, fight):
             self.submitFightData(rewards, remainhp, result, fight)
       def submitFightData(self, rewards, remainhp, result, fight):
             todaysdate = str(date.today())
+            #★/🏆
             fight_data = [self.playerNameSearchBox.toPlainText(), str(rewards), todaysdate, str(remainhp), result, fight]
             if not write_to_fights_database(fight_data, fight):
                   throwErrorMessage("FightsDB: Error writing data to the database - Dumping data", fight_data)
             getattr(self, f"{fight}Table").clearSpans()
-            self.updateFightTables(fight)
+            self.updateFightTables(fight) 
             fight_data.clear()
       def deleteTournamentLine(self):
             selected_indexes = self.tournyTable.selectionModel().selectedRows()
@@ -290,18 +270,26 @@ class MainWindow(QtWidgets.QMainWindow):
             name_data = []
             rewards_data = []
             datetag_data = []
+            hpremain_data = []
+            winloss_data = []
             for index in selected_indexes:
                   rewards = self.tournyTable.model().index(index.row(), 0).data()
                   datetag = self.tournyTable.model().index(index.row(), 1).data()
+                  hpremain = self.tournyTable.model().index(index.row(), 2).data()
+                  winloss = self.tournyTable.model().index(index.row(), 3).data()
                   rewards_data.append(rewards)
                   datetag_data.append(datetag)
+                  hpremain_data.append(hpremain)
+                  winloss_data.append(winloss)
             name_data.append(self.playerNameSearchBox.toPlainText())
             
             query = QSqlQuery(db)
-            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({})".format(
+            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({}) AND hpremain IN ({}) AND winloss IN ({})".format(
         ", ".join(["'{}'".format(str(name)) for name in name_data]),  
         ", ".join(["'{}'".format(str(data)) for data in rewards_data]),
-        ", ".join(["'{}'".format(str(data)) for data in datetag_data]))
+        ", ".join(["'{}'".format(str(data)) for data in datetag_data]),
+        ", ".join(["'{}'".format(float(data)) for data in hpremain_data]),
+        ", ".join(["'{}'".format(str(data)) for data in winloss_data]))
 
             if not query.exec(sql_query):
                   self.throwErrorMessage("Record Deletion Error", query.lastError().text())
@@ -318,18 +306,26 @@ class MainWindow(QtWidgets.QMainWindow):
             name_data = []
             rewards_data = []
             datetag_data = []
+            hpremain_data = []
+            winloss_data = []
             for index in selected_indexes:
                   rewards = self.legendsTable.model().index(index.row(), 0).data()
                   datetag = self.legendsTable.model().index(index.row(), 1).data()
+                  hpremain = self.legendsTable.model().index(index.row(), 2).data()
+                  winloss = self.legendsTable.model().index(index.row(), 3).data()
                   rewards_data.append(rewards)
                   datetag_data.append(datetag)
+                  hpremain_data.append(hpremain)
+                  winloss_data.append(winloss)
             name_data.append(self.playerNameSearchBox.toPlainText())
             
             query = QSqlQuery(db)
-            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({})".format(
+            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({}) AND hpremain IN ({}) AND winloss IN ({})".format(
         ", ".join(["'{}'".format(str(name)) for name in name_data]),  
         ", ".join(["'{}'".format(str(data)) for data in rewards_data]),
-        ", ".join(["'{}'".format(str(data)) for data in datetag_data]))
+        ", ".join(["'{}'".format(str(data)) for data in datetag_data]),
+        ", ".join(["'{}'".format(float(data)) for data in hpremain_data]),
+        ", ".join(["'{}'".format(str(data)) for data in winloss_data]))
 
             if not query.exec(sql_query):
                   self.throwErrorMessage("Record Deletion Error: ", query.lastError().text())
@@ -346,18 +342,26 @@ class MainWindow(QtWidgets.QMainWindow):
             name_data = []
             rewards_data = []
             datetag_data = []
+            hpremain_data = []
+            winloss_data = []
             for index in selected_indexes:
                   rewards = self.pvpTable.model().index(index.row(), 0).data()
                   datetag = self.pvpTable.model().index(index.row(), 1).data()
+                  hpremain = self.pvpTable.model().index(index.row(), 2).data()
+                  winloss = self.pvpTable.model().index(index.row(), 3).data()
                   rewards_data.append(rewards)
                   datetag_data.append(datetag)
+                  hpremain_data.append(hpremain)
+                  winloss_data.append(winloss)
             name_data.append(self.playerNameSearchBox.toPlainText())
             
             query = QSqlQuery(db)
-            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({})".format(
+            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({}) AND hpremain IN ({}) AND winloss IN ({})".format(
         ", ".join(["'{}'".format(str(name)) for name in name_data]),  
         ", ".join(["'{}'".format(str(data)) for data in rewards_data]),
-        ", ".join(["'{}'".format(str(data)) for data in datetag_data]))
+        ", ".join(["'{}'".format(str(data)) for data in datetag_data]),
+        ", ".join(["'{}'".format(float(data)) for data in hpremain_data]),
+        ", ".join(["'{}'".format(str(data)) for data in winloss_data]))
             
             if not query.exec(sql_query):
                   self.throwErrorMessage("Record Deletion Error: ", query.lastError().text())
@@ -369,6 +373,16 @@ class MainWindow(QtWidgets.QMainWindow):
       class CustomSqlTableModel(QSqlTableModel):
             def __init__(self, parent=None):
                   super().__init__(parent)
+            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+                  if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+                        headers = {
+                              0: "★/🏆",
+                              1: "Date",
+                              2: "HP",
+                              3: "W/L/D"
+                              }
+                        return headers.get(section, super().headerData(section, orientation, role))
+                  return super().headerData(section, orientation, role)
             def data(self, index, role):
                   if not index.isValid():
                         return None
