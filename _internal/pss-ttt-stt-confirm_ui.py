@@ -36,7 +36,7 @@ class Ui_Dialog(object):
     # setupUi
 
     def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
+        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Confirm Reset", None))
         self.confirmButton.setText(QCoreApplication.translate("Dialog", u"Confirm", None))
         self.cancelButton.setText(QCoreApplication.translate("Dialog", u"Cancel", None))
     # retranslateUi

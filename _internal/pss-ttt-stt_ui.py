@@ -118,7 +118,7 @@ class Ui_starTargetTracking(object):
     # setupUi
 
     def retranslateUi(self, starTargetTracking):
-        starTargetTracking.setWindowTitle(QCoreApplication.translate("starTargetTracking", u"Dialog", None))
+        starTargetTracking.setWindowTitle(QCoreApplication.translate("starTargetTracking", u"Star Target Tracker", None))
         self.dayFourCopy.setText(QCoreApplication.translate("starTargetTracking", u"Copy&&Search", None))
         self.dayFourRemove.setText(QCoreApplication.translate("starTargetTracking", u"Remove", None))
         self.dayFourAdd.setText(QCoreApplication.translate("starTargetTracking", u"Add", None))

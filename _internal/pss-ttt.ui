@@ -458,7 +458,7 @@
     <property name="geometry">
      <rect>
       <x>450</x>
-      <y>220</y>
+      <y>250</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -515,7 +515,7 @@
     <property name="geometry">
      <rect>
       <x>450</x>
-      <y>250</y>
+      <y>220</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -734,7 +734,7 @@
      <string>Submit Fight Data</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="exportFightsButton">
     <property name="geometry">
      <rect>
       <x>480</x>

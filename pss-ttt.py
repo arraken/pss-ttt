@@ -2,7 +2,7 @@ from PyQt6 import QtWidgets, QtCore, uic, QtGui
 from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta
 from openpyxl import load_workbook
 from decimal import Decimal
@@ -11,9 +11,8 @@ import sys, csv, math, webbrowser, os, traceback
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
 MAIN - build a full readme to walkthrough how to operate all windows
-      - pull all fights data and print it out into excel or csv?
 TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
-      - add a way to check most recent tournament targets and what day they were done on
+       - add a way to check most recent tournament targets and what day they were done on
 IMPORT - 
 FIGHTS - 
 CTC - crew training calculator: error checking and prevention of invalid values
@@ -52,7 +51,7 @@ def write_to_fights_database(data, fights):
       for i in range(5):
             query.bindValue(i, data[i].strip())
       if not query.exec():
-            throwErrorMessage("FightsDB:", query.lastError().text())
+            throwErrorMessage("FightsDB [write_to_fights_database]:", query.lastError().text())
             return False
       return True
 def write_to_targets_database(data):
@@ -61,7 +60,7 @@ def write_to_targets_database(data):
       for i in range(7):
             query.bindValue(i, data[i])
       if not query.exec():
-            throwErrorMessage("targetdb:", query.lastError().text())
+            throwErrorMessage("targetdb [write_to_targets_database]:", query.lastError().text())
             return False
       return True
 def throwErrorMessage(text, dump):
@@ -87,12 +86,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.importDialogButton.clicked.connect(self.open_importDialog)
             self.playerBrowserSearchButton.clicked.connect(self.open_playerBrowser)
             self.fleetSearchButton.clicked.connect(self.open_fleetBrowser)
-            self.delLegendsButton.clicked.connect(self.deleteLegendsLine)
-            self.delTournyButton.clicked.connect(self.deleteTournamentLine)
-            self.delPVPButton.clicked.connect(self.deletePVPLine)
+            self.delLegendsButton.clicked.connect(lambda: self.deleteSelectedLine("legends", self.legendsTable))
+            self.delTournyButton.clicked.connect(lambda: self.deleteSelectedLine("tourny", self.tournyTable))
+            self.delPVPButton.clicked.connect(lambda: self.deleteSelectedLine("pvp", self.pvpTable))
             self.tournyStarsWindow.clicked.connect(self.open_tournamentStarsCalc)
             self.crewTrainerButton.clicked.connect(self.open_crewTrainer)
             self.starTargetTrackButton.clicked.connect(self.open_stt)
+            self.exportFightsButton.clicked.connect(self.exportFightsToCSV)
             
             self.fightDialog = FightDataConfirmation(parent=self)
             self.fightDialog.fightDataSaved.connect(self.receiveFightData)
@@ -128,16 +128,17 @@ class MainWindow(QtWidgets.QMainWindow):
                   "SET hpremain = 0, winloss = 'Draw' "
                   "WHERE hpremain IS NULL OR winloss IS NULL"
                   )
-
             # Execute ALTER TABLE queries
             for alter_query in alter_queries:
                   if not query.exec(alter_query):
-                        print(f"Error: {db_name} Alter")
-                        print("Error:", query.lastError().text())
+                        if not query.lastError().text().startswith("duplicate"):
+                              print(f"Error: {db_name} Alter")
+                              print("Error:", query.lastError().text())
             # Execute UPDATE query
             if not query.exec(update_query):
-                  print(f"Error: {db_name} Update")
-                  print("Error:", query.lastError().text())
+                  if not query.lastError().text().startswith("duplicate"):
+                        print(f"Error: {db_name} Update")
+                        print("Error:", query.lastError().text())
       def open_fightDialog(self):
             self.fightDialog.exec()
       def open_playerBrowser(self):
@@ -157,6 +158,53 @@ class MainWindow(QtWidgets.QMainWindow):
       def open_stt(self):
             self.starTargetTrack.populateSTT(self.playerNameSearchBox.toPlainText())
             self.starTargetTrack.exec()
+      def exportFightsToCSV(self):
+            filepath = os.path.join('_internal', 'exportedfights.csv')
+            fights_data = []
+            for db_name in ("tournydb", "legendsdb", "pvpdb"):
+                  db = QSqlDatabase.database(db_name)
+                  query = QSqlQuery(db)
+                  query.prepare("SELECT name, rewards, datetag, hpremain, winloss FROM fights ORDER BY name")
+                  if not query.exec():
+                        throwErrorMessage("Query execution failed [exportFightsToCSV]: ", query.lastError().text())
+                        return
+                  while query.next():
+                        name = query.value(0)
+                        rewards = query.value(1)
+                        datetag = query.value(2)
+                        hpremain = query.value(3)
+                        winloss = query.value(4)
+                        fights_data.append((db_name, name, rewards, datetag, hpremain, winloss))
+
+            with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+                  writer = csv.writer(csvfile)
+                  writer.writerow(["Database", "Name", "Rewards", "Datetag", "HP Remaining", "Win/Loss"])
+                  for row in fights_data:
+                        writer.writerow(row)
+            self.exportPlayerDataToCSV()
+      def exportPlayerDataToCSV(self):
+            filepath = os.path.join('_internal', 'exportedplayers.csv')
+            player_data = []
+            db = QSqlDatabase.database("targetdb")
+            query = QSqlQuery(db)
+            query.prepare("SELECT playername, fleetname, laststars, beststars, trophies, maxtrophies, notes FROM players ORDER BY playername")
+            if not query.exec():
+                  throwErrorMessage("Query Execution failed [exportPlayerDataToCSV]: ", query.lastError().text())
+                  return
+            while query.next():
+                  playername = query.value(0)
+                  fleetname = query.value(1)
+                  laststars = query.value(2)
+                  beststars = query.value(3)
+                  trophies = query.value(4)
+                  maxtrophies = query.value(5)
+                  notes = query.value(6)
+                  player_data.append((playername, fleetname, laststars, beststars, trophies, maxtrophies, notes))
+            with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+                  writer = csv.writer(csvfile)
+                  writer.writerow(["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Trophies", "Max Trophies", "Notes"])
+                  for row in player_data:
+                        writer.writerow(row)
       def handleCopyFleetSearchClicked(self, selected_text, close_dialog):
             self.resetDataFields()
             self.playerNameSearchBox.setPlainText(selected_text)
@@ -215,7 +263,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   else:
                         return
             else:
-                  throwErrorMessage("Query execution failed: ", query.lastError().text())
+                  throwErrorMessage("Query execution failed [searchPlayer]: ", query.lastError().text())
                   return                 
       def changeButtonText(self):
             is_locked = self.lockUnlockButton.text() == "Locked"
@@ -253,7 +301,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if write_to_targets_database(player_data):
                   player_data.clear()
             else:
-                  throwErrorMessage("targetdb: Error writing data to the database - Dumping data", player_data)
+                  throwErrorMessage("targetdb: Error writing data to the database - Dumping data [submitNewPlayerData]", player_data)
       def updateFightTables(self, fights):
             name = self.playerNameSearchBox.toPlainText()
             query_error_message = f"{fights.capitalize()}DB Update: "
@@ -264,7 +312,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   query = QSqlQuery(QSqlDatabase.database(db_name))
                   query.prepare("SELECT rewards, datetag, hpremain, winloss FROM fights WHERE name LIKE ?")
                   if query.lastError().isValid():
-                        throwErrorMessage(query_error_message, query.lastError().text())
+                        throwErrorMessage(query_error_message&" [updateFightTables]", query.lastError().text())
                         sys.exit(-1)
                   query.addBindValue(f'%{name}%')
                   query.exec()
@@ -278,7 +326,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   table_widget.setColumnWidth(3,40)
                   table_widget.show()
             else:
-                  throwErrorMessage("Fights Table Error", "Invalid fights type")
+                  throwErrorMessage("Fights Table Error [updateFightTables]", "Invalid fights type")
       def receiveFightData(self, rewards, remainhp, result, fight):
             self.submitFightData(rewards, remainhp, result, fight)
       def submitFightData(self, rewards, remainhp, result, fight):
@@ -286,11 +334,11 @@ class MainWindow(QtWidgets.QMainWindow):
             fight_data = [self.playerNameSearchBox.toPlainText(), str(rewards), todaysdate, str(remainhp), result]
             if not write_to_fights_database(fight_data, fight):
                   print(fight_data, " | ", fight)
-                  throwErrorMessage("FightsDB: Error writing data to the database - Dumping data", fight_data)
+                  throwErrorMessage("FightsDB: Error writing data to the database - Dumping data [submitFightData]", fight_data)
             getattr(self, f"{fight}Table").clearSpans()
             self.updateFightTables(fight) 
             fight_data.clear()
-      def deleteTournamentLine(self):
+      '''def deleteTournamentLine(self):
             selected_indexes = self.tournyTable.selectionModel().selectedRows()
             db = QSqlDatabase.database("tournydb")
             if not selected_indexes:
@@ -320,7 +368,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ", ".join(["'{}'".format(str(data)) for data in winloss_data]))
 
             if not query.exec(sql_query):
-                  self.throwErrorMessage("Record Deletion Error", query.lastError().text())
+                  self.throwErrorMessage("Record Deletion Error []", query.lastError().text())
                   return
             # Clear the model associated with the QTableView
             self.tournyTable.model().clear()
@@ -398,6 +446,45 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pvpTable.model().clear()
             # Update the model to reflect changes in the database
             self.updateFightTables("pvp")
+      '''
+      def deleteSelectedLine(self, table_name, tableView):
+            selected_indexes = tableView.selectionModel().selectedRows()
+            db = QSqlDatabase.database(f"{table_name}db")
+            if not selected_indexes:
+                  return
+
+            name_data = []
+            rewards_data = []
+            datetag_data = []
+            hpremain_data = []
+            winloss_data = []
+
+            for index in selected_indexes:
+                  rewards = tableView.model().index(index.row(), 0).data()
+                  datetag = tableView.model().index(index.row(), 1).data()
+                  hpremain = tableView.model().index(index.row(), 2).data()
+                  winloss = tableView.model().index(index.row(), 3).data()
+                  rewards_data.append(rewards)
+                  datetag_data.append(datetag)
+                  hpremain_data.append(hpremain)
+                  winloss_data.append(winloss)
+
+            name_data.append(self.playerNameSearchBox.toPlainText())
+
+            query = QSqlQuery(db)
+            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({}) AND hpremain IN ({}) AND winloss IN ({})".format(
+                  ", ".join(["'{}'".format(str(name)) for name in name_data]),  
+                  ", ".join(["'{}'".format(str(data)) for data in rewards_data]),
+                  ", ".join(["'{}'".format(str(data)) for data in datetag_data]),
+                  ", ".join(["'{}'".format(float(data)) for data in hpremain_data]),
+                  ", ".join(["'{}'".format(str(data)) for data in winloss_data]))
+
+            if not query.exec(sql_query):
+                  throwErrorMessage("Record Deletion Error : [deleteSelectedLine]["+table_name+"]", query.lastError().text())
+                  return
+
+            tableView.model().clear()
+            self.updateFightTables(table_name)
       class CustomSqlTableModel(QSqlTableModel):
             def __init__(self, parent=None):
                   super().__init__(parent)
@@ -943,6 +1030,11 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             self.trainingStatBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
             self.trainingLevelBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
             self.fatigueBox.currentIndexChanged.connect(self.onComboBoxValueChanged)
+
+            self.presetsDialog = self.CrewTrainerPresetDialog(self.crewStats, parent=self)
+
+            self.openPresetsButton.clicked.connect(self.open_presetWindow)
+            
             for i in range(10):
                   if i == 0:
                         self.chartTable.setColumnWidth(i,125)
@@ -950,6 +1042,8 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         self.chartTable.setColumnWidth(i,1)
             self.testPushButton.clicked.connect(self.wipeCrewStats)
             self.onComboBoxValueChanged()
+      def open_presetWindow(self):
+            self.presetsDialog.exec()
       def calculateTrainingChart(self):
             selected_item = self.trainingStatBox.currentText()
             selected_key = selected_item[:3]
@@ -1225,6 +1319,79 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
                   else:
                         return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
+      class CrewTrainerPresetDialog(QtWidgets.QDialog):
+            def __init__(self, crewStats, parent=None):
+                  super().__init__(parent)
+                  uic.loadUi(os.path.join('_internal','pss-ttt-ctp.ui'), self)
+                  self.crewStats = crewStats
+                  self.savePresetButton.clicked.connect(self.savePresetData)
+                  self.loadPresetButton.clicked.connect(self.loadPresetData)
+                  self.deletePresetButton.clicked.connect(self.deleteSelectedPreset)
+
+                  self.model = QStandardItemModel()
+                  self.presetTableView.setModel(self.model)
+                  self.model.setHorizontalHeaderLabels(['Crew Name', 'HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN'])
+                  for i in range(self.model.columnCount()):
+                        if i==0:
+                              self.presetTableView.setColumnWidth(i,100)
+                        else:
+                              self.presetTableView.setColumnWidth(i,20)
+                  self.loadPresetCSV()
+            def loadPresetData(self):
+                  selected_row = self.presetTableView.currentIndex().row()
+                  if selected_row != -1:
+                        for i in range(1, self.model.columnCount()):
+                              data = self.model.index(selected_row, i).data()
+                              self.crewStats[i - 1][0] = data
+                              self.crewStats[i - 1][1] = 1.0
+                  self.accept()
+                  self.parent().updateFatigueMod()
+            def savePresetData(self):
+                  first_column_data = [row[0] for row in self.crewStats]
+
+                  # Getting the name from self.presetCrewNameBox
+                  preset_name = self.presetCrewNameBox.toPlainText()
+
+                  # Appending data to presetTableView
+                  row_count = self.model.rowCount()
+                  self.model.insertRow(row_count)
+                  self.model.setData(self.model.index(row_count, 0), preset_name)
+                  for i, data in enumerate(first_column_data):
+                        self.model.setData(self.model.index(row_count, i + 1), data)
+                  for i in range(self.model.columnCount()):
+                        if i==0:
+                              self.presetTableView.setColumnWidth(i,100)
+                        else:
+                              self.presetTableView.setColumnWidth(i,20)
+                  self.savePresetCSV()
+            def savePresetCSV(self):
+                  with open(os.path.join('_internal','presets.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+                        writer = csv.writer(csvfile)
+                        for i in range(self.model.rowCount()):
+                              row_data = []
+                              for j in range(self.model.columnCount()):
+                                    data = self.model.index(i, j).data()
+                                    row_data.append(data)
+                              writer.writerow(row_data)
+            def loadPresetCSV(self):
+                  filename = os.path.join('_internal','presets.csv')
+                  if os.path.exists(filename):
+                        with open(filename, 'r', newline='', encoding='utf-8') as csvfile:
+                              reader = csv.reader(csvfile)
+                              self.model.removeRows(0, self.model.rowCount())
+                              for row in reader:
+                                    row_position = self.model.rowCount()
+                                    self.model.insertRow(row_position)
+                                    for column, value in enumerate(row):
+                                          item = QtGui.QStandardItem(value)
+                                          self.model.setItem(row_position, column, item)
+                  else:
+                        self.savePresetCSV()
+            def deleteSelectedPreset(self):
+                  selected_index = self.presetTableView.selectionModel().selectedRows()
+                  for index in sorted(selected_index, reverse=True):
+                        self.model.removeRow(index.row())
+                  self.savePresetCSV()
 class StarTargetTrackDialogBox(QtWidgets.QDialog):
       copyStarsTargetTrackClicked = QtCore.pyqtSignal(str, bool)
       currentStarsTarget = ' '

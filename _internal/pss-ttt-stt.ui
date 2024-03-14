@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Star Target Tracker</string>
   </property>
   <widget class="QTableView" name="dayFourTable">
    <property name="geometry">

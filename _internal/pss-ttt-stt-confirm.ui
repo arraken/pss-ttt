@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Confirm Reset</string>
   </property>
   <widget class="QPushButton" name="confirmButton">
    <property name="geometry">
