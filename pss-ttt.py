@@ -87,6 +87,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.importDialogButton.clicked.connect(self.open_importDialog)
             self.playerBrowserSearchButton.clicked.connect(self.open_playerBrowser)
             self.fleetSearchButton.clicked.connect(self.open_fleetBrowser)
+            self.fleetBrowserSearchButton.clicked.connect(self.open_fleetNameBrowser)
             self.delLegendsButton.clicked.connect(lambda: self.deleteSelectedLine("legends", self.legendsTable))
             self.delTournyButton.clicked.connect(lambda: self.deleteSelectedLine("tourny", self.tournyTable))
             self.delPVPButton.clicked.connect(lambda: self.deleteSelectedLine("pvp", self.pvpTable))
@@ -100,8 +101,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.fleetBrowser = FleetDialogBox()
             self.fleetBrowser.copyFleetSearchClicked.connect(self.handleCopyFleetSearchClicked)
+            
+            self.fleetNameBrowser = FleetNameDialogBox()
+            self.fleetNameBrowser.copyFleetNameSearchClicked.connect(self.handleCopyFleetNameSearchClicked)
 
-            self.playerBrowser = PlayerDiaglogBox()
+            self.playerBrowser = PlayerDialogBox()
             self.playerBrowser.copyPlayerSearchClicked.connect(self.handleCopyPlayerSearchClicked)
 
             self.starCalculator = TournamentDialogBox()
@@ -148,6 +152,9 @@ class MainWindow(QtWidgets.QMainWindow):
       def open_fleetBrowser(self):
             self.fleetBrowser.populateFleetList(self.fleetName.toPlainText())
             self.fleetBrowser.exec()
+      def open_fleetNameBrowser(self):
+            self.fleetNameBrowser.buildFleetList()
+            self.fleetNameBrowser.exec()
       def open_importDialog(self):
             self.importDialog.importDialogLabel.setText("")
             self.importDialog.importFilenameBox.setPlainText("")
@@ -212,6 +219,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.searchPlayer()
             if close_dialog:
                   self.fleetBrowser.accept()
+      def handleCopyFleetNameSearchClicked(self, selected_text, close_dialog):
+            self.resetDataFields()
+            self.fleetName.setPlainText(selected_text)
+            if close_dialog:
+                  self.fleetNameBrowser.accept()
       def handleCopyPlayerSearchClicked(self, selected_text, close_dialog):
             self.resetDataFields()
             self.playerNameSearchBox.setPlainText(selected_text)
@@ -416,7 +428,7 @@ class FightDataConfirmation(QtWidgets.QDialog):
             fight = str(self.fightTypeBox.currentText())
             self.fightDataSaved.emit(rewards, remainhp, result, fight)
             self.accept()
-class PlayerDiaglogBox(QtWidgets.QDialog):
+class PlayerDialogBox(QtWidgets.QDialog):
       copyPlayerSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self):
             super().__init__()
@@ -515,6 +527,59 @@ class FleetDialogBox(QtWidgets.QDialog):
                         item = self.fleetNameList.item(i)
                         item_text = item.text()
                         if len(item_text) == length_threshold:
+                              item.setHidden(False)
+                        else:
+                              item.setHidden(True)
+class FleetNameDialogBox(QtWidgets.QDialog):
+      copyFleetNameSearchClicked = QtCore.pyqtSignal(str, bool)
+      def __init__(self):
+            super().__init__()
+            uic.loadUi(os.path.join('_internal', 'pss-ttt-fnb.ui'), self)
+            self.fleetNameSearchClose.clicked.connect(self.accept)
+            self.copyFleetNameSearch.clicked.connect(self.onCopyFleetNameSearchClicked)
+            self.fleetNameFilterBox.textChanged.connect(self.filterFleetNameList)
+            self.fleetNameCharLimiter.valueChanged.connect(self.filterFleetNameListLength)
+            self.fleetNameCharLimitCheckBox.stateChanged.connect(self.filterFleetNameListLength)
+      def buildFleetList(self):
+            self.fleetNameList.clear()
+            if not QSqlDatabase.database("targetdb").isOpen():
+                  if not QSqlDatabase.database("targetdb").open():
+                        throwErrorMessage("Database Connection Failure", "Targets DB did not open properly")
+                        return
+            
+            query = QSqlQuery(QSqlDatabase.database("targetdb"))
+            query.prepare("SELECT fleetname FROM players")
+            if not query.exec():
+                  throwErrorMessage("Query Execution Failure", query.lastError().text())
+                  return
+            fleet_names = set()
+            while query.next():
+                  fleet_name = query.value(0)
+                  if fleet_name not in fleet_names:
+                        fleet_names.add(fleet_name)
+                        item = QListWidgetItem(fleet_name)
+                        self.fleetNameList.addItem(item)
+      def onCopyFleetNameSearchClicked(self):
+            selected_item = self.fleetNameList.currentItem()
+            if selected_item:
+                  selected_text = selected_item.text()
+                  self.copyFleetNameSearchClicked.emit(selected_text, True)
+      def filterFleetNameList(self):
+            filter_text = self.fleetNameFilterBox.toPlainText().lower()
+            for i in range(self.fleetNameList.count()):
+                  item = self.fleetNameList.item(i)
+                  item_text = item.text().lower()
+                  if filter_text in item_text:
+                        item.setHidden(False)
+                  else:
+                        item.setHidden(True)
+      def filterFleetNameListLength(self):
+            if self.fleetNameCharLimitCheckBox.isChecked():
+                  length_threshhold = self.fleetNameCharLimiter.value()
+                  for i in range(self.fleetNameList.count()):
+                        item = self.fleetNameList.item(i)
+                        item_text = item.text()
+                        if len(item_text) == length_threshhold:
                               item.setHidden(False)
                         else:
                               item.setHidden(True)

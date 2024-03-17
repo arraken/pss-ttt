@@ -185,7 +185,7 @@ class Ui_MainWindow(object):
         self.importDialogButton.setToolTipDuration(10)
         self.fleetSearchButton = QPushButton(self.centralwidget)
         self.fleetSearchButton.setObjectName(u"fleetSearchButton")
-        self.fleetSearchButton.setGeometry(QRect(170, 100, 101, 31))
+        self.fleetSearchButton.setGeometry(QRect(170, 80, 101, 31))
         self.fleetSearchButton.setFont(font2)
         self.delTournyButton = QPushButton(self.centralwidget)
         self.delTournyButton.setObjectName(u"delTournyButton")
@@ -222,6 +222,10 @@ class Ui_MainWindow(object):
         self.exportFightsButton.setObjectName(u"exportFightsButton")
         self.exportFightsButton.setGeometry(QRect(480, 30, 101, 31))
         self.exportFightsButton.setFont(font5)
+        self.fleetBrowserSearchButton = QPushButton(self.centralwidget)
+        self.fleetBrowserSearchButton.setObjectName(u"fleetBrowserSearchButton")
+        self.fleetBrowserSearchButton.setGeometry(QRect(170, 110, 111, 31))
+        self.fleetBrowserSearchButton.setFont(font2)
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -284,5 +288,6 @@ class Ui_MainWindow(object):
         self.playerBrowserSearchButton.setText(QCoreApplication.translate("MainWindow", u"Search Browser", None))
         self.submitNewDataButton.setText(QCoreApplication.translate("MainWindow", u"Submit Fight Data", None))
         self.exportFightsButton.setText(QCoreApplication.translate("MainWindow", u"Export Fights", None))
+        self.fleetBrowserSearchButton.setText(QCoreApplication.translate("MainWindow", u"Search Browser", None))
     # retranslateUi
 

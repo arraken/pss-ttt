@@ -584,7 +584,7 @@
     <property name="geometry">
      <rect>
       <x>170</x>
-      <y>100</y>
+      <y>80</y>
       <width>101</width>
       <height>31</height>
      </rect>
@@ -752,6 +752,27 @@
     </property>
     <property name="text">
      <string>Export Fights</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="fleetBrowserSearchButton">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>110</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Calibri</family>
+      <pointsize>9</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Search Browser</string>
     </property>
    </widget>
   </widget>
