@@ -29,9 +29,11 @@ class Ui_Dialog(object):
         self.fightRewardBox = QPlainTextEdit(Dialog)
         self.fightRewardBox.setObjectName(u"fightRewardBox")
         self.fightRewardBox.setGeometry(QRect(10, 20, 111, 31))
+        self.fightRewardBox.setTabChangesFocus(True)
         self.fightHPBox = QPlainTextEdit(Dialog)
         self.fightHPBox.setObjectName(u"fightHPBox")
         self.fightHPBox.setGeometry(QRect(10, 60, 111, 31))
+        self.fightHPBox.setTabChangesFocus(True)
         self.label = QLabel(Dialog)
         self.label.setObjectName(u"label")
         self.label.setGeometry(QRect(120, 20, 101, 21))
@@ -56,6 +58,10 @@ class Ui_Dialog(object):
         self.label_4 = QLabel(Dialog)
         self.label_4.setObjectName(u"label_4")
         self.label_4.setGeometry(QRect(120, 130, 101, 16))
+        QWidget.setTabOrder(self.fightRewardBox, self.fightHPBox)
+        QWidget.setTabOrder(self.fightHPBox, self.fightResultBox)
+        QWidget.setTabOrder(self.fightResultBox, self.fightTypeBox)
+        QWidget.setTabOrder(self.fightTypeBox, self.submitFightDataButton)
 
         self.retranslateUi(Dialog)
 
@@ -63,7 +69,7 @@ class Ui_Dialog(object):
     # setupUi
 
     def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
+        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Fight Data Entry", None))
         self.submitFightDataButton.setText(QCoreApplication.translate("Dialog", u"Submit", None))
         self.label.setText(QCoreApplication.translate("Dialog", u"Trophies/Stars", None))
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Remaining HP", None))

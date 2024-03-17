@@ -795,15 +795,21 @@
   <tabstop>playerNotes</tabstop>
   <tabstop>saveNewData</tabstop>
   <tabstop>resetButton</tabstop>
+  <tabstop>submitNewDataButton</tabstop>
   <tabstop>tournyTable</tabstop>
-  <tabstop>legendsTable</tabstop>
-  <tabstop>pvpTable</tabstop>
   <tabstop>delTournyButton</tabstop>
+  <tabstop>legendsTable</tabstop>
   <tabstop>delLegendsButton</tabstop>
+  <tabstop>pvpTable</tabstop>
   <tabstop>delPVPButton</tabstop>
   <tabstop>pixyshipLayoutButton</tabstop>
+  <tabstop>fleetBrowserSearchButton</tabstop>
+  <tabstop>playerBrowserSearchButton</tabstop>
   <tabstop>importDialogButton</tabstop>
+  <tabstop>exportFightsButton</tabstop>
+  <tabstop>crewTrainerButton</tabstop>
   <tabstop>tournyStarsWindow</tabstop>
+  <tabstop>starTargetTrackButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>

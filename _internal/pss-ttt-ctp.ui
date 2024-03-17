@@ -66,6 +66,9 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="tabChangesFocus">
+    <bool>true</bool>
+   </property>
    <property name="placeholderText">
     <string>Enter Crew Name Here</string>
    </property>
@@ -84,6 +87,13 @@
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>presetCrewNameBox</tabstop>
+  <tabstop>savePresetButton</tabstop>
+  <tabstop>loadPresetButton</tabstop>
+  <tabstop>deletePresetButton</tabstop>
+  <tabstop>presetTableView</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

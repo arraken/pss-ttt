@@ -314,6 +314,9 @@
      <height>31</height>
     </rect>
    </property>
+   <property name="tabChangesFocus">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QPlainTextEdit" name="fleetNameSTTBox">
    <property name="geometry">
@@ -323,6 +326,9 @@
      <width>131</width>
      <height>31</height>
     </rect>
+   </property>
+   <property name="tabChangesFocus">
+    <bool>true</bool>
    </property>
   </widget>
   <widget class="QPlainTextEdit" name="lastStarsSTTBox">
@@ -334,6 +340,9 @@
      <height>31</height>
     </rect>
    </property>
+   <property name="tabChangesFocus">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QPlainTextEdit" name="maxTrophiesSTTBox">
    <property name="geometry">
@@ -343,6 +352,9 @@
      <width>131</width>
      <height>31</height>
     </rect>
+   </property>
+   <property name="tabChangesFocus">
+    <bool>true</bool>
    </property>
   </widget>
   <widget class="QPushButton" name="trackerResetButton">
@@ -359,6 +371,29 @@
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>dayFourAdd</tabstop>
+  <tabstop>dayFourRemove</tabstop>
+  <tabstop>dayFourCopy</tabstop>
+  <tabstop>dayFiveAdd</tabstop>
+  <tabstop>dayFiveRemove</tabstop>
+  <tabstop>dayFiveCopy</tabstop>
+  <tabstop>daySixAdd</tabstop>
+  <tabstop>daySixRemove</tabstop>
+  <tabstop>daySixCopy</tabstop>
+  <tabstop>daySevenAdd</tabstop>
+  <tabstop>daySevenRemove</tabstop>
+  <tabstop>daySevenCopy</tabstop>
+  <tabstop>trackerResetButton</tabstop>
+  <tabstop>dayFiveTable</tabstop>
+  <tabstop>daySixTable</tabstop>
+  <tabstop>daySevenTable</tabstop>
+  <tabstop>playerNameSTTBox</tabstop>
+  <tabstop>fleetNameSTTBox</tabstop>
+  <tabstop>lastStarsSTTBox</tabstop>
+  <tabstop>maxTrophiesSTTBox</tabstop>
+  <tabstop>dayFourTable</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

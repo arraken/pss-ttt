@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Fight Data Entry</string>
   </property>
   <widget class="QPushButton" name="submitFightDataButton">
    <property name="geometry">
@@ -35,6 +35,9 @@
      <height>31</height>
     </rect>
    </property>
+   <property name="tabChangesFocus">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QPlainTextEdit" name="fightHPBox">
    <property name="geometry">
@@ -44,6 +47,9 @@
      <width>111</width>
      <height>31</height>
     </rect>
+   </property>
+   <property name="tabChangesFocus">
+    <bool>true</bool>
    </property>
   </widget>
   <widget class="QLabel" name="label">
@@ -149,6 +155,13 @@
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>fightRewardBox</tabstop>
+  <tabstop>fightHPBox</tabstop>
+  <tabstop>fightResultBox</tabstop>
+  <tabstop>fightTypeBox</tabstop>
+  <tabstop>submitFightDataButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

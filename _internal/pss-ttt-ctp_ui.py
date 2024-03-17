@@ -40,9 +40,14 @@ class Ui_Dialog(object):
         font.setPointSize(9)
         font.setBold(True)
         self.presetCrewNameBox.setFont(font)
+        self.presetCrewNameBox.setTabChangesFocus(True)
         self.loadPresetButton = QPushButton(Dialog)
         self.loadPresetButton.setObjectName(u"loadPresetButton")
         self.loadPresetButton.setGeometry(QRect(520, 90, 81, 31))
+        QWidget.setTabOrder(self.presetCrewNameBox, self.savePresetButton)
+        QWidget.setTabOrder(self.savePresetButton, self.loadPresetButton)
+        QWidget.setTabOrder(self.loadPresetButton, self.deletePresetButton)
+        QWidget.setTabOrder(self.deletePresetButton, self.presetTableView)
 
         self.retranslateUi(Dialog)
 

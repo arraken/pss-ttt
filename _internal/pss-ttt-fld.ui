@@ -11,9 +11,9 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Fleet Browser</string>
+   <string>Filtered List Dialog</string>
   </property>
-  <widget class="QListWidget" name="fleetNameList">
+  <widget class="QListWidget" name="itemList">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -23,7 +23,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="copyFleetSearch">
+  <widget class="QPushButton" name="copyItemSearch">
    <property name="geometry">
     <rect>
      <x>260</x>
@@ -59,7 +59,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QPlainTextEdit" name="fleetFilterBox">
+  <widget class="QPlainTextEdit" name="filterBox">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -68,8 +68,11 @@
      <height>31</height>
     </rect>
    </property>
+   <property name="tabChangesFocus">
+    <bool>true</bool>
+   </property>
   </widget>
-  <widget class="QLabel" name="fleetNameSearch">
+  <widget class="QLabel" name="filterLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -91,13 +94,13 @@
     <enum>Qt::LeftToRight</enum>
    </property>
    <property name="text">
-    <string>Player Name Filter</string>
+    <string>Fleet Name Filter</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QPushButton" name="fleetSearchClose">
+  <widget class="QPushButton" name="itemSearchClose">
    <property name="geometry">
     <rect>
      <x>260</x>
