@@ -10,6 +10,7 @@ import sys, csv, math, webbrowser, os, traceback
 '''
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
+ALL - Tooltips?
 MAIN - build a full readme to walkthrough how to operate all windows
 TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
        - add a way to check most recent tournament targets and what day they were done on
@@ -338,115 +339,6 @@ class MainWindow(QtWidgets.QMainWindow):
             getattr(self, f"{fight}Table").clearSpans()
             self.updateFightTables(fight) 
             fight_data.clear()
-      '''def deleteTournamentLine(self):
-            selected_indexes = self.tournyTable.selectionModel().selectedRows()
-            db = QSqlDatabase.database("tournydb")
-            if not selected_indexes:
-                  return
-            name_data = []
-            rewards_data = []
-            datetag_data = []
-            hpremain_data = []
-            winloss_data = []
-            for index in selected_indexes:
-                  rewards = self.tournyTable.model().index(index.row(), 0).data()
-                  datetag = self.tournyTable.model().index(index.row(), 1).data()
-                  hpremain = self.tournyTable.model().index(index.row(), 2).data()
-                  winloss = self.tournyTable.model().index(index.row(), 3).data()
-                  rewards_data.append(rewards)
-                  datetag_data.append(datetag)
-                  hpremain_data.append(hpremain)
-                  winloss_data.append(winloss)
-            name_data.append(self.playerNameSearchBox.toPlainText())
-            
-            query = QSqlQuery(db)
-            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({}) AND hpremain IN ({}) AND winloss IN ({})".format(
-        ", ".join(["'{}'".format(str(name)) for name in name_data]),  
-        ", ".join(["'{}'".format(str(data)) for data in rewards_data]),
-        ", ".join(["'{}'".format(str(data)) for data in datetag_data]),
-        ", ".join(["'{}'".format(float(data)) for data in hpremain_data]),
-        ", ".join(["'{}'".format(str(data)) for data in winloss_data]))
-
-            if not query.exec(sql_query):
-                  self.throwErrorMessage("Record Deletion Error []", query.lastError().text())
-                  return
-            # Clear the model associated with the QTableView
-            self.tournyTable.model().clear()
-            # Update the model to reflect changes in the database
-            self.updateFightTables("tourny")
-      def deleteLegendsLine(self):
-            selected_indexes = self.legendsTable.selectionModel().selectedRows()
-            db = QSqlDatabase.database("legendsdb")
-            if not selected_indexes:
-                  return
-            name_data = []
-            rewards_data = []
-            datetag_data = []
-            hpremain_data = []
-            winloss_data = []
-            for index in selected_indexes:
-                  rewards = self.legendsTable.model().index(index.row(), 0).data()
-                  datetag = self.legendsTable.model().index(index.row(), 1).data()
-                  hpremain = self.legendsTable.model().index(index.row(), 2).data()
-                  winloss = self.legendsTable.model().index(index.row(), 3).data()
-                  rewards_data.append(rewards)
-                  datetag_data.append(datetag)
-                  hpremain_data.append(hpremain)
-                  winloss_data.append(winloss)
-            name_data.append(self.playerNameSearchBox.toPlainText())
-            
-            query = QSqlQuery(db)
-            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({}) AND hpremain IN ({}) AND winloss IN ({})".format(
-        ", ".join(["'{}'".format(str(name)) for name in name_data]),  
-        ", ".join(["'{}'".format(str(data)) for data in rewards_data]),
-        ", ".join(["'{}'".format(str(data)) for data in datetag_data]),
-        ", ".join(["'{}'".format(float(data)) for data in hpremain_data]),
-        ", ".join(["'{}'".format(str(data)) for data in winloss_data]))
-
-            if not query.exec(sql_query):
-                  self.throwErrorMessage("Record Deletion Error: ", query.lastError().text())
-                  return
-            # Clear the model associated with the QTableView
-            self.legendsTable.model().clear()
-            # Update the model to reflect changes in the database
-            self.updateFightTables("legends")
-      def deletePVPLine(self):
-            selected_indexes = self.pvpTable.selectionModel().selectedRows()
-            db = QSqlDatabase.database("pvpdb")
-            if not selected_indexes:
-                  return
-            name_data = []
-            rewards_data = []
-            datetag_data = []
-            hpremain_data = []
-            winloss_data = []
-            for index in selected_indexes:
-                  rewards = self.pvpTable.model().index(index.row(), 0).data()
-                  datetag = self.pvpTable.model().index(index.row(), 1).data()
-                  hpremain = self.pvpTable.model().index(index.row(), 2).data()
-                  winloss = self.pvpTable.model().index(index.row(), 3).data()
-                  rewards_data.append(rewards)
-                  datetag_data.append(datetag)
-                  hpremain_data.append(hpremain)
-                  winloss_data.append(winloss)
-            name_data.append(self.playerNameSearchBox.toPlainText())
-            
-            query = QSqlQuery(db)
-            sql_query = "DELETE FROM fights WHERE name IN ({}) AND rewards IN ({}) AND datetag IN ({}) AND hpremain IN ({}) AND winloss IN ({})".format(
-        ", ".join(["'{}'".format(str(name)) for name in name_data]),  
-        ", ".join(["'{}'".format(str(data)) for data in rewards_data]),
-        ", ".join(["'{}'".format(str(data)) for data in datetag_data]),
-        ", ".join(["'{}'".format(float(data)) for data in hpremain_data]),
-        ", ".join(["'{}'".format(str(data)) for data in winloss_data]))
-            
-            if not query.exec(sql_query):
-                  self.throwErrorMessage("Record Deletion Error: ", query.lastError().text())
-                  return
-            # Clear the model associated with the QTableView
-            self.pvpTable.model().clear()
-            # Update the model to reflect changes in the database
-            self.updateFightTables("pvp")
-      '''
       def deleteSelectedLine(self, table_name, tableView):
             selected_indexes = tableView.selectionModel().selectedRows()
             db = QSqlDatabase.database(f"{table_name}db")
@@ -1071,25 +963,41 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             self.statsTable.viewport().update()
             return
       def modifyTrainingMethods(self):
-            selected_training_stat = self.trainingStatBox.currentText()            
+            selected_training_stat = self.trainingStatBox.currentText()
             modified_data_list = []
+            header_labels = self.getHeaderLabels(self.chartTable)
+            default_limits = {}
+            
             for item in self.trainingList:
                   key, name, data = item[0], item[1], item[2]
                   if key.startswith(selected_training_stat[:3]):
                         modified_data_list.append((name, key, data))
+
             self.resetTrainingData()
             if selected_training_stat == "RPR":
-                  for i in range(7):
-                        for j in range(9):
-                              modified_data_list[i][2][j] *= self.crewStats[j][1]
-                              modified_data_list[i][2][j] = math.floor(modified_data_list[i][2][j])
+                  default_limits = {6: 4, 5: 2, 4: 1}
             else:
-                  for i in range(10):
-                        for j in range(9):
-                              modified_data_list[i][2][j] *= self.crewStats[j][1]
-                              modified_data_list[i][2][j] = math.floor(modified_data_list[i][2][j])
+                  default_limits = {9: 4, 8: 2, 7: 1}
+
+            num_rows = 7 if selected_training_stat == "RPR" else 10
+            for i in range(num_rows):
+                  for j in range(9):
+                        modified_data_list[i][2][j] *= self.crewStats[j][1]
+                        modified_data_list[i][2][j] = math.floor(modified_data_list[i][2][j])
+                        if i in default_limits and modified_data_list[i][2][j] <= default_limits[i]:
+                              if selected_training_stat == header_labels[j+1]:
+                                    modified_data_list[i][2][j] = default_limits[i]
+      def getHeaderLabels(self, tableView):
+            model = tableView.model()
+            if model is None:
+                  print("No model set for the table view.")
+                  return []
+            header_labels = []
+            for column in range(model.columnCount(0)):
+                  header_label = model.headerData(column, Qt.Orientation.Horizontal)
+                  header_labels.append(header_label)
+            return header_labels
       def onComboBoxValueChanged(self):
-            #self.getConsumableName()
             self.updateFatigueMod()
             self.calculateTrainingChart()
             self.modifyTrainingMethods()
