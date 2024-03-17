@@ -942,7 +942,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             selected_data_list = [(name, data) for key, name, data in self.trainingList if key.startswith(selected_key)]
             self.model = self.TrainingChartTableModel(selected_data_list, self.trainingStatBox)
             self.chartTable.setModel(self.model)
-      def updateFatigueMod(self): #Calculates training modifer based on fatigue
+      def updateFatigueMod(self):
             max_training_points = int(self.trainingPointsBox.currentText())
             total_tp = sum(int(self.crewStats[i][0]) for i in range (9))
             fatigue = self.fatigueBox.currentText()
@@ -962,7 +962,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   self.crewStats[i][1] = round(crew_stats_m[stat_name],3)
             self.statsTable.viewport().update()
             return
-      def modifyTrainingMethods(self):
+      def modifyTrainingMethods(self): #Added minimum values for final 3 cons of each type
             selected_training_stat = self.trainingStatBox.currentText()
             modified_data_list = []
             header_labels = self.getHeaderLabels(self.chartTable)
