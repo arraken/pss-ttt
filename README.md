@@ -25,3 +25,12 @@ Crew Trainer is a basic module that will help you figure out when to train speci
 Tourny Stars Calc will help give you daily star goals for the monthly tournament based on your choices in the suggested fields on the left.
 
 Start Target Track will allow you to compile a list of targets for days 4-7 for the tournament and will copy the data from the currently searched player for you to add to whichever days you are looking for. From this window you can also add/remove/or pull up the player by selecting the row they are on and clicking copy & search.
+
+
+![pss-ttt_A1K5Gwd0DK](https://github.com/arraken/pss-ttt/assets/52732965/bdff9fde-869a-4656-abd1-5608d4f6ea3e)
+![python_e6AD4TEJ9H](https://github.com/arraken/pss-ttt/assets/52732965/958cc60c-2ab7-4585-ae5c-346e541473f0)
+![python_ea4lVN1S5e](https://github.com/arraken/pss-ttt/assets/52732965/41e956f2-cbbf-41f7-90aa-511f245f2adc)
+![python_3QNAINF7ba](https://github.com/arraken/pss-ttt/assets/52732965/f992a0f3-cc31-49a2-a2b9-fa564a56961b)
+![python_bGrx9S3S6v](https://github.com/arraken/pss-ttt/assets/52732965/e0071202-0885-43bc-84de-2d0abae5df10)
+![python_A6WyXIfPDE](https://github.com/arraken/pss-ttt/assets/52732965/fc010522-62e5-4973-80fd-d1e648316906)
+![python_DSR5BVrb7d](https://github.com/arraken/pss-ttt/assets/52732965/8c1d19f4-6018-429d-9351-ecd27162792c)
