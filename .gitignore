@@ -3,6 +3,7 @@
 *.csv
 *.appinstaller
 pss-ttt.spec
+setup.py
 legendfights.db
 tournyfights.db
 pvpfights.db
@@ -10,3 +11,4 @@ targets.db
 starstable.csv
 build/
 .vscode/
+PSSTTT.app/
