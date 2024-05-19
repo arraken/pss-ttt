@@ -22,7 +22,7 @@ class Ui_ImportDialog(object):
     def setupUi(self, ImportDialog):
         if not ImportDialog.objectName():
             ImportDialog.setObjectName(u"ImportDialog")
-        ImportDialog.resize(327, 169)
+        ImportDialog.resize(380, 169)
         self.importDialogLabel = QLabel(ImportDialog)
         self.importDialogLabel.setObjectName(u"importDialogLabel")
         self.importDialogLabel.setGeometry(QRect(10, 60, 311, 71))
@@ -39,11 +39,25 @@ class Ui_ImportDialog(object):
         self.importTargetsButton.setGeometry(QRect(210, 0, 101, 23))
         self.importProgressBar = QProgressBar(ImportDialog)
         self.importProgressBar.setObjectName(u"importProgressBar")
-        self.importProgressBar.setGeometry(QRect(10, 140, 311, 23))
+        self.importProgressBar.setGeometry(QRect(10, 140, 361, 23))
         self.importProgressBar.setValue(0)
         self.importBrowse = QPushButton(ImportDialog)
         self.importBrowse.setObjectName(u"importBrowse")
         self.importBrowse.setGeometry(QRect(210, 30, 101, 23))
+        self.importSeeChanges = QPushButton(ImportDialog)
+        self.importSeeChanges.setObjectName(u"importSeeChanges")
+        self.importSeeChanges.setGeometry(QRect(310, 0, 71, 51))
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.importSeeChanges.sizePolicy().hasHeightForWidth())
+        self.importSeeChanges.setSizePolicy(sizePolicy)
+        font = QFont()
+        font.setStrikeOut(False)
+        font.setKerning(True)
+        self.importSeeChanges.setFont(font)
+        self.importSeeChanges.setFocusPolicy(Qt.TabFocus)
+        self.importSeeChanges.setLayoutDirection(Qt.LeftToRight)
 
         self.retranslateUi(ImportDialog)
 
@@ -56,5 +70,6 @@ class Ui_ImportDialog(object):
         self.importFilenameLabel.setText(QCoreApplication.translate("ImportDialog", u"Import file name", None))
         self.importTargetsButton.setText(QCoreApplication.translate("ImportDialog", u"Import targets", None))
         self.importBrowse.setText(QCoreApplication.translate("ImportDialog", u"Browse", None))
+        self.importSeeChanges.setText(QCoreApplication.translate("ImportDialog", u"See Changes", None))
     # retranslateUi
 

@@ -131,7 +131,7 @@
     </property>
    </item>
   </widget>
-  <widget class="QComboBox" name="trainingLevelBox">
+  <widget class="QComboBox" name="mergeTierBox">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -142,47 +142,17 @@
    </property>
    <item>
     <property name="text">
-     <string>Common</string>
+     <string>None</string>
     </property>
    </item>
    <item>
     <property name="text">
-     <string>Elite</string>
+     <string>Bronze</string>
     </property>
    </item>
    <item>
     <property name="text">
-     <string>Unique</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Epic</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Hero</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Special</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Legendary</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Green</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Blue</string>
+     <string>Silver</string>
     </property>
    </item>
    <item>
@@ -263,7 +233,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Training/Cons</string>
+    <string>Merge Tier</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
@@ -319,6 +289,22 @@
    </property>
    <property name="text">
     <string>Presets</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="maxTPLabel">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>250</y>
+     <width>81</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
    </property>
   </widget>
  </widget>
