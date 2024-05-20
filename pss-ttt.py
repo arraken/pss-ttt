@@ -16,24 +16,47 @@ TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est
        - add a way to check most recent tournament targets and what day they were done on
 IMPORT - See Changes button exports to a txt file
 FIGHTS - 
-CTC - crew training calculator: error checking and prevention of invalid values
+CTC - Merging
 CPM - Crew Planning Module
       Create a list of 25 crew, assign roles (Defender, Repairer, Booster, Rusher), Origin Room, Rough notes on their job
+CLB - Crew Loadout Builder
 '''
+def getDefaultProfile():
+      profile_names = []
+      profiles_csv = os.path.join('profiles.csv', self)
+
+      if os.path.exists(profiles_csv):
+            with open(profiles_csv, mode='r') as file:
+                  reader = csv.reader(file)
+                  profile_names = [row[0] for row in reader]
+      else:
+            profile_names = createStarterProfile()
+      
+      return profile_names
+def createStarterProfile():
+      return []
 def create_connection():
+      profile_names = get_profile_names()
+
+      if not profile_names:
+            return False
+      
       databases = {
             "targetdb": "targets.db",
             "tournydb": "tournyfights.db",
             "legendsdb": "legendfights.db",
             "pvpdb": "pvpfights.db"
       }
-      for name, filename in databases.items():
-            db = QSqlDatabase.addDatabase('QSQLITE', name)
-            db.setDatabaseName(filename)
-            if not db.open():
-                  throwErrorMessage("Fatal Error", f"{name.capitalize()} DB did not open properly")
-                  return False
-      return True
+      for profile in profile_names:
+            for name, filename in databases.items():
+                  db_path = os.path.join('_profiles', self)
+                  db = QSqlDatabase.addDatabase('QSQLITE', name)
+                  db.setDatabaseName(filename)
+                  if not db.open():
+                        throwErrorMessage("Fatal Error", f"{name.capitalize()} DB did not open properly")
+                        return False
+                  return True
+           
 def create_table():
       targetsQuery = QSqlQuery(QSqlDatabase.database("targetdb"))
       tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
@@ -1444,6 +1467,9 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                   super().reject()
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
+      
+      getDefaultProfile()
+
       if create_connection():
             create_table()
       else:

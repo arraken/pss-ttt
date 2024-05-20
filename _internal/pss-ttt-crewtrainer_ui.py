@@ -94,6 +94,10 @@ class Ui_CrewTrainer(object):
         self.maxTPLabel.setObjectName(u"maxTPLabel")
         self.maxTPLabel.setGeometry(QRect(10, 250, 81, 20))
         self.maxTPLabel.setAlignment(Qt.AlignCenter)
+        self.TPLabel = QLabel(CrewTrainer)
+        self.TPLabel.setObjectName(u"TPLabel")
+        self.TPLabel.setGeometry(QRect(100, 310, 181, 20))
+        self.TPLabel.setAlignment(Qt.AlignCenter)
 
         self.retranslateUi(CrewTrainer)
 
@@ -138,5 +142,6 @@ class Ui_CrewTrainer(object):
         self.testPushButton.setText(QCoreApplication.translate("CrewTrainer", u"Reset", None))
         self.openPresetsButton.setText(QCoreApplication.translate("CrewTrainer", u"Presets", None))
         self.maxTPLabel.setText("")
+        self.TPLabel.setText("")
     # retranslateUi
 
