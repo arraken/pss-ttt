@@ -23,7 +23,7 @@ class Ui_fleetBrowser(object):
     def setupUi(self, fleetBrowser):
         if not fleetBrowser.objectName():
             fleetBrowser.setObjectName(u"fleetBrowser")
-        fleetBrowser.resize(343, 329)
+        fleetBrowser.resize(343, 330)
         self.itemList = QListWidget(fleetBrowser)
         self.itemList.setObjectName(u"itemList")
         self.itemList.setGeometry(QRect(10, 10, 231, 231))

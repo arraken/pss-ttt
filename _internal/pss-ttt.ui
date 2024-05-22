@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>592</width>
-    <height>597</height>
+    <height>611</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -553,33 +553,6 @@
      <string>PixyShip Layout</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="importDialogButton">
-    <property name="geometry">
-     <rect>
-      <x>480</x>
-      <y>0</y>
-      <width>101</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Calibri</family>
-      <pointsize>9</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="toolTip">
-     <string extracomment="Targets Import.xls file located in same folder and loads DB with data"/>
-    </property>
-    <property name="toolTipDuration">
-     <number>10</number>
-    </property>
-    <property name="text">
-     <string>Import Data</string>
-    </property>
-   </widget>
    <widget class="QPushButton" name="fleetSearchButton">
     <property name="geometry">
      <rect>
@@ -640,66 +613,6 @@
      <string>Delete Pvp Entry</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="tournyStarsWindow">
-    <property name="geometry">
-     <rect>
-      <x>480</x>
-      <y>90</y>
-      <width>101</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>9</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Tourny Stars Calc</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="crewTrainerButton">
-    <property name="geometry">
-     <rect>
-      <x>480</x>
-      <y>60</y>
-      <width>101</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>9</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Crew Trainer</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="starTargetTrackButton">
-    <property name="geometry">
-     <rect>
-      <x>480</x>
-      <y>120</y>
-      <width>101</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>9</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Star Target Track</string>
-    </property>
-   </widget>
    <widget class="QPushButton" name="playerBrowserSearchButton">
     <property name="geometry">
      <rect>
@@ -734,26 +647,6 @@
      <string>Submit Fight Data</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="exportFightsButton">
-    <property name="geometry">
-     <rect>
-      <x>480</x>
-      <y>30</y>
-      <width>101</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>9</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Export Fights</string>
-    </property>
-   </widget>
    <widget class="QPushButton" name="fleetBrowserSearchButton">
     <property name="geometry">
      <rect>
@@ -775,21 +668,21 @@
      <string>Search Browser</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="comboBox">
+   <widget class="QComboBox" name="profileComboBox">
     <property name="geometry">
      <rect>
-      <x>310</x>
-      <y>20</y>
+      <x>380</x>
+      <y>60</y>
       <width>161</width>
       <height>22</height>
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="createNewProfile">
     <property name="geometry">
      <rect>
-      <x>310</x>
-      <y>50</y>
+      <x>380</x>
+      <y>90</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -805,11 +698,11 @@
      <string>New Profile</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_2">
+   <widget class="QPushButton" name="deleteSelectedProfile">
     <property name="geometry">
      <rect>
-      <x>400</x>
-      <y>50</y>
+      <x>470</x>
+      <y>90</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -828,8 +721,8 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>310</x>
-      <y>0</y>
+      <x>380</x>
+      <y>40</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -854,6 +747,88 @@
     <bool>true</bool>
    </property>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>592</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuData">
+    <property name="title">
+     <string>Data</string>
+    </property>
+    <addaction name="actionImport_Data"/>
+    <addaction name="actionExport_Fights"/>
+   </widget>
+   <widget class="QMenu" name="menuCrew">
+    <property name="title">
+     <string>Crew</string>
+    </property>
+    <addaction name="actionTrainer"/>
+    <addaction name="actionLoadout_Builder"/>
+    <addaction name="actionPlanner"/>
+   </widget>
+   <widget class="QMenu" name="menuTournament">
+    <property name="title">
+     <string>Tournament</string>
+    </property>
+    <addaction name="actionStars_Calculator"/>
+    <addaction name="actionTarget_Tracking"/>
+   </widget>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>About</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuData"/>
+   <addaction name="menuCrew"/>
+   <addaction name="menuTournament"/>
+   <addaction name="menuAbout"/>
+  </widget>
+  <action name="actionImport_Data">
+   <property name="text">
+    <string>Import Data</string>
+   </property>
+  </action>
+  <action name="actionExport_Fights">
+   <property name="text">
+    <string>Export Fights</string>
+   </property>
+  </action>
+  <action name="actionTrainer">
+   <property name="text">
+    <string>Trainer</string>
+   </property>
+  </action>
+  <action name="actionLoadout_Builder">
+   <property name="text">
+    <string>Loadout Builder</string>
+   </property>
+  </action>
+  <action name="actionPlanner">
+   <property name="text">
+    <string>Planner</string>
+   </property>
+  </action>
+  <action name="actionStars_Calculator">
+   <property name="text">
+    <string>Stars Calculator</string>
+   </property>
+  </action>
+  <action name="actionTarget_Tracking">
+   <property name="text">
+    <string>Target Tracking</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
  </widget>
  <tabstops>
   <tabstop>playerNameSearchBox</tabstop>
@@ -878,11 +853,6 @@
   <tabstop>pixyshipLayoutButton</tabstop>
   <tabstop>fleetBrowserSearchButton</tabstop>
   <tabstop>playerBrowserSearchButton</tabstop>
-  <tabstop>importDialogButton</tabstop>
-  <tabstop>exportFightsButton</tabstop>
-  <tabstop>crewTrainerButton</tabstop>
-  <tabstop>tournyStarsWindow</tabstop>
-  <tabstop>starTargetTrackButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>

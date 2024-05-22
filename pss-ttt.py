@@ -1,6 +1,6 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
 from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QMenu, QMenuBar, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta
@@ -21,58 +21,101 @@ CPM - Crew Planning Module
       Create a list of 25 crew, assign roles (Defender, Repairer, Booster, Rusher), Origin Room, Rough notes on their job
 CLB - Crew Loadout Builder
 '''
-def getDefaultProfile():
+class ProfileDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Create Starter Profile")
+        layout = QVBoxLayout()
+        self.label = QLabel("Enter Profile Name:")
+        layout.addWidget(self.label)
+
+        self.profile_name_edit = QLineEdit()
+        self.profile_name_edit.setPlaceholderText("Default Profile Name")
+        layout.addWidget(self.profile_name_edit)
+
+        self.create_button = QPushButton("Create Profile")
+        self.create_button.clicked.connect(self.save_profile)
+        layout.addWidget(self.create_button)
+
+        self.setLayout(layout)
+        self.profile_name = None
+    def save_profile(self):
+        self.profile_name = self.profile_name_edit.text()
+
+        if not self.profile_name:
+            QMessageBox.warning(self, "Input Error", "Profile name cannot be empty!")
+            return
+
+        profiles_csv = os.path.join('profiles.csv')
+        with open(profiles_csv, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([self.profile_name])
+
+        QMessageBox.information(self, "Profile Created", f"Profile '{self.profile_name}' has been created and saved.")
+        
+        self.accept()
+def getProfiles(create_if_missing=False):
+      profiles_csv = os.path.join('profiles.csv')
       profile_names = []
-      profiles_csv = os.path.join('profiles.csv', self)
 
       if os.path.exists(profiles_csv):
             with open(profiles_csv, mode='r') as file:
                   reader = csv.reader(file)
                   profile_names = [row[0] for row in reader]
-      else:
-            profile_names = createStarterProfile()
-      
+      if not profile_names and create_if_missing:
+            profile_names = createProfile()
       return profile_names
-def createStarterProfile():
-      return []
-def create_connection():
-      profile_names = get_profile_names()
-
-      if not profile_names:
+def getDefaultProfile():
+      profiles = getProfiles(create_if_missing=True)
+      return profiles[0] if profiles else None
+def createProfile():
+      dialog = ProfileDialog()
+      if dialog.exec() == QDialog.DialogCode.Accepted:
+            os.makedirs(f'_profiles/{dialog.profile_name}', exist_ok=True)
+            return [dialog.profile_name]
+      else:
+            return []
+def create_connection(profile_name):
+      for db_name in QSqlDatabase.connectionNames():
+            QSqlDatabase.removeDatabase(db_name)
+      profile_path = os.path.join('_profiles', profile_name)
+      if not os.path.exists(profile_path):
+            throwErrorMessage("Profile Error", f"Profile directory '{profile_path}' does not exist")
             return False
-      
       databases = {
             "targetdb": "targets.db",
             "tournydb": "tournyfights.db",
             "legendsdb": "legendfights.db",
             "pvpdb": "pvpfights.db"
       }
-      for profile in profile_names:
-            for name, filename in databases.items():
-                  db_path = os.path.join('_profiles', self)
-                  db = QSqlDatabase.addDatabase('QSQLITE', name)
-                  db.setDatabaseName(filename)
-                  if not db.open():
-                        throwErrorMessage("Fatal Error", f"{name.capitalize()} DB did not open properly")
-                        return False
-                  return True
-           
+      os.makedirs('_oldprofiles', exist_ok=True)
+      for name, filename in databases.items():
+            db_path = os.path.join(profile_path, filename)
+            if not os.path.exists(db_path):
+                  open(db_path, 'a').close()
+
+            db = QSqlDatabase.addDatabase('QSQLITE', name)
+            db.setDatabaseName(db_path)
+            if not db.open():
+                  throwErrorMessage("Fatal Error", f"{name.capitalize()} DB did not open properly")
+                  return False
+      return True
 def create_table():
-      targetsQuery = QSqlQuery(QSqlDatabase.database("targetdb"))
-      tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
-      legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
-      pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
-      targetsQuery.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
-      tournyQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, hpremain INTEGER NOT NULL, winloss TEXT NOT NULL, UNIQUE(name, rewards, datetag, hpremain, winloss))")
-      legendQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, hpremain INTEGER NOT NULL, winloss TEXT NOT NULL, UNIQUE(name, rewards, datetag, hpremain, winloss))")
-      pvpQuery.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, hpremain INTEGER NOT NULL, winloss TEXT NOT NULL, UNIQUE(name, rewards, datetag, hpremain, winloss))")
+      tables = {
+        "targetdb": "players",
+        "tournydb": "fights",
+        "legendsdb": "fights",
+        "pvpdb": "fights"
+      }
+      for db_name, table_name in tables.items():
+            query = QSqlQuery(QSqlDatabase.database(db_name))
+            if db_name == "targetdb":
+                  query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
+            else:
+                  query.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, hpremain INTEGER NOT NULL, winloss TEXT NOT NULL, UNIQUE(name, rewards, datetag, hpremain, winloss))")
 def write_to_fights_database(data, fights):
-      if fights == "tourny":
-            query = QSqlQuery(QSqlDatabase.database("tournydb"))
-      if fights == "legends":
-            query = QSqlQuery(QSqlDatabase.database("legendsdb"))
-      if fights == "pvp":
-            query = QSqlQuery(QSqlDatabase.database("pvpdb"))
+      query = QSqlQuery(QSqlDatabase.database(fights + "db"))
       query.prepare("INSERT OR REPLACE INTO fights(name, rewards, datetag, hpremain, winloss) VALUES(?, ?, ?, ?, ?)")
       for i in range(5):
             query.bindValue(i, data[i].strip())
@@ -109,18 +152,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.resetButton.clicked.connect(self.resetDataFields)
             self.pixyshipLayoutButton.clicked.connect(self.pixyshipURL)
             self.submitNewDataButton.clicked.connect(self.open_fightDialog)
-            self.importDialogButton.clicked.connect(self.open_importDialog)
+            self.actionImport_Data.triggered.connect(self.open_importDialog)
             self.playerBrowserSearchButton.clicked.connect(self.open_playerBrowser)
             self.fleetSearchButton.clicked.connect(self.open_fleetBrowser)
             self.fleetBrowserSearchButton.clicked.connect(self.open_fleetNameBrowser)
             self.delLegendsButton.clicked.connect(lambda: self.deleteSelectedLine("legends", self.legendsTable))
             self.delTournyButton.clicked.connect(lambda: self.deleteSelectedLine("tourny", self.tournyTable))
             self.delPVPButton.clicked.connect(lambda: self.deleteSelectedLine("pvp", self.pvpTable))
-            self.tournyStarsWindow.clicked.connect(self.open_tournamentStarsCalc)
-            self.crewTrainerButton.clicked.connect(self.open_crewTrainer)
-            self.starTargetTrackButton.clicked.connect(self.open_stt)
-            self.exportFightsButton.clicked.connect(self.exportFightsToCSV)
-            
+            self.actionStars_Calculator.triggered.connect(self.open_tournamentStarsCalc)
+            self.actionTrainer.triggered.connect(self.open_crewTrainer)
+            self.actionTarget_Tracking.triggered.connect(self.open_stt)
+            self.actionExport_Fights.triggered.connect(self.exportFightsToCSV)
+                        
             self.fightDialog = FightDataConfirmation(parent=self)
             self.fightDialog.fightDataSaved.connect(self.receiveFightData)
 
@@ -138,13 +181,44 @@ class MainWindow(QtWidgets.QMainWindow):
             self.trainingDialog = CrewTrainerDialogBox()
 
             self.starTargetTrack = StarTargetTrackDialogBox(parent=self)
+
+            self.profileCreate = ProfileDialog()
             
+            self.createNewProfile.clicked.connect(createProfile)
+            self.createNewProfile.clicked.connect(self.popProfiles)
+            self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
+            self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
+            self.popProfiles()
+
             tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
             legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
             pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
             self.update_SQL(tournyQuery, "Tourny")
             self.update_SQL(legendQuery, "Legend")
             self.update_SQL(pvpQuery, "PVP")
+      def profileChanged(self, index):
+            profile_name = self.profileComboBox.itemText(index)
+            create_connection(profile_name)
+      def deleteProfile(self):
+            current_index = self.profileComboBox.currentIndex()
+            old_profile = self.profileComboBox.currentText()
+            self.profileComboBox.removeItem(current_index)
+            self.profileComboBox.setCurrentIndex(0)
+            os.rename(f'_profiles/{old_profile}',f'_oldprofiles/{old_profile}')
+            with open('profiles.csv', 'r', newline = '') as infile, \
+                  open('profiles.csv.temp', 'w', newline = '') as outfile:
+
+                  reader = csv.reader(infile)
+                  writer = csv.writer(outfile)
+                  for row in reader:
+                        if old_profile not in row:
+                              writer.writerow(row)
+            os.replace('profiles.csv.temp', 'profiles.csv')
+      def popProfiles(self):
+                  profile_list = getProfiles()
+                  self.profileComboBox.clear()
+                  for item in profile_list:
+                        self.profileComboBox.addItem(item)
       def update_SQL(self, query, db_name):
             alter_queries = [
                   "ALTER TABLE fights ADD COLUMN hpremain INTEGER DEFAULT 0",
@@ -961,7 +1035,6 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   maxTP += 10
             elif merge_tier == "Bronze":
                   maxTP += 6
-            print("Modifying TP to",maxTP)
             self.maxTPLabel.setText(f"Max TP [{maxTP}]")
             return maxTP
       def updateFatigueMod(self):
@@ -1467,10 +1540,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                   super().reject()
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
-      
-      getDefaultProfile()
-
-      if create_connection():
+      if create_connection(getDefaultProfile()):
             create_table()
       else:
             sys.exit(1)
