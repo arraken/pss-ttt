@@ -1,12 +1,12 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
 from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QMenu, QMenuBar, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta
 from openpyxl import load_workbook
 from decimal import Decimal
-import sys, csv, math, webbrowser, os, traceback
+import sys, csv, math, webbrowser, os, traceback, shutil
 '''
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
@@ -58,13 +58,18 @@ class ProfileDialog(QDialog):
 def getProfiles(create_if_missing=False):
       profiles_csv = os.path.join('profiles.csv')
       profile_names = []
-
+      print("Attempting to find profiles")
       if os.path.exists(profiles_csv):
+            print("Profiles found - generating profile list")
             with open(profiles_csv, mode='r') as file:
                   reader = csv.reader(file)
                   profile_names = [row[0] for row in reader]
       if not profile_names and create_if_missing:
+            print("No profiles found - creating default")
             profile_names = createProfile()
+            print(f"Default name created {profile_names[0]}")
+            move_db_files(profile_names[0])
+            print("Db files moved???")
       return profile_names
 def getDefaultProfile():
       profiles = getProfiles(create_if_missing=True)
@@ -141,6 +146,23 @@ def throwErrorMessage(text, dump):
       msg.setInformativeText(dump)
       msg.setWindowTitle("Error")
       msg.exec()
+def move_db_files(profile_name):
+      print("Attempting to move db files")
+      internal_path = os.path.dirname(os.path.abspath(__file__))
+      app_path = os.path.dirname(internal_path)
+      print(f"App path = {app_path}")
+      print(f"Profile name = {profile_name}")
+      target_path = os.path.join(app_path, '_profiles', profile_name)
+      os.makedirs(target_path, exist_ok=True)
+
+      db_files = ["targets.db", "tournyfights.db", "legendfights.db", "pvpfights.db"]
+
+      for db_file in db_files:
+            src = os.path.join(app_path, db_file)
+            if os.path.exists(src):
+                  dst = os.path.join(target_path, db_file)
+                  shutil.move(src, dst)
+                  print(f"Moved {db_file} to {target_path}")
 class MainWindow(QtWidgets.QMainWindow):
       def __init__(self):
             super(MainWindow, self).__init__() 
