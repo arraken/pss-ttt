@@ -199,6 +199,8 @@ class MainWindow(QtWidgets.QMainWindow):
       def profileChanged(self, index):
             profile_name = self.profileComboBox.itemText(index)
             create_connection(profile_name)
+            create_table()
+            self.resetDataFields()
       def deleteProfile(self):
             current_index = self.profileComboBox.currentIndex()
             old_profile = self.profileComboBox.currentText()
@@ -420,7 +422,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   query = QSqlQuery(QSqlDatabase.database(db_name))
                   query.prepare("SELECT rewards, datetag, hpremain, winloss FROM fights WHERE name LIKE ?")
                   if query.lastError().isValid():
-                        throwErrorMessage(query_error_message&" [updateFightTables]", query.lastError().text())
+                        throwErrorMessage(f"{query_error_message} [updateFightTables]", query.lastError().text())
                         sys.exit(-1)
                   query.addBindValue(f'%{name}%')
                   query.exec()
