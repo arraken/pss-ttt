@@ -10,13 +10,13 @@ import sys, csv, math, webbrowser, os, traceback
 '''
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
-ALL - Profiles for multiple ships
+ALL - 
 MAIN - build a full readme to walkthrough how to operate all windows
 TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
        - add a way to check most recent tournament targets and what day they were done on
 IMPORT - See Changes button exports to a txt file
 FIGHTS - 
-CTC - Merging
+CTC - 
 CPM - Crew Planning Module
       Create a list of 25 crew, assign roles (Defender, Repairer, Booster, Rusher), Origin Room, Rough notes on their job
 CLB - Crew Loadout Builder
@@ -80,6 +80,7 @@ def create_connection(profile_name):
       for db_name in QSqlDatabase.connectionNames():
             QSqlDatabase.removeDatabase(db_name)
       profile_path = os.path.join('_profiles', profile_name)
+      print(f"creating profile path -{profile_path}")
       if not os.path.exists(profile_path):
             throwErrorMessage("Profile Error", f"Profile directory '{profile_path}' does not exist")
             return False
@@ -198,9 +199,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.update_SQL(pvpQuery, "PVP")
       def profileChanged(self, index):
             profile_name = self.profileComboBox.itemText(index)
-            create_connection(profile_name)
-            create_table()
-            self.resetDataFields()
+            print("Attempting profile - ", bool(profile_name.strip()), f" - ({profile_name})")
+            if bool(profile_name.strip()):
+                  create_connection(profile_name)
+                  create_table()
+                  self.resetDataFields()
       def deleteProfile(self):
             current_index = self.profileComboBox.currentIndex()
             old_profile = self.profileComboBox.currentText()

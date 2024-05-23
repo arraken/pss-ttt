@@ -806,12 +806,12 @@
   </action>
   <action name="actionLoadout_Builder">
    <property name="text">
-    <string>Loadout Builder</string>
+    <string>Loadout Builder (NOT IMPLEMENTED)</string>
    </property>
   </action>
   <action name="actionPlanner">
    <property name="text">
-    <string>Planner</string>
+    <string>Planner (NOT IMPLEMENTED)</string>
    </property>
   </action>
   <action name="actionStars_Calculator">
