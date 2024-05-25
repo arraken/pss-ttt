@@ -1,12 +1,14 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
-from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QCoreApplication, QEvent
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta
 from openpyxl import load_workbook
 from decimal import Decimal
-import sys, csv, math, webbrowser, os, traceback, shutil
+import sys, csv, math, webbrowser, os, traceback, shutil, asyncio
+from pssapi import PssApiClient
+#from app.pixelstarshipsapi import PixelStarshipsApi
 '''
 To-do
 Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
@@ -96,11 +98,13 @@ def create_connection(profile_name):
             "pvpdb": "pvpfights.db"
       }
       os.makedirs('_oldprofiles', exist_ok=True)
+      os.makedirs('_WEEDBABYGOKU420 Feet Pics', exist_ok=True)
+      #file = os.search('feet')
+      #os.movefile(file, '_WEEDBABYGOKU420 Feet Pics')
       for name, filename in databases.items():
             db_path = os.path.join(profile_path, filename)
             if not os.path.exists(db_path):
                   open(db_path, 'a').close()
-
             db = QSqlDatabase.addDatabase('QSQLITE', name)
             db.setDatabaseName(db_path)
             if not db.open():
@@ -118,6 +122,7 @@ def create_table():
             query = QSqlQuery(QSqlDatabase.database(db_name))
             if db_name == "targetdb":
                   query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
+                  #query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, notes TEXT NOT NULL)")
             else:
                   query.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, hpremain INTEGER NOT NULL, winloss TEXT NOT NULL, UNIQUE(name, rewards, datetag, hpremain, winloss))")
 def write_to_fights_database(data, fights):
@@ -132,7 +137,9 @@ def write_to_fights_database(data, fights):
 def write_to_targets_database(data):
       query = QSqlQuery(QSqlDatabase.database("targetdb"))
       query.prepare("INSERT OR REPLACE INTO players(playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES(?, ?, ?, ?, ?, ?, ?)")
+      #query.prepare("INSERT OR REPLACE INTO players(playername, fleetname, laststars, beststars, notes) VALUES(?, ?, ?, ?)")
       for i in range(7):
+      #for i in range(4):
             query.bindValue(i, data[i])
       if not query.exec():
             throwErrorMessage("targetdb [write_to_targets_database]:", query.lastError().text())
@@ -168,7 +175,8 @@ class MainWindow(QtWidgets.QMainWindow):
             super(MainWindow, self).__init__() 
             uic.loadUi(os.path.join('_internal','pss-ttt.ui'), self)
             self.show()
-            
+            self.client = PssApiClient()
+                        
             self.lockUnlockButton.clicked.connect(self.changeButtonText)
             self.searchButton.clicked.connect(self.searchPlayer)
             self.saveNewData.clicked.connect(self.submitNewPlayerData)
@@ -216,9 +224,27 @@ class MainWindow(QtWidgets.QMainWindow):
             tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
             legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
             pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
+            #targetsQuery = QSqlQuery(QSqlDatabase.database("targetsdb"))
             self.update_SQL(tournyQuery, "Tourny")
             self.update_SQL(legendQuery, "Legend")
             self.update_SQL(pvpQuery, "PVP")
+            #self.modify_SQL(targetsQuery)
+      async def fetch_pss_data(self, searchname):
+            responses = await self.client.user_service.search_users(searchname)
+            for response in responses:
+                  response = responses[0]
+                  self.fleetName.setPlainText(response.alliance_name)
+                  try:
+                        if(response.tournament_bonus_score > int(self.bestStars.toPlainText())):
+                              self.bestStars.setPlainText(str(response.tournament_bonus_score))
+                  except Exception as e:
+                        self.bestStars.setPlainText(str(response.tournament_bonus_score))
+                        self.lastStars.setPlainText("0")
+                  self.currentTrophies.setPlainText(str(response.trophy))
+                  self.maxTrophies.setPlainText(str(response.highest_trophy))
+                  self.submitNewPlayerData()
+      async def main(self):
+            print("")
       def profileChanged(self, index):
             profile_name = self.profileComboBox.itemText(index)
             print("Attempting profile - ", bool(profile_name.strip()), f" - ({profile_name})")
@@ -265,6 +291,11 @@ class MainWindow(QtWidgets.QMainWindow):
                   if not query.lastError().text().startswith("duplicate"):
                         print(f"Error: {db_name} Update")
                         print("Error:", query.lastError().text())
+      #def modify_SQL(self, query):
+            #columns_to_drop = ['trophies', 'maxtrophies']
+            #for column in columns_to_drop:
+                  #if not query.exec(f"ALTER TABLE players DROP COLUMN {column}"):
+                        #print(f"Failed to drop column {column}: {query.lastError().text()}")
       def open_fightDialog(self):
             self.fightDialog.exec()
       def open_playerBrowser(self):
@@ -384,6 +415,7 @@ class MainWindow(QtWidgets.QMainWindow):
             query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetdb"))
             query.prepare("SELECT * FROM players WHERE playername = :text")
             query.bindValue(":text", text)
+            print(f"Attempting to find {text} in databases")
             if query.exec():
                   if query.next():
                         self.fleetName.setPlainText(query.value(1))
@@ -396,10 +428,12 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.updateFightTables("legends")
                         self.updateFightTables("pvp")
                   else:
+                        asyncio.run(self.fetch_pss_data(text))
                         return
             else:
                   throwErrorMessage("Query execution failed [searchPlayer]: ", query.lastError().text())
-                  return                 
+                  return
+            asyncio.run(self.fetch_pss_data(text))
       def changeButtonText(self):
             is_locked = self.lockUnlockButton.text() == "Locked"
             self.lockUnlockButton.setText("Unlocked" if is_locked else "Locked")
@@ -1572,4 +1606,7 @@ if __name__ == "__main__":
       else:
             sys.exit(1)
       window = MainWindow()
+      loop = asyncio.new_event_loop()
+      asyncio.set_event_loop(loop)
+      asyncio.run(window.main())
       app.exec()
