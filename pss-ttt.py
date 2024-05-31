@@ -3,13 +3,13 @@ from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QCoreApplication, 
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtGui import QColor, QStandardItemModel
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from openpyxl import load_workbook
 from decimal import Decimal
-import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi
+import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi, json
 from pssapi import PssApiClient
 
-ACCESS_TOKEN: str = ""
+ACCESS_TOKEN = None
 
 '''
 To-do
@@ -59,28 +59,57 @@ class ProfileDialog(QDialog):
         
         self.accept()
 def get_or_create_uuid():
-      uuid_file = 'profiles.csv'
-      if os.path.exists(uuid_file):
-            with open(uuid_file, mode='r') as file:
-                  reader = csv.reader(file)
-                  for row in reader:
-                        if row[0] == 'UUID':
-                              return row[1]
+      config_file_path = os.path.join('config.json')
+      if os.path.exists(config_file_path):
+            with open(config_file_path, 'r') as file:
+                  config_data = json.load(file)
+      if config_data.get('config'):
+            for entry in config_data['config']:
+                  if entry.get('uuid'):
+                        return entry['uuid']
       new_uuid = str(uuid.uuid4())
-      with open(uuid_file, mode='a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['UUID', new_uuid])
+      new_entry = {
+           "uuid": new_uuid,
+           "last_api_call": None,
+           "profile_names": []}
+      if not config_data.get('config'):
+            config_data['config'] = []
+      config_data['config'].append(new_entry)
+
+      with open(config_file_path, 'w') as file:
+            json.dump(config_data, file, indent=4)
       return new_uuid
+def load_config():
+      try:
+            config_file_path = os.path.join('config.json')
+            with open(config_file_path, 'r') as file:
+                  return json.load(file)
+      except FileNotFoundError:
+            return {"config": []}
+      except json.JSONDecodeError:
+            return {"config": []}
+def save_config(config_data):
+      config_file_path = os.path.join('config.json')
+      with open(config_file_path, 'w') as file:
+            json.dump(config_data, file, indent=4)
 def getProfiles(create_if_missing=False):
-      profiles_csv = os.path.join('profiles.csv')
+      config_data = load_config()
       profile_names = []
-      if os.path.exists(profiles_csv):
-            with open(profiles_csv, mode='r') as file:
-                  reader = csv.reader(file)
-                  profile_names = [row[0] for row in reader if row[0] != 'UUID']
+      if config_data.get('config'):
+            for entry in config_data['config']:
+                  if entry.get('profile_names'):
+                        profile_names.extend(entry['profile_names'])
       if not profile_names and create_if_missing:
             profile_names = createProfile()
-            move_db_files(profile_names[0][0])
+            if profile_names:
+                  new_entry = {
+                        "uuid": str(uuid.uuid4()),
+                        "last_api_call": None,
+                        "profile_names": profile_names
+                        }
+                  config_data['config'].append(new_entry)
+                  save_config(config_data)
+                  move_db_files(profile_names[0])
       return profile_names
 def getDefaultProfile():
       profiles = getProfiles(create_if_missing=True)
@@ -88,13 +117,21 @@ def getDefaultProfile():
 def createProfile():
       dialog = ProfileDialog()
       if dialog.exec() == QDialog.DialogCode.Accepted:
-            os.makedirs(f'_profiles/{dialog.profile_name}', exist_ok=True)
-            return [dialog.profile_name]
+            profile_name = dialog.profile_name
+            os.makedirs(f'_profiles/{profile_name}', exist_ok=True)
+            config_data = load_config()
+            for entry in config_data['config']:
+                  if entry.get('profile_names'):
+                        entry['profile_names'].append(profile_name)
+                        break
+            save_config(config_data)
+            return [profile_name]
       else:
             return []
 def create_connection(profile_name):
       for db_name in QSqlDatabase.connectionNames():
             QSqlDatabase.removeDatabase(db_name)
+      print(profile_name)
       profile_path = os.path.join('_profiles', profile_name)
       if not os.path.exists(profile_path):
             throwErrorMessage("Profile Error", f"Profile directory '{profile_path}' does not exist")
@@ -230,20 +267,28 @@ class MainWindow(QtWidgets.QMainWindow):
             self.update_SQL(legendQuery, "Legend")
             self.update_SQL(pvpQuery, "PVP")
             asyncio.run(self.fetch_top100_data())
+      async def generateAccessToken(self):
+            global ACCESS_TOKEN
+            device_key = get_or_create_uuid()
+            client_date_time = pssapi.utils.get_utc_now()
+            checksum = self.client.user_service.utils.create_device_login_checksum(device_key, self.client.device_type, client_date_time, "5343")
+            user_login = await self.client.user_service.device_login(checksum, client_date_time, device_key, self.client.device_type)
+            assert isinstance(user_login, pssapi.entities.UserLogin)
+            assert user_login.access_token
+            ACCESS_TOKEN = user_login.access_token
       async def fetch_top100_data(self):
-          #data = await self.client.ladder_service.list_users_by_ranking(ACCESS_TOKEN.access_token,0,10)
-          #print(data)
-          print("empty call")
+          global ACCESS_TOKEN
+          return
       async def fetch_user_data(self, searchname):
             responses = await self.client.user_service.search_users(searchname)
             for response in responses:
                   response = responses[0]
                   self.fleetName.setPlainText(response.alliance_name)
                   try:
-                        if(response.tournament_bonus_score > int(self.bestStars.toPlainText())):
-                              self.bestStars.setPlainText(str(response.tournament_bonus_score))
+                        if(response.alliance > int(self.bestStars.toPlainText())):
+                              self.bestStars.setPlainText(str(response.alliance_score))
                   except Exception as e:
-                        self.bestStars.setPlainText(str(response.tournament_bonus_score))
+                        self.bestStars.setPlainText(str(response.alliance_score))
                         self.lastStars.setPlainText("0")
                   self.currentTrophies.setPlainText(str(response.trophy))
                   self.maxTrophies.setPlainText(str(response.highest_trophy))
@@ -252,14 +297,23 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.updateFightTables("pvp")
                   self.submitNewPlayerData()
       async def main(self):
-            return
-      async def generateAccessToken(self):
-            device_key = get_or_create_uuid()
-            client_date_time = pssapi.utils.get_utc_now()
-            checksum = self.client.user_service.utils.create_device_login_checksum(device_key, self.client.device_type, client_date_time, "5343")
-            user_login = await self.client.user_service.device_login(checksum, client_date_time, device_key, self.client.device_type)
-            assert isinstance(user_login, pssapi.entities.UserLogin)
-            assert user_login.access_token
+            time = self.get_first_of_following_month(datetime.now(timezone.utc))
+            result = time > datetime.now(timezone.utc)
+            
+            day7result = time - timedelta(days=7)
+            resulttwo = day7result < datetime.now(timezone.utc)
+            print(f"Are we still in tournament? {result}")
+            print(f"Tournament started {day7result}")
+            
+      '''Update top 100 players and names in fleets once per day maximum'''
+      def get_first_of_following_month(self, utc_now):
+            year = utc_now.year
+            month = utc_now.month + 1
+            if (month == 13):
+                  year += 1
+                  month = 1
+            result = datetime(year, month, 1, 0, 0, 0, 0, timezone.utc)
+            return result
       def profileChanged(self, index):
             profile_name = self.profileComboBox.itemText(index)
             if bool(profile_name.strip()):
