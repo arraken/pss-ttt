@@ -211,6 +211,27 @@ def move_db_files(profile_name):
             if os.path.exists(src):
                   dst = os.path.join(target_path, db_file)
                   shutil.move(src, dst)
+def should_make_api_call():
+      config_data = load_config()
+      if not config_data.get('config'):
+            return True
+      for entry in config_data['config']:
+            if entry.get('uuid') == get_or_create_uuid():
+                  last_api_call = entry.get('last_api_call')
+                  if not last_api_call:
+                        return True
+                  last_api_call_date = datetime.strptime(last_api_call, '%Y-%m-%dT%H:%M:%S.%f')
+                  now = datetime.now()
+                  if (now - last_api_call_date).total_seconds() > 24*60*60:
+                        return True
+                  else:
+                        return False
+def update_last_api_call():
+      config_data = load_config()
+      for entry in config_data['config']:
+            if entry.get('uuid') == get_or_create_uuid():
+                  entry['last_api_call'] = datetime.now().isoformat()
+                  save_config(config_data)
 class MainWindow(QtWidgets.QMainWindow):
       def __init__(self):
             super(MainWindow, self).__init__() 
@@ -266,7 +287,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.update_SQL(tournyQuery, "Tourny")
             self.update_SQL(legendQuery, "Legend")
             self.update_SQL(pvpQuery, "PVP")
-            asyncio.run(self.fetch_top100_data())
+            #asyncio.run(self.fetch_top100_data())
       async def generateAccessToken(self):
             global ACCESS_TOKEN
             device_key = get_or_create_uuid()
@@ -276,9 +297,6 @@ class MainWindow(QtWidgets.QMainWindow):
             assert isinstance(user_login, pssapi.entities.UserLogin)
             assert user_login.access_token
             ACCESS_TOKEN = user_login.access_token
-      async def fetch_top100_data(self):
-          global ACCESS_TOKEN
-          return
       async def fetch_user_data(self, searchname):
             responses = await self.client.user_service.search_users(searchname)
             for response in responses:
@@ -297,14 +315,9 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.updateFightTables("pvp")
                   self.submitNewPlayerData()
       async def main(self):
-            time = self.get_first_of_following_month(datetime.now(timezone.utc))
-            result = time > datetime.now(timezone.utc)
-            
-            day7result = time - timedelta(days=7)
-            resulttwo = day7result < datetime.now(timezone.utc)
-            print(f"Are we still in tournament? {result}")
-            print(f"Tournament started {day7result}")
-            
+            if(should_make_api_call()):
+                  update_last_api_call()
+                  print("Last api call updated to now")
       '''Update top 100 players and names in fleets once per day maximum'''
       def get_first_of_following_month(self, utc_now):
             year = utc_now.year

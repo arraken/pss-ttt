@@ -1,4 +1,5 @@
 *.spec
+*.json
 *.db
 *.csv
 *.appinstaller
