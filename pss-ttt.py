@@ -6,12 +6,13 @@ from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta
 from openpyxl import load_workbook
 from decimal import Decimal
-import sys, csv, math, webbrowser, os, traceback, shutil, asyncio
+import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi
 from pssapi import PssApiClient
-#from app.pixelstarshipsapi import PixelStarshipsApi
+
+ACCESS_TOKEN: str = ""
+
 '''
 To-do
-Talk with the worst and see if I can just directly hook into savy API for frequent updates somehow on players?
 ALL - 
 MAIN - build a full readme to walkthrough how to operate all windows
 TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
@@ -57,21 +58,29 @@ class ProfileDialog(QDialog):
         QMessageBox.information(self, "Profile Created", f"Profile '{self.profile_name}' has been created and saved.")
         
         self.accept()
+def get_or_create_uuid():
+      uuid_file = 'profiles.csv'
+      if os.path.exists(uuid_file):
+            with open(uuid_file, mode='r') as file:
+                  reader = csv.reader(file)
+                  for row in reader:
+                        if row[0] == 'UUID':
+                              return row[1]
+      new_uuid = str(uuid.uuid4())
+      with open(uuid_file, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['UUID', new_uuid])
+      return new_uuid
 def getProfiles(create_if_missing=False):
       profiles_csv = os.path.join('profiles.csv')
       profile_names = []
-      print("Attempting to find profiles")
       if os.path.exists(profiles_csv):
-            print("Profiles found - generating profile list")
             with open(profiles_csv, mode='r') as file:
                   reader = csv.reader(file)
-                  profile_names = [row[0] for row in reader]
+                  profile_names = [row[0] for row in reader if row[0] != 'UUID']
       if not profile_names and create_if_missing:
-            print("No profiles found - creating default")
             profile_names = createProfile()
-            print(f"Default name created {profile_names[0]}")
-            move_db_files(profile_names[0])
-            print("Db files moved???")
+            move_db_files(profile_names[0][0])
       return profile_names
 def getDefaultProfile():
       profiles = getProfiles(create_if_missing=True)
@@ -87,7 +96,6 @@ def create_connection(profile_name):
       for db_name in QSqlDatabase.connectionNames():
             QSqlDatabase.removeDatabase(db_name)
       profile_path = os.path.join('_profiles', profile_name)
-      print(f"creating profile path -{profile_path}")
       if not os.path.exists(profile_path):
             throwErrorMessage("Profile Error", f"Profile directory '{profile_path}' does not exist")
             return False
@@ -98,9 +106,6 @@ def create_connection(profile_name):
             "pvpdb": "pvpfights.db"
       }
       os.makedirs('_oldprofiles', exist_ok=True)
-      os.makedirs('_WEEDBABYGOKU420 Feet Pics', exist_ok=True)
-      #file = os.search('feet')
-      #os.movefile(file, '_WEEDBABYGOKU420 Feet Pics')
       for name, filename in databases.items():
             db_path = os.path.join(profile_path, filename)
             if not os.path.exists(db_path):
@@ -121,8 +126,7 @@ def create_table():
       for db_name, table_name in tables.items():
             query = QSqlQuery(QSqlDatabase.database(db_name))
             if db_name == "targetdb":
-                  query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
-                  #query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, notes TEXT NOT NULL)")
+                  query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, notes TEXT NOT NULL)")
             else:
                   query.exec("CREATE TABLE IF NOT EXISTS fights (name TEXT NOT NULL, rewards TEXT NOT NULL, datetag TEXT NOT NULL, hpremain INTEGER NOT NULL, winloss TEXT NOT NULL, UNIQUE(name, rewards, datetag, hpremain, winloss))")
 def write_to_fights_database(data, fights):
@@ -136,15 +140,19 @@ def write_to_fights_database(data, fights):
       return True
 def write_to_targets_database(data):
       query = QSqlQuery(QSqlDatabase.database("targetdb"))
-      query.prepare("INSERT OR REPLACE INTO players(playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES(?, ?, ?, ?, ?, ?, ?)")
-      #query.prepare("INSERT OR REPLACE INTO players(playername, fleetname, laststars, beststars, notes) VALUES(?, ?, ?, ?)")
-      for i in range(7):
-      #for i in range(4):
+      query.prepare("INSERT OR REPLACE INTO players(playername, fleetname, laststars, beststars, notes) VALUES(?, ?, ?, ?, ?)")
+      for i in range(5):
             query.bindValue(i, data[i])
       if not query.exec():
             throwErrorMessage("targetdb [write_to_targets_database]:", query.lastError().text())
             return False
       return True
+def modify_SQL():
+      query = QSqlQuery(QSqlDatabase.database("targetdb"))
+      columns_to_drop = ['trophies', 'maxtrophies']
+      for column in columns_to_drop:
+            if not query.exec(f"ALTER TABLE players DROP COLUMN {column}"):
+                  print(f"Failed to drop column {column}: {query.lastError().text()}")
 def throwErrorMessage(text, dump):
       msg = QMessageBox()
       msg.setIcon(QMessageBox.Icon.Critical)
@@ -154,11 +162,8 @@ def throwErrorMessage(text, dump):
       msg.setWindowTitle("Error")
       msg.exec()
 def move_db_files(profile_name):
-      print("Attempting to move db files")
       internal_path = os.path.dirname(os.path.abspath(__file__))
       app_path = os.path.dirname(internal_path)
-      print(f"App path = {app_path}")
-      print(f"Profile name = {profile_name}")
       target_path = os.path.join(app_path, '_profiles', profile_name)
       os.makedirs(target_path, exist_ok=True)
 
@@ -169,13 +174,13 @@ def move_db_files(profile_name):
             if os.path.exists(src):
                   dst = os.path.join(target_path, db_file)
                   shutil.move(src, dst)
-                  print(f"Moved {db_file} to {target_path}")
 class MainWindow(QtWidgets.QMainWindow):
       def __init__(self):
             super(MainWindow, self).__init__() 
             uic.loadUi(os.path.join('_internal','pss-ttt.ui'), self)
             self.show()
             self.client = PssApiClient()
+            asyncio.run(self.generateAccessToken())
                         
             self.lockUnlockButton.clicked.connect(self.changeButtonText)
             self.searchButton.clicked.connect(self.searchPlayer)
@@ -205,31 +210,31 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fleet_name_dialog = FilteredListDialog("Fleet Name Dialog", "Fleet Name", "Search Fleet Name")
             self.fleet_name_dialog.copyItemSearchClicked.connect(self.handleCopyFleetNameSearchClicked)
 
-            self.starCalculator = TournamentDialogBox()
-
+            self.popProfiles()
+            
             self.importDialog = ImportDialogBox()
-
             self.trainingDialog = CrewTrainerDialogBox()
-
-            self.starTargetTrack = StarTargetTrackDialogBox(parent=self)
-
             self.profileCreate = ProfileDialog()
+            self.starCalculator = TournamentDialogBox(self.profileComboBox.currentText())
+            self.starTargetTrack = StarTargetTrackDialogBox(self.profileComboBox.currentText(), parent=self)
             
             self.createNewProfile.clicked.connect(createProfile)
             self.createNewProfile.clicked.connect(self.popProfiles)
             self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
             self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
-            self.popProfiles()
 
             tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
             legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
             pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
-            #targetsQuery = QSqlQuery(QSqlDatabase.database("targetsdb"))
             self.update_SQL(tournyQuery, "Tourny")
             self.update_SQL(legendQuery, "Legend")
             self.update_SQL(pvpQuery, "PVP")
-            #self.modify_SQL(targetsQuery)
-      async def fetch_pss_data(self, searchname):
+            asyncio.run(self.fetch_top100_data())
+      async def fetch_top100_data(self):
+          #data = await self.client.ladder_service.list_users_by_ranking(ACCESS_TOKEN.access_token,0,10)
+          #print(data)
+          print("empty call")
+      async def fetch_user_data(self, searchname):
             responses = await self.client.user_service.search_users(searchname)
             for response in responses:
                   response = responses[0]
@@ -242,16 +247,29 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.lastStars.setPlainText("0")
                   self.currentTrophies.setPlainText(str(response.trophy))
                   self.maxTrophies.setPlainText(str(response.highest_trophy))
+                  self.updateFightTables("tourny")
+                  self.updateFightTables("legends")
+                  self.updateFightTables("pvp")
                   self.submitNewPlayerData()
       async def main(self):
-            print("")
+            return
+      async def generateAccessToken(self):
+            device_key = get_or_create_uuid()
+            client_date_time = pssapi.utils.get_utc_now()
+            checksum = self.client.user_service.utils.create_device_login_checksum(device_key, self.client.device_type, client_date_time, "5343")
+            user_login = await self.client.user_service.device_login(checksum, client_date_time, device_key, self.client.device_type)
+            assert isinstance(user_login, pssapi.entities.UserLogin)
+            assert user_login.access_token
       def profileChanged(self, index):
             profile_name = self.profileComboBox.itemText(index)
-            print("Attempting profile - ", bool(profile_name.strip()), f" - ({profile_name})")
             if bool(profile_name.strip()):
                   create_connection(profile_name)
                   create_table()
                   self.resetDataFields()
+                  print(f"changing to profile name of [{profile_name}]")
+                  self.starCalculator.setProfilePath(profile_name)
+                  self.starTargetTrack.setProfilePath(profile_name)
+                  modify_SQL()
       def deleteProfile(self):
             current_index = self.profileComboBox.currentIndex()
             old_profile = self.profileComboBox.currentText()
@@ -268,10 +286,10 @@ class MainWindow(QtWidgets.QMainWindow):
                               writer.writerow(row)
             os.replace('profiles.csv.temp', 'profiles.csv')
       def popProfiles(self):
-                  profile_list = getProfiles()
-                  self.profileComboBox.clear()
-                  for item in profile_list:
-                        self.profileComboBox.addItem(item)
+            profile_list = getProfiles()
+            self.profileComboBox.clear()
+            for item in profile_list:
+                  self.profileComboBox.addItem(item)
       def update_SQL(self, query, db_name):
             alter_queries = [
                   "ALTER TABLE fights ADD COLUMN hpremain INTEGER DEFAULT 0",
@@ -291,11 +309,6 @@ class MainWindow(QtWidgets.QMainWindow):
                   if not query.lastError().text().startswith("duplicate"):
                         print(f"Error: {db_name} Update")
                         print("Error:", query.lastError().text())
-      #def modify_SQL(self, query):
-            #columns_to_drop = ['trophies', 'maxtrophies']
-            #for column in columns_to_drop:
-                  #if not query.exec(f"ALTER TABLE players DROP COLUMN {column}"):
-                        #print(f"Failed to drop column {column}: {query.lastError().text()}")
       def open_fightDialog(self):
             self.fightDialog.exec()
       def open_playerBrowser(self):
@@ -347,7 +360,8 @@ class MainWindow(QtWidgets.QMainWindow):
             player_data = []
             db = QSqlDatabase.database("targetdb")
             query = QSqlQuery(db)
-            query.prepare("SELECT playername, fleetname, laststars, beststars, trophies, maxtrophies, notes FROM players ORDER BY playername")
+            #query.prepare("SELECT playername, fleetname, laststars, beststars, trophies, maxtrophies, notes FROM players ORDER BY playername")
+            query.prepare("SELECT playername, fleetname, laststars, beststars, notes FROM players ORDER BY playername")
             if not query.exec():
                   throwErrorMessage("Query Execution failed [exportPlayerDataToCSV]: ", query.lastError().text())
                   return
@@ -356,13 +370,15 @@ class MainWindow(QtWidgets.QMainWindow):
                   fleetname = query.value(1)
                   laststars = query.value(2)
                   beststars = query.value(3)
-                  trophies = query.value(4)
-                  maxtrophies = query.value(5)
-                  notes = query.value(6)
-                  player_data.append((playername, fleetname, laststars, beststars, trophies, maxtrophies, notes))
+                  #trophies = query.value(4)
+                  #maxtrophies = query.value(5)
+                  notes = query.value(4)
+                  #player_data.append((playername, fleetname, laststars, beststars, trophies, maxtrophies, notes))
+                  player_data.append((playername, fleetname, laststars, beststars, notes))
             with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
-                  writer.writerow(["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Trophies", "Max Trophies", "Notes"])
+                  #writer.writerow(["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Trophies", "Max Trophies", "Notes"])
+                  writer.writerow(["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Notes"])
                   for row in player_data:
                         writer.writerow(row)
             throwErrorMessage("Data Export", "Export complete to exportedfights.csv and exportedplayers.csv")
@@ -415,25 +431,30 @@ class MainWindow(QtWidgets.QMainWindow):
             query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetdb"))
             query.prepare("SELECT * FROM players WHERE playername = :text")
             query.bindValue(":text", text)
-            print(f"Attempting to find {text} in databases")
             if query.exec():
                   if query.next():
                         self.fleetName.setPlainText(query.value(1))
                         self.lastStars.setPlainText(query.value(2))
                         self.bestStars.setPlainText(query.value(3))
-                        self.currentTrophies.setPlainText(query.value(4))
-                        self.maxTrophies.setPlainText(query.value(5))
-                        self.playerNotes.setPlainText(query.value(6))
+                        #self.currentTrophies.setPlainText(query.value(4))
+                        #self.maxTrophies.setPlainText(query.value(5))
+                        self.playerNotes.setPlainText(query.value(4))
                         self.updateFightTables("tourny")
                         self.updateFightTables("legends")
                         self.updateFightTables("pvp")
                   else:
-                        asyncio.run(self.fetch_pss_data(text))
+                        asyncio.run(self.fetch_user_data(text))
+                        self.updateFightTables("tourny")
+                        self.updateFightTables("legends")
+                        self.updateFightTables("pvp")
                         return
             else:
                   throwErrorMessage("Query execution failed [searchPlayer]: ", query.lastError().text())
                   return
-            asyncio.run(self.fetch_pss_data(text))
+            asyncio.run(self.fetch_user_data(text))
+            self.updateFightTables("tourny")
+            self.updateFightTables("legends")
+            self.updateFightTables("pvp")
       def changeButtonText(self):
             is_locked = self.lockUnlockButton.text() == "Locked"
             self.lockUnlockButton.setText("Unlocked" if is_locked else "Locked")
@@ -453,20 +474,21 @@ class MainWindow(QtWidgets.QMainWindow):
                   best_stars = int(self.bestStars.toPlainText())
             except ValueError:
                   best_stars = 0
-            try:
-                  current_trophies = int(self.currentTrophies.toPlainText())
-            except ValueError:
-                  current_trophies = 0
-            try:
-                  max_trophies = int(self.maxTrophies.toPlainText())
-            except ValueError:
-                  max_trophies = 0
+            #try:
+             #     current_trophies = int(self.currentTrophies.toPlainText())
+            #except ValueError:
+             #     current_trophies = 0
+            #try:
+             #     max_trophies = int(self.maxTrophies.toPlainText())
+            #except ValueError:
+             #     max_trophies = 0
             if last_stars > best_stars:
                   best_stars = last_stars
-            if current_trophies > max_trophies:
-                  max_trophies = current_trophies
-            player_data = [self.playerNameSearchBox.toPlainText(), self.fleetName.toPlainText(), last_stars,
-                        best_stars, current_trophies, max_trophies, self.playerNotes.toPlainText()]
+            #if current_trophies > max_trophies:
+             #     max_trophies = current_trophies
+            #player_data = [self.playerNameSearchBox.toPlainText(), self.fleetName.toPlainText(), last_stars,
+             #           best_stars, current_trophies, max_trophies, self.playerNotes.toPlainText()]
+            player_data = [self.playerNameSearchBox.toPlainText(), self.fleetName.toPlainText(), last_stars, best_stars, self.playerNotes.toPlainText()]
             if write_to_targets_database(player_data):
                   player_data.clear()
             else:
@@ -663,7 +685,8 @@ class ImportDialogBox(QtWidgets.QDialog):
             self.has_imported = False
             super().closeEvent(event)
       def printChangesList(self):
-            header = ["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Trophies", "Max Trophies", "Notes"]
+            #header = ["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Trophies", "Max Trophies", "Notes"]
+            header = ["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Notes"]
 
             with open(os.path.join('_internal', 'importedChanges.csv'), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
@@ -707,6 +730,7 @@ class ImportDialogBox(QtWidgets.QDialog):
                   return self.counter
             query = QSqlQuery(QSqlDatabase.database("targetdb"))
             query.exec(f"CREATE TABLE IF NOT EXISTS players (playername TEXT, fleetname TEXT, laststars INT, beststars INT, trophies INT, maxtrophies INT, notes TEXT)")
+            #query.exec(f"CREATE TABLE IF NOT EXISTS players (playername TEXT, fleetname TEXT, laststars INT))
 
             for row in sheet.iter_rows(min_row=2, values_only=True):
                   playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row
@@ -733,7 +757,8 @@ class ImportDialogBox(QtWidgets.QDialog):
                   reader = csv.reader(csvfile, delimiter=';')
                   next(reader)
                   for row in reader:
-                        playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row[2], row[1], row[7], row[7], row[5], row[6], ' '
+                        #playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row[2], row[1], row[7], row[7], row[5], row[6], ' '
+                        playername, fleetname, laststars, beststars, notes = row[2], row[1], row[7], row[7], ' '
                         beststars_int = int(beststars)
                         notes_str = notes
             
@@ -753,20 +778,25 @@ class ImportDialogBox(QtWidgets.QDialog):
                                     print("Modifying notes for player[",playername,"] from [",notes_str,"] to [",notes_db,"]")
                                     notes_str = notes_db
                               if beststars_int != int(row[7]) or notes_str != row[6]:
-                                    self.updated_records.append((f"NEW-{playername}", fleetname, laststars, beststars_int, trophies, maxtrophies, notes_str))
-                                    self.updated_records.append((f"OLD-{playername}", fleetname, laststars, int(row[7]), trophies, maxtrophies, row[6]))
-                        data_to_insert.append((playername, fleetname, laststars, beststars_int, trophies, maxtrophies, notes_str))
+                                    #self.updated_records.append((f"NEW-{playername}", fleetname, laststars, beststars_int, trophies, maxtrophies, notes_str))
+                                    self.updated_records.append((f"NEW-{playername}", fleetname, laststars, beststars_int, notes_str))
+                                    #self.updated_records.append((f"OLD-{playername}", fleetname, laststars, int(row[7]), trophies, maxtrophies, row[6]))
+                                    self.updated_records.append((f"OLD-{playername}", fleetname, laststars, int(row[7], row[6])))
+                        #data_to_insert.append((playername, fleetname, laststars, beststars_int, trophies, maxtrophies, notes_str))
+                        data_to_insert.append((playername, fleetname, laststars, beststars_int, notes_str))
             db = QSqlDatabase.database("targetdb")
             if not db.open():
                   throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
                   return self.counter
     
             query = QSqlQuery(db)
-            query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
+            #query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
+            query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, notes TEXT NOT NULL)")
     
             self.max_counter = len(data_to_insert)
             for specific_data in data_to_insert:
-                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = specific_data
+                  #playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = specific_data
+                  playername, fleetname, laststars, beststars, notes = specific_data
                   count_query = QSqlQuery(db)
                   count_query.prepare("SELECT COUNT(*) FROM players WHERE playername = ? AND fleetname = ?")
                   count_query.addBindValue(playername)
@@ -775,13 +805,14 @@ class ImportDialogBox(QtWidgets.QDialog):
                   count_query.next()
                   count = count_query.value(0)
                   
-                  query.prepare("INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                  #query.prepare("INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                  query.prepare("INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, notes) VALUES (?, ?, ?, ?, ?)")
                   query.addBindValue(playername)
                   query.addBindValue(fleetname)
                   query.addBindValue(laststars)
                   query.addBindValue(beststars)
-                  query.addBindValue(trophies)
-                  query.addBindValue(maxtrophies)
+                  #query.addBindValue(trophies)
+                  #query.addBindValue(maxtrophies)
                   query.addBindValue(notes)
         
                   if query.exec():
@@ -792,7 +823,7 @@ class ImportDialogBox(QtWidgets.QDialog):
             db.commit()
             return self.counter
 class TournamentDialogBox(QtWidgets.QDialog):
-      def __init__(self):
+      def __init__(self, profile_name):
             super().__init__()
             uic.loadUi(os.path.join('_internal','pss-ttt-tsc.ui'), self)
             
@@ -806,7 +837,6 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
-            self.loadStarsTableFromCSV(os.path.join('_internal','starstable.csv'))
             self.tournamentTable = self.findChild(QTableView, "starsTableView")
             self.model = self.TournamentTableModel(self.starsTable, self)
             self.tournamentTable.setModel(self.model)
@@ -814,6 +844,12 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   self.tournamentTable.setColumnWidth(i,50)
             self.calculateStars.clicked.connect(self.calculateStarsGoal)     
             self.resetStarsTableButton.clicked.connect(self.resetStarsTable)
+            self.profile_path = profile_name
+            self.loadStarsTableFromCSV(self.getStarsFilePath())
+      def setProfilePath(self, profile_name):
+            self.profile_path = profile_name
+      def getStarsFilePath(self):
+            return os.path.join('_profiles', self.profile_path, 'starstable.csv')
       def updateActualStarsBox(self):
             total_sum = sum(self.model.getCellValue(7, col) for col in range(self.model.columnCount(None)))
             self.actualStarsBox.setPlainText(str(total_sum))
@@ -850,7 +886,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],]
             self.saveStarsTableToCSV(os.path.join('_internal','starstable.csv'))
             self.model = self.TournamentTableModel(self.starsTable, self)
-            self.tournamentTable.setModel(self.model)
+            self.tournamentTable.setModel(self.model)    
       class starsErrorDialog(QtWidgets.QDialog):
             def __init__(self):
                   super().__init__()
@@ -1079,6 +1115,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             if sum_of_values > max_TP:
                   message = f"Sum of training values is above maximum TP ({max_TP}) for this crew."
                   QMessageBox.warning(self, "Warning", message)
+            self.TPLabel.setText(f"Current TP total [{sum_of_values}]")
       def open_presetWindow(self):
             self.presetsDialog.exec()
       def calculateTrainingChart(self):
@@ -1251,6 +1288,8 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             for i in range(9):
                   self.crewStats[i][0] = 0
             self.statsTable.viewport().update()
+            sum_of_values = sum(row[0] for row in self.crewStats)
+            self.TPLabel.setText(f"Current TP total [{sum_of_values}]")
             self.onComboBoxValueChanged()
       class TrainingStatTableModel(QAbstractTableModel):
             def __init__(self, values, parent=None):
@@ -1456,7 +1495,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
 class StarTargetTrackDialogBox(QtWidgets.QDialog):
       copyStarsTargetTrackClicked = QtCore.pyqtSignal(str, bool)
       currentStarsTarget = ' '
-      def __init__(self, parent=None):
+      def __init__(self, profile_name, parent=None):
             super().__init__(parent)
             uic.loadUi(os.path.join('_internal','pss-ttt-stt.ui'), self)
 
@@ -1473,10 +1512,16 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                   table.setModel(widgets["model"])
                   widgets["button_add"].clicked.connect(lambda _, day=day: self.addToTargetTable(day))
                   widgets["button_remove"].clicked.connect(lambda _, day=day: self.removeTargetTable(day))
-            self.loadStarsCSV()
+#            self.loadStarsCSV()
             self.trackerResetButton.clicked.connect(self.resetStarsTargetList)
             for day in ["dayFour", "dayFive", "daySix", "daySeven"]:
                         getattr(self, f"{day}Copy").clicked.connect(lambda _, day=day: self.copyDayToSearchBox(day))
+            self.profile_path = profile_name
+            self.loadStarsCSV()
+      def setProfilePath(self, profile_name):
+            self.profile_path = profile_name
+      def getStarsFilePath(self):
+            return os.path.join('_profiles', self.profile_path, 'starstrack.csv')
       def copyDayToSearchBox(self, day):
             table = getattr(self, f"{day}Table")
             selected_indexes = table.selectionModel().selectedRows()
@@ -1556,7 +1601,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             confirmation_dialog = self.StarsTargetTrackConfirmationDialog(self)
             confirmation_dialog.exec()
       def saveStarsCSV(self):
-            with open(os.path.join('_internal','starstrack.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+            with open(self.getStarsFilePath(), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
                   for day, widgets in self.table_widgets.items():
                         model = widgets["model"]
@@ -1565,7 +1610,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                               writer.writerow([day] + data)
       def loadStarsCSV(self):
             try:
-                  with open(os.path.join('_internal','starstrack.csv'), 'r', newline='', encoding='utf-8') as csvfile:
+                  with open(self.getStarsFilePath(), 'r', newline='', encoding='utf-8') as csvfile:
                         reader = csv.reader(csvfile)
                         for row in reader:
                               day = row[0]
@@ -1605,6 +1650,7 @@ if __name__ == "__main__":
             create_table()
       else:
             sys.exit(1)
+      modify_SQL()
       window = MainWindow()
       loop = asyncio.new_event_loop()
       asyncio.set_event_loop(loop)
