@@ -131,7 +131,6 @@ def createProfile():
 def create_connection(profile_name):
       for db_name in QSqlDatabase.connectionNames():
             QSqlDatabase.removeDatabase(db_name)
-      print(profile_name)
       profile_path = os.path.join('_profiles', profile_name)
       if not os.path.exists(profile_path):
             throwErrorMessage("Profile Error", f"Profile directory '{profile_path}' does not exist")
@@ -273,7 +272,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.importDialog = ImportDialogBox()
             self.trainingDialog = CrewTrainerDialogBox()
             self.profileCreate = ProfileDialog()
-            self.starCalculator = TournamentDialogBox(self.profileComboBox.currentText())
+            self.starCalculator = StarsTableDialogBox(self.profileComboBox.currentText())
             self.starTargetTrack = StarTargetTrackDialogBox(self.profileComboBox.currentText(), parent=self)
             
             self.createNewProfile.clicked.connect(createProfile)
@@ -315,10 +314,27 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.updateFightTables("pvp")
                   self.submitNewPlayerData()
       async def main(self):
-            if(should_make_api_call()):
-                  update_last_api_call()
-                  print("Last api call updated to now")
+            await self.fetch_mass_api_call()
+      async def fetch_mass_api_call(self):
+            if not should_make_api_call():
+                  print("Call done too recently")
+                  return
+            #Pull dataset of top 100 fleets
+            #Pull players of each fleet
+            #write individual player data into targets database
+            #fleet_list = await self.client.alliance_service.list_alliances_by_ranking(0,8)
+            #for fleet in fleet_list:
+                  #current_fleet_members = await self.client.alliance_service.list_users(ACCESS_TOKEN,fleet.alliance_id,0,fleet.number_of_members)                  
+                  #for member in current_fleet_members:
+                        #print(member.name)
+            topplayers = await self.client.ladder_service.list_users_by_ranking(ACCESS_TOKEN,0,100)
+            update_last_api_call()
+            for player in topplayers:
+                  print(f"Adding {player.name} to targets database")
+                  self.update_player_via_api(player.name)
       '''Update top 100 players and names in fleets once per day maximum'''
+      def update_player_via_api(self, searchname):
+            data = self.fetch_user_data(searchname)
       def get_first_of_following_month(self, utc_now):
             year = utc_now.year
             month = utc_now.month + 1
@@ -889,7 +905,7 @@ class ImportDialogBox(QtWidgets.QDialog):
                         throwErrorMessage("Database Error", query.lastError().text())
             db.commit()
             return self.counter
-class TournamentDialogBox(QtWidgets.QDialog):
+class StarsTableDialogBox(QtWidgets.QDialog):
       def __init__(self, profile_name):
             super().__init__()
             uic.loadUi(os.path.join('_internal','pss-ttt-tsc.ui'), self)
@@ -905,42 +921,64 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
             self.tournamentTable = self.findChild(QTableView, "starsTableView")
-            self.model = self.TournamentTableModel(self.starsTable, self)
+            self.model = self.StarsTableModel(self.starsTable, self)
             self.tournamentTable.setModel(self.model)
             for i in range(7):
                   self.tournamentTable.setColumnWidth(i,50)
             self.calculateStars.clicked.connect(self.calculateStarsGoal)     
             self.resetStarsTableButton.clicked.connect(self.resetStarsTable)
             self.profile_path = profile_name
-            self.loadStarsTableFromCSV(self.getStarsFilePath())
+            self.loadStarsTableFromCSV()
       def setProfilePath(self, profile_name):
             self.profile_path = profile_name
       def getStarsFilePath(self):
-            return os.path.join('_profiles', self.profile_path, 'starstable.csv')
+            file_path = os.path.join('_profiles', self.profile_path, 'starstable.csv')
+            return file_path
+      def closeEvent(self, event):
+            self.saveStarsTableToCSV()
+            print("Saving Data")
+            super().closeEvent(event)
       def updateActualStarsBox(self):
             total_sum = sum(self.model.getCellValue(7, col) for col in range(self.model.columnCount(None)))
             self.actualStarsBox.setPlainText(str(total_sum))
-            self.saveStarsTableToCSV(os.path.join('_internal','starstable.csv'))
-      def saveStarsTableToCSV(self, filename):
-            with open(filename, 'w', newline='') as csvfile:
-                  writer = csv.writer(csvfile)
-                  writer.writerows(self.starsTable)
-      def loadStarsTableFromCSV(self, filename):
-            if os.path.exists(filename):
-                  with open(filename, newline='') as csvfile:
-                        reader = csv.reader(csvfile)
-                        self.starsTable = [list(map(int, row)) for row in reader]
+            self.saveStarsTableToCSV()
+      def saveStarsTableToCSV(self):
+            file_path = self.getStarsFilePath()
+            try:
+                  with open(file_path, 'w', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerows(self.starsTable)
+            except Exception as e:
+                  print(f"Error saving data to CSV: {e}")
+      def loadStarsTableFromCSV(self):
+            file_path = self.getStarsFilePath()
+            if os.path.exists(file_path):
+                  try:
+                        with open(file_path, 'r', newline='') as csvfile:
+                              reader = csv.reader(csvfile)
+                              self.starsTable = [list(map(int, row)) for row in reader]
+                              self.model._data = self.starsTable
+                              self.model.layoutChanged.emit()
+                  except Exception as e:
+                        print(f"Error loading data from CSV: {e}")
+                        self.initializeStarsTable()
             else:
-                  self.starsTable = [
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],]
-                  self.saveStarsTableToCSV(filename)
+                  print(f"File not found: {file_path}. Initializing with default values.")
+                  self.initializeStarsTable()
+      def initializeStarsTable(self):
+            self.starsTable = [
+                  [0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0],
+            ]
+            self.model._data = self.starsTable
+            self.model.layoutChanged.emit()
+            self.saveStarsTableToCSV()
       def resetStarsTable(self):
             self.starsTable = [
                   [0,0,0,0,0,0,0],
@@ -951,9 +989,9 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0],]
-            self.saveStarsTableToCSV(os.path.join('_internal','starstable.csv'))
-            self.model = self.TournamentTableModel(self.starsTable, self)
-            self.tournamentTable.setModel(self.model)    
+            self.model._data = self.starsTable
+            self.model.layoutChanged.emit()
+            self.saveStarsTableToCSV()
       class starsErrorDialog(QtWidgets.QDialog):
             def __init__(self):
                   super().__init__()
@@ -971,7 +1009,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                         return False
                   else:
                         return True
-      class TournamentTableModel(QAbstractTableModel):
+      class StarsTableModel(QAbstractTableModel):
             def __init__(self, data, parent=None):
                   super().__init__()
                   self._data = data
@@ -990,14 +1028,18 @@ class TournamentDialogBox(QtWidgets.QDialog):
                         try:
                               int_value = int(value)
                               self._data[index.row()][index.column()] = int_value
+                              self.parent.starsTable[index.row()][index.column()] = int_value
                         except ValueError:
                               self._data[index.row()][index.column()] = 0
+                              self.parent.starsTable[index.row()][index.column()] = 0
                         self.dataChanged.emit(index, index)
                         for col in range(self.columnCount(None)):
                               try:
                                     self._data[7][col] = sum(int(self._data[i][col]) for i in range(1,7))
+                                    self.parent.starsTable[7][col] = self._data[7][col]
                               except ValueError:
                                     self._data[7][col] = 0
+                                    self.parent.starsTable[7][col] = 0
                         self.parent.updateActualStarsBox()
                         return True
                   return False
@@ -1038,7 +1080,7 @@ class TournamentDialogBox(QtWidgets.QDialog):
                   if i == 6:
                         self.estStarsBox.setPlainText(str(end_value))
             self.tournamentTable.show()
-            self.saveStarsTableToCSV(os.path.join('_internal','starstable.csv'))
+            self.saveStarsTableToCSV()
 class CrewTrainerDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
