@@ -137,7 +137,7 @@ def create_connection(profile_name):
             QSqlDatabase.removeDatabase(db_name)
       profile_path = os.path.join('_profiles', profile_name)
       if not os.path.exists(profile_path):
-            throwErrorMessage("Profile Error", f"Profile directory '{profile_path}' does not exist")
+            throwErrorMessage("Profile Error [create_connection]", f"Profile directory '{profile_path}' does not exist")
             return False
       databases = {
             "targetdb": "targets.db",
@@ -153,7 +153,7 @@ def create_connection(profile_name):
             db = QSqlDatabase.addDatabase('QSQLITE', name)
             db.setDatabaseName(db_path)
             if not db.open():
-                  throwErrorMessage("Fatal Error", f"{name.capitalize()} DB did not open properly")
+                  throwErrorMessage("Fatal Error [create_connection]", f"{name.capitalize()} DB did not open properly")
                   return False
       return True
 def create_table():
@@ -1579,6 +1579,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
       currentStarsTarget = ' '
       def __init__(self, profile_name, parent=None):
             super().__init__(parent)
+            self.client = PssApiClient()
             uic.loadUi(os.path.join('_internal','pss-ttt-stt.ui'), self)
 
             self.table_widgets = {
@@ -1649,6 +1650,10 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             else:
                   print("No model set for the target table")
             self.saveStarsCSV()
+      async def fetch_user_maxtrophy(self, playername):
+            responses = await self.client.user_service.search_users(playername)
+            for response in responses:
+                  return str(response.highest_trophy)
       def populateSTT(self, player_name):
             self.playerNameSTTBox.setPlainText(player_name)
             if not QSqlDatabase.database("targetdb").isOpen():
@@ -1656,17 +1661,18 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                         throwErrorMessage("Database Connection Failure", "Targets DB did not open properly")
                         return
             query = QSqlQuery(QSqlDatabase.database("targetdb"))
-            query.prepare("SELECT playername, fleetname, laststars, maxtrophies FROM players WHERE playername = :player_name")
+            query.prepare("SELECT playername, fleetname, laststars FROM players WHERE playername = :player_name")
             query.bindValue(":player_name", player_name)
             if not query.exec():
-                  throwErrorMessage("Database Query Error", query.lastError().text())
+                  throwErrorMessage("Database Query Error [1666]", query.lastError().text())
                   return
     
             if query.next():
-                  fleet_name, last_stars, max_trophies = query.value(1), query.value(2), query.value(3)
+                  fleet_name, last_stars = query.value(1), query.value(2)
+                  max_trophies = asyncio.run(self.fetch_user_maxtrophy(player_name))
                   self.fleetNameSTTBox.setPlainText(fleet_name)
                   self.lastStarsSTTBox.setPlainText(str(last_stars))
-                  self.maxTrophiesSTTBox.setPlainText(str(max_trophies))
+                  self.maxTrophiesSTTBox.setPlainText(max_trophies)
             else:
                   self.fleetNameSTTBox.setPlainText(" ")
                   self.lastStarsSTTBox.setPlainText(" ")
