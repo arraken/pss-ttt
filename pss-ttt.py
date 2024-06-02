@@ -15,19 +15,17 @@ CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 
-'''
-To-do
+'''To-do
 ALL - 
-MAIN - build a full readme to walkthrough how to operate all windows
+MAIN - pull stars data properly
 TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
        - add a way to check most recent tournament targets and what day they were done on
-IMPORT - See Changes button exports to a txt file
+IMPORT - 
 FIGHTS - 
 CTC - 
 CPM - Crew Planning Module
       Create a list of 25 crew, assign roles (Defender, Repairer, Booster, Rusher), Origin Room, Rough notes on their job
-CLB - Crew Loadout Builder
-'''
+CLB - Crew Loadout Builder'''
 class ProfileDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)

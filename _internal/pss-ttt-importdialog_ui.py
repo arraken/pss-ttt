@@ -47,11 +47,6 @@ class Ui_ImportDialog(object):
         self.importSeeChanges = QPushButton(ImportDialog)
         self.importSeeChanges.setObjectName(u"importSeeChanges")
         self.importSeeChanges.setGeometry(QRect(310, 0, 71, 51))
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.importSeeChanges.sizePolicy().hasHeightForWidth())
-        self.importSeeChanges.setSizePolicy(sizePolicy)
         font = QFont()
         font.setStrikeOut(False)
         font.setKerning(True)
@@ -70,6 +65,7 @@ class Ui_ImportDialog(object):
         self.importFilenameLabel.setText(QCoreApplication.translate("ImportDialog", u"Import file name", None))
         self.importTargetsButton.setText(QCoreApplication.translate("ImportDialog", u"Import targets", None))
         self.importBrowse.setText(QCoreApplication.translate("ImportDialog", u"Browse", None))
-        self.importSeeChanges.setText(QCoreApplication.translate("ImportDialog", u"See Changes", None))
+        self.importSeeChanges.setText(QCoreApplication.translate("ImportDialog", u"See\n"
+"Changes", None))
     # retranslateUi
 
