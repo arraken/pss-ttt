@@ -10,6 +10,10 @@ import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi,
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
+CURRENT_VERSION = "v1.2.7"
+CREATOR = "Kamguh11"
+SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
+GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 
 '''
 To-do
@@ -232,6 +236,10 @@ def update_last_api_call():
                   entry['last_api_call'] = datetime.now().isoformat()
                   save_config(config_data)
 class MainWindow(QtWidgets.QMainWindow):
+      global CURRENT_VERSION
+      global CREATOR
+      global SUPPORT_LINK
+      global GITHUB_LINK
       def __init__(self):
             super(MainWindow, self).__init__() 
             uic.loadUi(os.path.join('_internal','pss-ttt.ui'), self)
@@ -274,11 +282,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.profileCreate = ProfileDialog()
             self.starCalculator = StarsTableDialogBox(self.profileComboBox.currentText())
             self.starTargetTrack = StarTargetTrackDialogBox(self.profileComboBox.currentText(), parent=self)
+            self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK)
             
             self.createNewProfile.clicked.connect(createProfile)
             self.createNewProfile.clicked.connect(self.popProfiles)
             self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
             self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
+
+            self.actionAbout.triggered.connect(self.openAboutBox)
 
             tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
             legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
@@ -316,7 +327,8 @@ class MainWindow(QtWidgets.QMainWindow):
       async def main(self):
             await self.fetch_mass_api_call()
       async def fetch_mass_api_call(self):
-            if not should_make_api_call():
+            return
+            '''if not should_make_api_call():
                   print("Call done too recently")
                   return
             #Pull dataset of top 100 fleets
@@ -332,7 +344,7 @@ class MainWindow(QtWidgets.QMainWindow):
             for player in topplayers:
                   print(f"Adding {player.name} to targets database")
                   self.update_player_via_api(player.name)
-      '''Update top 100 players and names in fleets once per day maximum'''
+      Update top 100 players and names in fleets once per day maximum'''
       def update_player_via_api(self, searchname):
             data = self.fetch_user_data(searchname)
       def get_first_of_following_month(self, utc_now):
@@ -343,6 +355,8 @@ class MainWindow(QtWidgets.QMainWindow):
                   month = 1
             result = datetime(year, month, 1, 0, 0, 0, 0, timezone.utc)
             return result
+      def openAboutBox(self):
+            self.aboutBox.exec()
       def profileChanged(self, index):
             profile_name = self.profileComboBox.itemText(index)
             if bool(profile_name.strip()):
@@ -443,7 +457,6 @@ class MainWindow(QtWidgets.QMainWindow):
             player_data = []
             db = QSqlDatabase.database("targetdb")
             query = QSqlQuery(db)
-            #query.prepare("SELECT playername, fleetname, laststars, beststars, trophies, maxtrophies, notes FROM players ORDER BY playername")
             query.prepare("SELECT playername, fleetname, laststars, beststars, notes FROM players ORDER BY playername")
             if not query.exec():
                   throwErrorMessage("Query Execution failed [exportPlayerDataToCSV]: ", query.lastError().text())
@@ -453,14 +466,10 @@ class MainWindow(QtWidgets.QMainWindow):
                   fleetname = query.value(1)
                   laststars = query.value(2)
                   beststars = query.value(3)
-                  #trophies = query.value(4)
-                  #maxtrophies = query.value(5)
                   notes = query.value(4)
-                  #player_data.append((playername, fleetname, laststars, beststars, trophies, maxtrophies, notes))
                   player_data.append((playername, fleetname, laststars, beststars, notes))
             with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
-                  #writer.writerow(["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Trophies", "Max Trophies", "Notes"])
                   writer.writerow(["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Notes"])
                   for row in player_data:
                         writer.writerow(row)
@@ -519,8 +528,6 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.fleetName.setPlainText(query.value(1))
                         self.lastStars.setPlainText(query.value(2))
                         self.bestStars.setPlainText(query.value(3))
-                        #self.currentTrophies.setPlainText(query.value(4))
-                        #self.maxTrophies.setPlainText(query.value(5))
                         self.playerNotes.setPlainText(query.value(4))
                         self.updateFightTables("tourny")
                         self.updateFightTables("legends")
@@ -557,20 +564,6 @@ class MainWindow(QtWidgets.QMainWindow):
                   best_stars = int(self.bestStars.toPlainText())
             except ValueError:
                   best_stars = 0
-            #try:
-             #     current_trophies = int(self.currentTrophies.toPlainText())
-            #except ValueError:
-             #     current_trophies = 0
-            #try:
-             #     max_trophies = int(self.maxTrophies.toPlainText())
-            #except ValueError:
-             #     max_trophies = 0
-            if last_stars > best_stars:
-                  best_stars = last_stars
-            #if current_trophies > max_trophies:
-             #     max_trophies = current_trophies
-            #player_data = [self.playerNameSearchBox.toPlainText(), self.fleetName.toPlainText(), last_stars,
-             #           best_stars, current_trophies, max_trophies, self.playerNotes.toPlainText()]
             player_data = [self.playerNameSearchBox.toPlainText(), self.fleetName.toPlainText(), last_stars, best_stars, self.playerNotes.toPlainText()]
             if write_to_targets_database(player_data):
                   player_data.clear()
@@ -675,6 +668,27 @@ class MainWindow(QtWidgets.QMainWindow):
                         if (last_day_of_month - datetag_date).days <= 7:
                               return QColor(181,214,232)
                   return super().data(index, role)
+      class AboutInfoDialog(QDialog):
+            def __init__(self, version, creator, support_link, github_link, parent=None):
+                  super().__init__(parent)
+                  self.setWindowTitle("Information")
+                  layout = QVBoxLayout()
+
+                  version_label = QLabel(f"Current Version: {version}")
+                  creator_label = QLabel(f"Creator: {creator}")
+                  support_label = QLabel(f"Support Link: {support_link}")
+                  github_label = QLabel(f"Github Link: {github_link}")
+
+                  layout.addWidget(version_label)
+                  layout.addWidget(creator_label)
+                  layout.addWidget(support_label)
+                  layout.addWidget(github_label)
+
+                  ok_button = QPushButton("OK")
+                  ok_button.clicked.connect(self.accept)  # Close dialog when OK is clicked
+                  layout.addWidget(ok_button)
+
+                  self.setLayout(layout)
 class FilteredListDialog(QtWidgets.QDialog):
       copyItemSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self, title, filter_label, filter_placeholder, parent=None):
@@ -768,7 +782,6 @@ class ImportDialogBox(QtWidgets.QDialog):
             self.has_imported = False
             super().closeEvent(event)
       def printChangesList(self):
-            #header = ["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Trophies", "Max Trophies", "Notes"]
             header = ["Player Name", "Fleet Name", "Last Stars", "Best Stars", "Notes"]
 
             with open(os.path.join('_internal', 'importedChanges.csv'), 'w', newline='', encoding='utf-8') as csvfile:
@@ -805,42 +818,12 @@ class ImportDialogBox(QtWidgets.QDialog):
             self.has_imported = True
       def updateProgressBar(self, value):
             self.importProgressBar.setValue(int((value / self.max_counter) * 100))
-      def importExcel(self, file_path):
-            workbook = load_workbook(file_path)
-            sheet = workbook.active
-            if not QSqlDatabase.database("targetdb").open():
-                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
-                  return self.counter
-            query = QSqlQuery(QSqlDatabase.database("targetdb"))
-            query.exec(f"CREATE TABLE IF NOT EXISTS players (playername TEXT, fleetname TEXT, laststars INT, beststars INT, trophies INT, maxtrophies INT, notes TEXT)")
-            #query.exec(f"CREATE TABLE IF NOT EXISTS players (playername TEXT, fleetname TEXT, laststars INT))
-
-            for row in sheet.iter_rows(min_row=2, values_only=True):
-                  playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row
-                  query.prepare(f"INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) "
-                      "VALUES (?, ?, ?, ?, ?, ?, ?)")
-                  query.addBindValue(playername)
-                  query.addBindValue(fleetname)
-                  query.addBindValue(laststars)
-                  query.addBindValue(beststars)
-                  query.addBindValue(trophies)
-                  query.addBindValue(maxtrophies)
-                  query.addBindValue(notes)
-                  if query.exec():
-                        self.counter += 1
-                        self.progress_signal.emit(self.counter)
-                  else:
-                        throwErrorMessage("Targets Database Insertion Error:", query.lastError().text())
-            
-            QSqlDatabase.database("targetdb").close()
-            return self.counter
       def importCSV(self, file_path):
             data_to_insert = []
             with open(file_path, 'r', encoding='utf-8') as csvfile:
                   reader = csv.reader(csvfile, delimiter=';')
                   next(reader)
                   for row in reader:
-                        #playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = row[2], row[1], row[7], row[7], row[5], row[6], ' '
                         playername, fleetname, laststars, beststars, notes = row[2], row[1], row[7], row[7], ' '
                         beststars_int = int(beststars)
                         notes_str = notes
@@ -855,17 +838,12 @@ class ImportDialogBox(QtWidgets.QDialog):
                               beststars_db = int(query.value(0))
                               notes_db = str(query.value(1))
                               if beststars_int < beststars_db:
-                                    #print("Modifying best stars for player[",playername,"] from [",beststars_int,"] to [",beststars_db,"]")
                                     beststars_int = beststars_db
                               if notes_db != ' ':
-                                    print("Modifying notes for player[",playername,"] from [",notes_str,"] to [",notes_db,"]")
                                     notes_str = notes_db
                               if beststars_int != int(row[7]) or notes_str != row[6]:
-                                    #self.updated_records.append((f"NEW-{playername}", fleetname, laststars, beststars_int, trophies, maxtrophies, notes_str))
                                     self.updated_records.append((f"NEW-{playername}", fleetname, laststars, beststars_int, notes_str))
-                                    #self.updated_records.append((f"OLD-{playername}", fleetname, laststars, int(row[7]), trophies, maxtrophies, row[6]))
-                                    self.updated_records.append((f"OLD-{playername}", fleetname, laststars, int(row[7], row[6])))
-                        #data_to_insert.append((playername, fleetname, laststars, beststars_int, trophies, maxtrophies, notes_str))
+                                    self.updated_records.append((f"OLD-{playername}", fleetname, laststars, int(row[7]), row[6]))
                         data_to_insert.append((playername, fleetname, laststars, beststars_int, notes_str))
             db = QSqlDatabase.database("targetdb")
             if not db.open():
@@ -873,12 +851,10 @@ class ImportDialogBox(QtWidgets.QDialog):
                   return self.counter
     
             query = QSqlQuery(db)
-            #query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, trophies TEXT NOT NULL, maxtrophies TEXT NOT NULL, notes TEXT NOT NULL)")
             query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, notes TEXT NOT NULL)")
     
             self.max_counter = len(data_to_insert)
             for specific_data in data_to_insert:
-                  #playername, fleetname, laststars, beststars, trophies, maxtrophies, notes = specific_data
                   playername, fleetname, laststars, beststars, notes = specific_data
                   count_query = QSqlQuery(db)
                   count_query.prepare("SELECT COUNT(*) FROM players WHERE playername = ? AND fleetname = ?")
@@ -888,14 +864,11 @@ class ImportDialogBox(QtWidgets.QDialog):
                   count_query.next()
                   count = count_query.value(0)
                   
-                  #query.prepare("INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, trophies, maxtrophies, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
                   query.prepare("INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, notes) VALUES (?, ?, ?, ?, ?)")
                   query.addBindValue(playername)
                   query.addBindValue(fleetname)
                   query.addBindValue(laststars)
                   query.addBindValue(beststars)
-                  #query.addBindValue(trophies)
-                  #query.addBindValue(maxtrophies)
                   query.addBindValue(notes)
         
                   if query.exec():
@@ -1621,7 +1594,6 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                   table.setModel(widgets["model"])
                   widgets["button_add"].clicked.connect(lambda _, day=day: self.addToTargetTable(day))
                   widgets["button_remove"].clicked.connect(lambda _, day=day: self.removeTargetTable(day))
-#            self.loadStarsCSV()
             self.trackerResetButton.clicked.connect(self.resetStarsTargetList)
             for day in ["dayFour", "dayFive", "daySix", "daySeven"]:
                         getattr(self, f"{day}Copy").clicked.connect(lambda _, day=day: self.copyDayToSearchBox(day))
