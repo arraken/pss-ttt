@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'pss-ttt-clb.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.6.2
+## Created by: Qt User Interface Compiler version 6.7.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -16,7 +16,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDoubleSpinBox,
-    QLabel, QSizePolicy, QWidget)
+    QLabel, QPlainTextEdit, QSizePolicy, QWidget)
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -36,10 +36,9 @@ class Ui_Dialog(object):
         self.label = QLabel(Dialog)
         self.label.setObjectName(u"label")
         self.label.setGeometry(QRect(10, 40, 47, 21))
-        self.bodyEquipmentList = QComboBox(Dialog)
-        self.bodyEquipmentList.setObjectName(u"bodyEquipmentList")
-        self.bodyEquipmentList.setGeometry(QRect(50, 40, 131, 22))
-        self.bodyEquipmentList.setEditable(True)
+        self.plainTextEdit = QPlainTextEdit(Dialog)
+        self.plainTextEdit.setObjectName(u"plainTextEdit")
+        self.plainTextEdit.setGeometry(QRect(50, 30, 131, 31))
 
         self.retranslateUi(Dialog)
 

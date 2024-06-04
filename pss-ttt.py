@@ -1,8 +1,8 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
-from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QStringListModel
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QCompleter
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
-from PyQt6.QtGui import QColor, QStandardItemModel
+from PyQt6.QtGui import QColor, QStandardItemModel, QTextCursor
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi, json
@@ -1785,18 +1785,27 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             super().__init__(parent)
             self.client = PssApiClient()
             uic.loadUi(os.path.join('_internal', 'pss-ttt-clb.ui'), self)
-      def filter_items(self, text):
-            self.bodyEquipmentList.lineEdit().textChanged.disconnect()
-            self.model.setFilter(text)
-            self.bodyEquipmentList.showPopup()
-            self.bodyEquipmentList.lineEdit().textChanged.connect(self.filter_items)
-      class FilterModel(QStringListModel):
-            def __init__(self, items, parent=None):
-                  super().__init__(items, parent)
-                  self.items = items
-            def setFilter(self, text):
-                  filtered_items = [item for item in self.items if text.lower() in item.lower()]
-                  self.setStringList(filtered_items)
+            word_list = ["armor", "immensity gauntlet", "giga-loader", "heavy armor"]
+            self.initCompleter(word_list, self.plainTextEdit)
+      def initCompleter(self, word_list, plaintextbox):
+            completer = QCompleter(word_list, plaintextbox)
+            completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            completer.setCompletionMode(QCompleter.CompletionMode.InlineCompletion)
+            plaintextbox.setCompleter(completer)
+class CustomPlainTextEdit(QPlainTextEdit):
+      def setCompleter(self, completer):
+            self.completer = completer
+            self.completer.setWidget(self)
+            completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+            completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            self.completer.activated.connect(self.insertCompletion)
+      def insertCompletion(self, completion):
+            tc = self.textCursor()
+            extra = len(completion) - len(self.completer.completionPrefix())
+            tc.movePosition(QTextCursor.MoveOperation.Left)
+            tc.movePosition(QTextCursor.MoveOperation.EndOfWord)
+            tc.insertText(completion[-extra:])
+            self.setTextCursor(tc)
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):
