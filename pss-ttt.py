@@ -1,12 +1,12 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
-from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QCoreApplication, QEvent
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QStringListModel
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QCompleter
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta, timezone
-from openpyxl import load_workbook
 from decimal import Decimal
 import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi, json
+import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
@@ -14,6 +14,8 @@ CURRENT_VERSION = "v1.2.7"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 '''To-do
 ALL - 
@@ -233,18 +235,27 @@ def update_last_api_call():
             if entry.get('uuid') == get_or_create_uuid():
                   entry['last_api_call'] = datetime.now().isoformat()
                   save_config(config_data)
+def log_time(message):
+      logging.info(message)
 class MainWindow(QtWidgets.QMainWindow):
       global CURRENT_VERSION
       global CREATOR
       global SUPPORT_LINK
       global GITHUB_LINK
       def __init__(self):
-            super(MainWindow, self).__init__() 
+            super(MainWindow, self).__init__()
+            start_time = time.time()
+            log_time("Starting application")
             uic.loadUi(os.path.join('_internal','pss-ttt.ui'), self)
             self.show()
+            timer_marker = time.time()
             self.client = PssApiClient()
+            log_time(f"Client init time in {time.time() - timer_marker:.4f} seconds")
+            timer_marker = time.time()
             asyncio.run(self.generateAccessToken())
-                        
+            log_time(f"Access token generated in {time.time() - timer_marker:.4f} seconds")
+            
+            timer_marker = time.time()
             self.lockUnlockButton.clicked.connect(self.changeButtonText)
             self.searchButton.clicked.connect(self.searchPlayer)
             self.saveNewData.clicked.connect(self.submitNewPlayerData)
@@ -262,49 +273,90 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionTrainer.triggered.connect(self.open_crewTrainer)
             self.actionTarget_Tracking.triggered.connect(self.open_stt)
             self.actionExport_Fights.triggered.connect(self.exportFightsToCSV)
-                        
+            self.actionAbout.triggered.connect(self.openAboutBox)
+            self.actionLoadout_Builder.triggered.connect(self.openLoadoutBuilder)
+            log_time(f"Connections formed in {time.time() - timer_marker:.4f} seconds")
+
+            timer_marker = time.time()
             self.fightDialog = FightDataConfirmation(parent=self)
             self.fightDialog.fightDataSaved.connect(self.receiveFightData)
+            log_time(f"FightData formed in {time.time() - timer_marker:.4f} seconds")
 
+            timer_marker = time.time()
             self.player_dialog = FilteredListDialog("Player Dialog", "Player Name", "Search Player")
             self.player_dialog.copyItemSearchClicked.connect(self.handleCopyPlayerSearchClicked)
             self.fleet_dialog = FilteredListDialog("Fleet Dialog", "Fleet Name", "Search Fleet")
             self.fleet_dialog.copyItemSearchClicked.connect(self.handleCopyFleetSearchClicked)
             self.fleet_name_dialog = FilteredListDialog("Fleet Name Dialog", "Fleet Name", "Search Fleet Name")
             self.fleet_name_dialog.copyItemSearchClicked.connect(self.handleCopyFleetNameSearchClicked)
+            log_time(f"FilteredListDialog formed in {time.time() - timer_marker:.4f} seconds")
 
+            timer_marker = time.time()
             self.popProfiles()
+            log_time(f"PopProfiles formed in {time.time() - timer_marker:.4f} seconds")
             
+            timer_marker = time.time()
             self.importDialog = ImportDialogBox()
             self.trainingDialog = CrewTrainerDialogBox()
             self.profileCreate = ProfileDialog()
             self.starCalculator = StarsTableDialogBox(self.profileComboBox.currentText())
             self.starTargetTrack = StarTargetTrackDialogBox(self.profileComboBox.currentText(), parent=self)
             self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK)
+            self.crewLoadoutBuilder = CrewLoadoutBuilderDialogBox(parent=self)
+            log_time(f"Class objects formed in {time.time() - timer_marker:.4f} seconds")
             
+            timer_marker = time.time()
             self.createNewProfile.clicked.connect(createProfile)
             self.createNewProfile.clicked.connect(self.popProfiles)
             self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
             self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
+            log_time(f"Profile buttons formed in {time.time() - timer_marker:.4f} seconds")
 
-            self.actionAbout.triggered.connect(self.openAboutBox)
-
+            timer_marker = time.time()
             tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
+            log_time(f"Tourny DB formed in {time.time() - timer_marker:.4f} seconds")
+            timer_marker = time.time()
             legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
+            log_time(f"Legend DB formed in {time.time() - timer_marker:.4f} seconds")
+            timer_marker = time.time()
             pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
+            log_time(f"PVP DB formed in {time.time() - timer_marker:.4f} seconds")
+
+            timer_marker = time.time()
             self.update_SQL(tournyQuery, "Tourny")
+            log_time(f"SQL Tourny DB updated in {time.time() - timer_marker:.4f} seconds")
+            timer_marker = time.time()
             self.update_SQL(legendQuery, "Legend")
+            log_time(f"SQL Legend DB updated in {time.time() - timer_marker:.4f} seconds")
+            timer_marker = time.time()
             self.update_SQL(pvpQuery, "PVP")
+            log_time(f"SQL PVP DB updated in {time.time() - timer_marker:.4f} seconds")
+            total_time = time.time() - start_time
+            log_time(f"Total startup time: {total_time:.4f} seconds")
             #asyncio.run(self.fetch_top100_data())
       async def generateAccessToken(self):
+            start_time = time.time()
             global ACCESS_TOKEN
+            timer_marker = time.time()
             device_key = get_or_create_uuid()
+            log_time(f"UUID updated in {time.time() - timer_marker:.4f} seconds")
             client_date_time = pssapi.utils.get_utc_now()
+            timer_marker = time.time()
             checksum = self.client.user_service.utils.create_device_login_checksum(device_key, self.client.device_type, client_date_time, "5343")
+            log_time(f"checksum created in {time.time() - timer_marker:.4f} seconds")
+            timer_marker = time.time()
             user_login = await self.client.user_service.device_login(checksum, client_date_time, device_key, self.client.device_type)
+            log_time(f"user_login created in {time.time() - timer_marker:.4f} seconds")
+            timer_marker = time.time()
             assert isinstance(user_login, pssapi.entities.UserLogin)
+            log_time(f"user_login ASSERTED in {time.time() - timer_marker:.4f} seconds")
+            timer_marker = time.time()
             assert user_login.access_token
+            log_time(f"access token ASSERTED in {time.time() - timer_marker:.4f} seconds")
+            timer_marker = time.time()
             ACCESS_TOKEN = user_login.access_token
+            total_time = time.time() - start_time
+            log_time(f"Total access token generation time: {total_time:.4f} seconds")
       async def fetch_user_data(self, searchname):
             responses = await self.client.user_service.search_users(searchname)
             for response in responses:
@@ -343,6 +395,8 @@ class MainWindow(QtWidgets.QMainWindow):
                   print(f"Adding {player.name} to targets database")
                   self.update_player_via_api(player.name)
       Update top 100 players and names in fleets once per day maximum'''
+      def openLoadoutBuilder(self):
+            self.crewLoadoutBuilder.exec()
       def update_player_via_api(self, searchname):
             data = self.fetch_user_data(searchname)
       def get_first_of_following_month(self, utc_now):
@@ -804,11 +858,8 @@ class ImportDialogBox(QtWidgets.QDialog):
             if file_path.lower().endswith('.csv'):
                   self.max_counter = total_targets_imported = self.importCSV(file_path)
                   file_type = "CSV"
-            elif file_path.lower().endswith(('.xls', '.xlsx')):
-                  self.max_counter = total_targets_imported = self.importExcel(file_path)
-                  file_type = "Excel"
             else:
-                  throwErrorMessage("Unsupported file format", "Only able to accept manicured excel formats or csv from Dolores 2.0 bot")
+                  throwErrorMessage("Unsupported file format", "Only able to accept manicured csv (/pasttfleets) from Dolores 2.0 bot")
                   return
             self.importDialogLabel.setText(f"Total Targets Import ({file_type}): {total_targets_imported} targets")
             for i in range(self.max_counter):
@@ -1729,6 +1780,23 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                         print("Parent not found")
             def reject(self):
                   super().reject()
+class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
+      def __init__(self, parent=None):
+            super().__init__(parent)
+            self.client = PssApiClient()
+            uic.loadUi(os.path.join('_internal', 'pss-ttt-clb.ui'), self)
+      def filter_items(self, text):
+            self.bodyEquipmentList.lineEdit().textChanged.disconnect()
+            self.model.setFilter(text)
+            self.bodyEquipmentList.showPopup()
+            self.bodyEquipmentList.lineEdit().textChanged.connect(self.filter_items)
+      class FilterModel(QStringListModel):
+            def __init__(self, items, parent=None):
+                  super().__init__(items, parent)
+                  self.items = items
+            def setFilter(self, text):
+                  filtered_items = [item for item in self.items if text.lower() in item.lower()]
+                  self.setStringList(filtered_items)
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):
