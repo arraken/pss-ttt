@@ -1,11 +1,11 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
-from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QCompleter
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QEvent
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QCompleter, QPlainTextEdit
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
-from PyQt6.QtGui import QColor, QStandardItemModel, QTextCursor
+from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
-import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi, json
+import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi, json, requests
 import time, logging
 from pssapi import PssApiClient
 
@@ -14,6 +14,7 @@ CURRENT_VERSION = "v1.2.7"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
+GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -242,6 +243,7 @@ class MainWindow(QtWidgets.QMainWindow):
       global CREATOR
       global SUPPORT_LINK
       global GITHUB_LINK
+      global GITHUB_RELEASE_LINK
       def __init__(self):
             super(MainWindow, self).__init__()
             start_time = time.time()
@@ -726,7 +728,16 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.setWindowTitle("Information")
                   layout = QVBoxLayout()
 
-                  version_label = QLabel(f"Current Version: {version}")
+                  response = requests.get(GITHUB_RELEASE_LINK)
+                  if response.status_code == 200:
+                        release_info = response.json()
+                        latest_version = release_info['tag_name']
+                  else:
+                        latest_version = "Github Error"
+                  if latest_version == version:
+                        version_label = QLabel(f"Current Version: {version}")
+                  else:
+                        version_label = QLabel(f"Current Version: {version} -- New version is {latest_version}")
                   creator_label = QLabel(f"Creator: {creator}")
                   support_label = QLabel(f"Support Link: {support_link}")
                   github_label = QLabel(f"Github Link: {github_link}")
@@ -1785,27 +1796,19 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             super().__init__(parent)
             self.client = PssApiClient()
             uic.loadUi(os.path.join('_internal', 'pss-ttt-clb.ui'), self)
-            word_list = ["armor", "immensity gauntlet", "giga-loader", "heavy armor"]
-            self.initCompleter(word_list, self.plainTextEdit)
-      def initCompleter(self, word_list, plaintextbox):
-            completer = QCompleter(word_list, plaintextbox)
+            self.bodyEquipBox = self.findChild(QLineEdit, 'bodyEquipBox')
+            self.headEquipBox = self.findChild(QLineEdit, 'headEquipBox')
+            self.body_word_list = ["armor", "immensity gauntlet", "giga-loader", "heavy armor"]
+            self.head_word_list = ["combat helmet", "santa hat", "elite raider mask"]
+
+            self.setup_completer(self.bodyEquipBox, self.body_word_list)
+            self.setup_completer(self.headEquipBox, self.head_word_list)
+      def setup_completer(self, line_edit, word_list):
+            completer = QCompleter(word_list, parent=self)
             completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            completer.setCompletionMode(QCompleter.CompletionMode.InlineCompletion)
-            plaintextbox.setCompleter(completer)
-class CustomPlainTextEdit(QPlainTextEdit):
-      def setCompleter(self, completer):
-            self.completer = completer
-            self.completer.setWidget(self)
-            completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
-            completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            self.completer.activated.connect(self.insertCompletion)
-      def insertCompletion(self, completion):
-            tc = self.textCursor()
-            extra = len(completion) - len(self.completer.completionPrefix())
-            tc.movePosition(QTextCursor.MoveOperation.Left)
-            tc.movePosition(QTextCursor.MoveOperation.EndOfWord)
-            tc.insertText(completion[-extra:])
-            self.setTextCursor(tc)
+            completer.setFilterMode(Qt.MatchFlag.MatchContains)
+            line_edit.setCompleter(completer)
+
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):
