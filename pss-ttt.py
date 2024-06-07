@@ -5,16 +5,18 @@ from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from collections import OrderedDict
 import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi, json, requests
 import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.2.7"
+CURRENT_VERSION = "1.3.0"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
+ITEM_DATABASE_VERSION = None
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -64,7 +66,7 @@ class ProfileDialog(QDialog):
         
         self.accept()
 def get_or_create_uuid():
-      config_file_path = os.path.join('config.json')
+      '''config_file_path = os.path.join('config.json')
       if os.path.exists(config_file_path):
             with open(config_file_path, 'r') as file:
                   config_data = json.load(file)
@@ -75,6 +77,7 @@ def get_or_create_uuid():
       new_uuid = str(uuid.uuid4())
       new_entry = {
            "uuid": new_uuid,
+           "item_database" : None,
            "last_api_call": None,
            "profile_names": []}
       if not config_data.get('config'):
@@ -83,15 +86,35 @@ def get_or_create_uuid():
 
       with open(config_file_path, 'w') as file:
             json.dump(config_data, file, indent=4)
-      return new_uuid
+      return new_uuid'''
+      config_data = load_config()
+      config_list = config_data.get('config')
+
+      if not config_list:
+            config_list.append({})
+      config_entry = config_list[0]
+      if 'uuid' not in config_entry:
+            config_entry['uuid'] = str(uuid.uuid4())
+      if 'item_database' not in config_entry:
+            config_entry['item_database'] = None
+      if 'last_api_call' not in config_entry:
+            config_entry['last_api_call'] = None
+      if 'profile_names' not in config_entry:
+            config_entry['profile_names'] = []
+      config_data['config'] = [OrderedDict([
+           ('uuid', config_entry['uuid']),
+           ('item_database', config_entry['item_database']),
+           ('last_api_call', config_entry['last_api_call']),
+           ('profile_names', config_entry['profile_names'])
+            ])]
+      save_config(config_data)
+      return config_entry['uuid']
 def load_config():
       try:
             config_file_path = os.path.join('config.json')
             with open(config_file_path, 'r') as file:
                   return json.load(file)
-      except FileNotFoundError:
-            return {"config": []}
-      except json.JSONDecodeError:
+      except (FileNotFoundError, json.JSONDecodeError):
             return {"config": []}
 def save_config(config_data):
       config_file_path = os.path.join('config.json')
@@ -109,6 +132,7 @@ def getProfiles(create_if_missing=False):
             if profile_names:
                   new_entry = {
                         "uuid": str(uuid.uuid4()),
+                        "item_database" : None,
                         "last_api_call": None,
                         "profile_names": profile_names
                         }
@@ -236,6 +260,16 @@ def update_last_api_call():
             if entry.get('uuid') == get_or_create_uuid():
                   entry['last_api_call'] = datetime.now().isoformat()
                   save_config(config_data)
+def item_database_needs_update(version):
+      config_data = load_config()
+      if not config_data.get('config'):
+            return True
+      for entry in config_data['config']:
+            ITEM_DATABASE_VERSION = entry.get('item_database')
+            if ITEM_DATABASE_VERSION is None or ITEM_DATABASE_VERSION < version:
+                  return True
+            else:
+                  return False
 def log_time(message):
       logging.info(message)
 class MainWindow(QtWidgets.QMainWindow):
@@ -250,14 +284,9 @@ class MainWindow(QtWidgets.QMainWindow):
             log_time("Starting application")
             uic.loadUi(os.path.join('_internal','pss-ttt.ui'), self)
             self.show()
-            timer_marker = time.time()
             self.client = PssApiClient()
-            log_time(f"Client init time in {time.time() - timer_marker:.4f} seconds")
-            timer_marker = time.time()
             asyncio.run(self.generateAccessToken())
-            log_time(f"Access token generated in {time.time() - timer_marker:.4f} seconds")
             
-            timer_marker = time.time()
             self.lockUnlockButton.clicked.connect(self.changeButtonText)
             self.searchButton.clicked.connect(self.searchPlayer)
             self.saveNewData.clicked.connect(self.submitNewPlayerData)
@@ -277,27 +306,19 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionExport_Fights.triggered.connect(self.exportFightsToCSV)
             self.actionAbout.triggered.connect(self.openAboutBox)
             self.actionLoadout_Builder.triggered.connect(self.openLoadoutBuilder)
-            log_time(f"Connections formed in {time.time() - timer_marker:.4f} seconds")
 
-            timer_marker = time.time()
             self.fightDialog = FightDataConfirmation(parent=self)
             self.fightDialog.fightDataSaved.connect(self.receiveFightData)
-            log_time(f"FightData formed in {time.time() - timer_marker:.4f} seconds")
 
-            timer_marker = time.time()
             self.player_dialog = FilteredListDialog("Player Dialog", "Player Name", "Search Player")
             self.player_dialog.copyItemSearchClicked.connect(self.handleCopyPlayerSearchClicked)
             self.fleet_dialog = FilteredListDialog("Fleet Dialog", "Fleet Name", "Search Fleet")
             self.fleet_dialog.copyItemSearchClicked.connect(self.handleCopyFleetSearchClicked)
             self.fleet_name_dialog = FilteredListDialog("Fleet Name Dialog", "Fleet Name", "Search Fleet Name")
             self.fleet_name_dialog.copyItemSearchClicked.connect(self.handleCopyFleetNameSearchClicked)
-            log_time(f"FilteredListDialog formed in {time.time() - timer_marker:.4f} seconds")
 
-            timer_marker = time.time()
             self.popProfiles()
-            log_time(f"PopProfiles formed in {time.time() - timer_marker:.4f} seconds")
             
-            timer_marker = time.time()
             self.importDialog = ImportDialogBox()
             self.trainingDialog = CrewTrainerDialogBox()
             self.profileCreate = ProfileDialog()
@@ -305,64 +326,40 @@ class MainWindow(QtWidgets.QMainWindow):
             self.starTargetTrack = StarTargetTrackDialogBox(self.profileComboBox.currentText(), parent=self)
             self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK)
             self.crewLoadoutBuilder = CrewLoadoutBuilderDialogBox(parent=self)
-            log_time(f"Class objects formed in {time.time() - timer_marker:.4f} seconds")
             
-            timer_marker = time.time()
             self.createNewProfile.clicked.connect(createProfile)
             self.createNewProfile.clicked.connect(self.popProfiles)
             self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
             self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
-            log_time(f"Profile buttons formed in {time.time() - timer_marker:.4f} seconds")
 
-            timer_marker = time.time()
             tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
-            log_time(f"Tourny DB formed in {time.time() - timer_marker:.4f} seconds")
-            timer_marker = time.time()
             legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
-            log_time(f"Legend DB formed in {time.time() - timer_marker:.4f} seconds")
-            timer_marker = time.time()
             pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
-            log_time(f"PVP DB formed in {time.time() - timer_marker:.4f} seconds")
 
-            timer_marker = time.time()
             self.update_SQL(tournyQuery, "Tourny")
-            log_time(f"SQL Tourny DB updated in {time.time() - timer_marker:.4f} seconds")
-            timer_marker = time.time()
             self.update_SQL(legendQuery, "Legend")
-            log_time(f"SQL Legend DB updated in {time.time() - timer_marker:.4f} seconds")
-            timer_marker = time.time()
             self.update_SQL(pvpQuery, "PVP")
-            log_time(f"SQL PVP DB updated in {time.time() - timer_marker:.4f} seconds")
             total_time = time.time() - start_time
             log_time(f"Total startup time: {total_time:.4f} seconds")
             #asyncio.run(self.fetch_top100_data())
       async def generateAccessToken(self):
             start_time = time.time()
             global ACCESS_TOKEN
-            timer_marker = time.time()
             device_key = get_or_create_uuid()
-            log_time(f"UUID updated in {time.time() - timer_marker:.4f} seconds")
             client_date_time = pssapi.utils.get_utc_now()
-            timer_marker = time.time()
             checksum = self.client.user_service.utils.create_device_login_checksum(device_key, self.client.device_type, client_date_time, "5343")
-            log_time(f"checksum created in {time.time() - timer_marker:.4f} seconds")
-            timer_marker = time.time()
             user_login = await self.client.user_service.device_login(checksum, client_date_time, device_key, self.client.device_type)
-            log_time(f"user_login created in {time.time() - timer_marker:.4f} seconds")
-            timer_marker = time.time()
             assert isinstance(user_login, pssapi.entities.UserLogin)
-            log_time(f"user_login ASSERTED in {time.time() - timer_marker:.4f} seconds")
-            timer_marker = time.time()
             assert user_login.access_token
-            log_time(f"access token ASSERTED in {time.time() - timer_marker:.4f} seconds")
-            timer_marker = time.time()
             ACCESS_TOKEN = user_login.access_token
             total_time = time.time() - start_time
             log_time(f"Total access token generation time: {total_time:.4f} seconds")
       async def fetch_user_data(self, searchname):
+            start_time = time.time()
             responses = await self.client.user_service.search_users(searchname)
             for response in responses:
                   response = responses[0]
+                  print(f"Player {response.name} has id: {response.id}")
                   self.fleetName.setPlainText(response.alliance_name)
                   try:
                         if(response.alliance > int(self.bestStars.toPlainText())):
@@ -376,6 +373,8 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.updateFightTables("legends")
                   self.updateFightTables("pvp")
                   self.submitNewPlayerData()
+            total_time = time.time() - start_time
+            log_time(f"Fetch user data generation time: {total_time:.4f} seconds")
       async def main(self):
             await self.fetch_mass_api_call()
       async def fetch_mass_api_call(self):
@@ -729,15 +728,15 @@ class MainWindow(QtWidgets.QMainWindow):
                   layout = QVBoxLayout()
 
                   response = requests.get(GITHUB_RELEASE_LINK)
+                  commit_response = requests.get("https://api.github.com/repos/arraken/pss-ttt/commits")
+                  commit_version = commit_response.json()[0]['commit']['message']
                   if response.status_code == 200:
                         release_info = response.json()
+                        commit_release = commit_response.json()
                         latest_version = release_info['tag_name']
-                  else:
-                        latest_version = "Github Error"
-                  if latest_version == version:
-                        version_label = QLabel(f"Current Version: {version}")
-                  else:
-                        version_label = QLabel(f"Current Version: {version} -- New version is {latest_version}")
+                        commit_version = commit_release[0]['commit']['message']
+                  print(f"Current version {version} - Commit version {commit_version} - Release version {latest_version}")
+                  version_label = QLabel(f"Current Version: {version} - Release version: {latest_version} - Beta version: {commit_version}")
                   creator_label = QLabel(f"Creator: {creator}")
                   support_label = QLabel(f"Support Link: {support_link}")
                   github_label = QLabel(f"Github Link: {github_link}")
@@ -748,7 +747,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   layout.addWidget(github_label)
 
                   ok_button = QPushButton("OK")
-                  ok_button.clicked.connect(self.accept)  # Close dialog when OK is clicked
+                  ok_button.clicked.connect(self.accept)
                   layout.addWidget(ok_button)
 
                   self.setLayout(layout)
@@ -1792,23 +1791,118 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             def reject(self):
                   super().reject()
 class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
+      HEAD_LIST = []
+      BODY_LIST = []
+      LEG_LIST = []
+      WEP_LIST = []
+      ACC_LIST = []
+      PET_LIST = []
+      
       def __init__(self, parent=None):
             super().__init__(parent)
             self.client = PssApiClient()
             uic.loadUi(os.path.join('_internal', 'pss-ttt-clb.ui'), self)
             self.bodyEquipBox = self.findChild(QLineEdit, 'bodyEquipBox')
             self.headEquipBox = self.findChild(QLineEdit, 'headEquipBox')
-            self.body_word_list = ["armor", "immensity gauntlet", "giga-loader", "heavy armor"]
-            self.head_word_list = ["combat helmet", "santa hat", "elite raider mask"]
+            self.legEquipBox = self.findChild(QLineEdit, 'legEquipBox')
+            self.wepEquipBox = self.findChild(QLineEdit, 'wepEquipBox')
+            self.accessEquipBox = self.findChild(QLineEdit, 'accessEquipBox')
+            self.petEquipBox = self.findChild(QLineEdit, 'petEquipBox')
 
-            self.setup_completer(self.bodyEquipBox, self.body_word_list)
-            self.setup_completer(self.headEquipBox, self.head_word_list)
-      def setup_completer(self, line_edit, word_list):
+            version = asyncio.run(self.get_item_db_version())
+            if item_database_needs_update(version):
+                  print("Loading from API data as update is needed")
+                  asyncio.run(self.fetch_item_list())
+            else:
+                  print("Loading from established CSV due to no update needed")
+                  self.loadFromCSV()
+            self.setup_completer(self.bodyEquipBox, self.BODY_LIST)
+            self.setup_completer(self.headEquipBox, self.HEAD_LIST)
+            self.setup_completer(self.legEquipBox, self.LEG_LIST)
+            self.setup_completer(self.wepEquipBox, self.WEP_LIST)
+            self.setup_completer(self.accessEquipBox, self.ACC_LIST)
+            self.setup_completer(self.petEquipBox, self.PET_LIST)
+
+      def setup_completer(self, line_edit, item_list):
+            word_list = self.initiateCompleterList(item_list)
             completer = QCompleter(word_list, parent=self)
             completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
             completer.setFilterMode(Qt.MatchFlag.MatchContains)
             line_edit.setCompleter(completer)
-
+      def initiateCompleterList(self, item_list):
+            word_list = []
+            for line in item_list:
+                  item_design_name, rarity, enhancement_type, enhancement_value = line
+                  text = f"{item_design_name} ({enhancement_type} +{enhancement_value})"
+                  word_list.append(text)
+            return word_list
+      async def get_item_db_version(self):
+            version = await self.client.get_latest_version()
+            return version.recommended_version
+      async def fetch_item_list(self):
+            # Item_Design_Name,Enhancement_Type,Enhancement_Value,Item_Sub_Type  ,Rarity
+            # La Paula        ,Ability         ,17.0             ,EquipmentWeapon,Hero
+            version = await self.client.get_latest_version()
+            config_data = load_config()
+            if not config_data.get('config'):
+                  throwErrorMessage("Fatal Error [fetch_item_list]", "Config data not loaded properly")
+            for entry in config_data['config']:
+                  entry['item_database'] = version.recommended_version
+                  save_config(config_data)
+            item_designs = await self.client.item_service.list_item_designs()
+            for item in item_designs:
+                  if item.item_sub_type == 'EquipmentHead':
+                        self.HEAD_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
+                  elif item.item_sub_type == 'EquipmentWeapon':
+                        self.WEP_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
+                  elif item.item_sub_type == 'EquipmentBody':
+                        self.BODY_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
+                  elif item.item_sub_type == 'EquipmentLeg':
+                        self.LEG_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
+                  elif item.item_sub_type == 'EquipmentAccessory':
+                        self.ACC_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
+                  elif item.item_sub_type == 'EquipmentPet':
+                        self.PET_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
+            self.saveToCSVfiles()
+      def write_list_to_csv(self, file_name, data_list):
+            with open(os.path.join('_internal',file_name), 'w', newline='', encoding='utf-8') as csvfile:
+                  writer = csv.writer(csvfile)
+                  header = ["Item_Design_Name", "Enhancement_Type", "Enhancement_Value", "Item_Sub_Type", "Rarity"]
+                  writer.writerow(header)
+                  writer.writerows(data_list)
+      def saveToCSVfiles(self):
+            listedcsv = [
+                  ('HEAD_LIST.csv', self.HEAD_LIST),
+                  ('WEP_LIST.csv', self.WEP_LIST),
+                  ('BODY_LIST.csv', self.BODY_LIST),
+                  ('LEG_LIST.csv', self.LEG_LIST),
+                  ('ACC_LIST.csv', self.ACC_LIST),
+                  ('PET_LIST.csv', self.PET_LIST)]
+            for file_name, data_list in listedcsv:
+                  self.write_list_to_csv(file_name, data_list)
+      def read_list_from_csv(self, file_name):
+            data_list = []
+            try:
+                  with open(os.path.join('_internal',file_name), 'r', newline='', encoding='utf-8') as csvfile:
+                        reader = csv.reader(csvfile)
+                        next(reader)
+                        for row in reader:
+                              data_list.append((row[0], row[1], row[2], row[3]))
+            except FileNotFoundError:
+                  print(f"File {file_name} not found")
+            return data_list
+      def loadFromCSV(self):
+            listedcsv = [
+                  ('HEAD_LIST.csv', self.HEAD_LIST),
+                  ('WEP_LIST.csv', self.WEP_LIST),
+                  ('BODY_LIST.csv', self.BODY_LIST),
+                  ('LEG_LIST.csv', self.LEG_LIST),
+                  ('ACC_LIST.csv', self.ACC_LIST),
+                  ('PET_LIST.csv', self.PET_LIST)]
+            
+            for file_name, data_list in listedcsv:
+                  data_list.clear()
+                  data_list.extend(self.read_list_from_csv(file_name))
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):
