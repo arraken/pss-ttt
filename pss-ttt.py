@@ -17,6 +17,7 @@ SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
 ITEM_DATABASE_VERSION = None
+API_CALL_COUNT = 0
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -30,7 +31,8 @@ FIGHTS -
 CTC - 
 CPM - Crew Planning Module
       Create a list of 25 crew, assign roles (Defender, Repairer, Booster, Rusher), Origin Room, Rough notes on their job
-CLB - Crew Loadout Builder'''
+CLB - Crew Loadout Builder
+'''
 class ProfileDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -278,6 +280,7 @@ class MainWindow(QtWidgets.QMainWindow):
       global SUPPORT_LINK
       global GITHUB_LINK
       global GITHUB_RELEASE_LINK
+      global API_CALL_COUNT
       def __init__(self):
             super(MainWindow, self).__init__()
             start_time = time.time()
@@ -324,7 +327,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.profileCreate = ProfileDialog()
             self.starCalculator = StarsTableDialogBox(self.profileComboBox.currentText())
             self.starTargetTrack = StarTargetTrackDialogBox(self.profileComboBox.currentText(), parent=self)
-            self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK)
+            self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK, API_CALL_COUNT)
             self.crewLoadoutBuilder = CrewLoadoutBuilderDialogBox(parent=self)
             
             self.createNewProfile.clicked.connect(createProfile)
@@ -345,18 +348,30 @@ class MainWindow(QtWidgets.QMainWindow):
       async def generateAccessToken(self):
             start_time = time.time()
             global ACCESS_TOKEN
+            global API_CALL_COUNT
             device_key = get_or_create_uuid()
             client_date_time = pssapi.utils.get_utc_now()
             checksum = self.client.user_service.utils.create_device_login_checksum(device_key, self.client.device_type, client_date_time, "5343")
+            API_CALL_COUNT = API_CALL_COUNT+1
             user_login = await self.client.user_service.device_login(checksum, client_date_time, device_key, self.client.device_type)
+            API_CALL_COUNT = API_CALL_COUNT+1
             assert isinstance(user_login, pssapi.entities.UserLogin)
             assert user_login.access_token
             ACCESS_TOKEN = user_login.access_token
             total_time = time.time() - start_time
             log_time(f"Total access token generation time: {total_time:.4f} seconds")
       async def fetch_user_data(self, searchname):
+            global API_CALL_COUNT
             start_time = time.time()
-            responses = await self.client.user_service.search_users(searchname)
+            try:
+                  responses = await self.client.user_service.search_users(searchname)
+                  API_CALL_COUNT = API_CALL_COUNT+1
+            except:
+                  throwErrorMessage(f"API Call Limit {API_CALL_COUNT} has been reached", f"Player: {searchname} was not searched due to API limitation\nPlease wait a few minutes and try again")
+                  return
+            if not responses:
+                  throwErrorMessage("Player Not Found", f"Player: {searchname} was not found")
+                  return
             for response in responses:
                   response = responses[0]
                   self.fleetName.setPlainText(response.alliance_name)
@@ -374,13 +389,21 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.submitNewPlayerData()
             total_time = time.time() - start_time
             log_time(f"Fetch user data generation time: {total_time:.4f} seconds")
-            await self.fetch_fleetmembers_from_api(response.alliance_name,response.alliance_id)
+            boolean = await self.fetch_fleetmembers_from_api(response.alliance_name,response.alliance_id)
+            API_CALL_COUNT = API_CALL_COUNT+1
             timer = time.time() - start_time
             log_time(f"Fetch searched fleet data: {timer:.4f} seconds")
       async def fetch_fleetmembers_from_api(self, fleetname, fleetid):
+            global API_CALL_COUNT
             start_time = time.time()
-            fleet = await self.client.alliance_service.search_alliances(ACCESS_TOKEN,fleetname,0,5)
-            players = await self.client.alliance_service.list_users(ACCESS_TOKEN,fleetid,0,fleet[0].number_of_members)
+            try:
+                  fleet = await self.client.alliance_service.search_alliances(ACCESS_TOKEN,fleetname,0,5)
+                  API_CALL_COUNT = API_CALL_COUNT+1
+                  players = await self.client.alliance_service.list_users(ACCESS_TOKEN,fleetid,0,fleet[0].number_of_members)
+                  API_CALL_COUNT = API_CALL_COUNT+1
+            except:
+                  throwErrorMessage(f"API Call Limit {API_CALL_COUNT} has been reached", f"Fleet: {fleetname} was not fully updated")
+                  return False
             query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetdb"))
             for i in range(fleet[0].number_of_members):
                   player = players[i]
@@ -398,16 +421,15 @@ class MainWindow(QtWidgets.QMainWindow):
                               beststars = query.value(3)
                               notes = query.value(4)
                         else:
-                              throwErrorMessage("Query execution failed [fetch_fleetmembers_from_api]: ", query.lastError().text())
-                              throwErrorMessage(f"Player {pname} of Fleet {fname} caused query.exec failure", query.lastError().text())
+                              throwErrorMessage(f"Query execution failed on {pname} in fleet {fname} [fetch_fleetmembers_from_api]: ", query.lastError().text())
                   player_data = [pname, fname, laststars, beststars, notes]
-                  print(f"Player: {pname} | Fleet: {fname} | LastStars: {laststars} | BestStars: {beststars} | Notes: {notes}")
                   if write_to_targets_database(player_data):
                         player_data.clear()
                   else:
                         throwErrorMessage("targetdb: Error writing data to the database - Dumping data [fetch_fleetmembers_from_api]", player_data)
             total_time = time.time()
             log_time(f"Fetch fleet members generation time: {total_time - start_time:.4f}")
+            return True
       async def main(self):
             await self.fetch_mass_api_call()
       async def fetch_mass_api_call(self):
@@ -601,7 +623,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pvpTable.setModel(model)
             self.pvpTable.show()
       def searchPlayer(self):
-            print("Searching Player")
             text = self.playerNameSearchBox.toPlainText().strip()
             if not text:
                   return
@@ -620,7 +641,6 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.updateFightTables("legends")
                         self.updateFightTables("pvp")
                   else:
-                        print("Pulling API user data")
                         asyncio.run(self.fetch_user_data(text))
                         self.updateFightTables("tourny")
                         self.updateFightTables("legends")
@@ -629,12 +649,10 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                   throwErrorMessage("Query execution failed [searchPlayer]: ", query.lastError().text())
                   return
-            print("Pulling API user data")
             asyncio.run(self.fetch_user_data(text))
             self.updateFightTables("tourny")
             self.updateFightTables("legends")
             self.updateFightTables("pvp")
-            print("Finished search player")
       def changeButtonText(self):
             is_locked = self.lockUnlockButton.text() == "Locked"
             self.lockUnlockButton.setText("Unlocked" if is_locked else "Locked")
@@ -759,7 +777,7 @@ class MainWindow(QtWidgets.QMainWindow):
                               return QColor(181,214,232)
                   return super().data(index, role)
       class AboutInfoDialog(QDialog):
-            def __init__(self, version, creator, support_link, github_link, parent=None):
+            def __init__(self, version, creator, support_link, github_link, api_calls, parent=None):
                   super().__init__(parent)
                   self.setWindowTitle("Information")
                   layout = QVBoxLayout()
@@ -773,15 +791,17 @@ class MainWindow(QtWidgets.QMainWindow):
                         latest_version = release_info['tag_name']
                         commit_version = commit_release[0]['commit']['message']
                   print(f"Current version {version} - Commit version {commit_version} - Release version {latest_version}")
-                  version_label = QLabel(f"Current Version: {version} - Release version: {latest_version} - Beta version: {commit_version}")
+                  version_label = QLabel(f"Current Version: {version} - Release version: {latest_version} - Dev version: {commit_version}")
                   creator_label = QLabel(f"Creator: {creator}")
                   support_label = QLabel(f"Support Link: {support_link}")
                   github_label = QLabel(f"Github Link: {github_link}")
+                  api_calls_label = QLabel(f"API Calls: {api_calls}")
 
                   layout.addWidget(version_label)
                   layout.addWidget(creator_label)
                   layout.addWidget(support_label)
                   layout.addWidget(github_label)
+                  layout.addWidget(api_calls_label)
 
                   ok_button = QPushButton("OK")
                   ok_button.clicked.connect(self.accept)
@@ -1673,6 +1693,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
 class StarTargetTrackDialogBox(QtWidgets.QDialog):
       copyStarsTargetTrackClicked = QtCore.pyqtSignal(str, bool)
       currentStarsTarget = ' '
+      global API_CALL_COUNT
       def __init__(self, profile_name, parent=None):
             super().__init__(parent)
             self.client = PssApiClient()
@@ -1748,6 +1769,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             self.saveStarsCSV()
       async def fetch_user_maxtrophy(self, playername):
             responses = await self.client.user_service.search_users(playername)
+            API_CALL_COUNT = API_CALL_COUNT+1
             for response in responses:
                   return str(response.highest_trophy)
       def populateSTT(self, player_name):
@@ -1894,12 +1916,15 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   word_list.append(text)
             return word_list
       async def get_item_db_version(self):
+            global API_CALL_COUNT
             version = await self.client.get_latest_version()
+            API_CALL_COUNT = API_CALL_COUNT+1
             return version.recommended_version
       async def fetch_item_list(self):
             # Item_Design_Name,Enhancement_Type,Enhancement_Value,Item_Sub_Type  ,Rarity
             # La Paula        ,Ability         ,17.0             ,EquipmentWeapon,Hero
             version = await self.client.get_latest_version()
+            API_CALL_COUNT = API_CALL_COUNT+1
             config_data = load_config()
             if not config_data.get('config'):
                   throwErrorMessage("Fatal Error [fetch_item_list]", "Config data not loaded properly")
@@ -1907,6 +1932,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   entry['item_database'] = version.recommended_version
                   save_config(config_data)
             item_designs = await self.client.item_service.list_item_designs()
+            API_CALL_COUNT = API_CALL_COUNT+1
             for item in item_designs:
                   if item.item_sub_type == 'EquipmentHead':
                         self.HEAD_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
