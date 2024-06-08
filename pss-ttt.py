@@ -420,8 +420,8 @@ class MainWindow(QtWidgets.QMainWindow):
                         if query.next():
                               beststars = query.value(3)
                               notes = query.value(4)
-                        else:
-                              throwErrorMessage(f"Query execution failed on {pname} in fleet {fname} [fetch_fleetmembers_from_api]: ", query.lastError().text())
+                        else: # They are not in the database, but it is a valid player name. Don't throw error maybe?? Let's try just printing
+                              print(f"Query execution failed on {pname} in fleet {fname} [fetch_fleetmembers_from_api]: ")
                   player_data = [pname, fname, laststars, beststars, notes]
                   if write_to_targets_database(player_data):
                         player_data.clear()
@@ -440,7 +440,7 @@ class MainWindow(QtWidgets.QMainWindow):
             #Pull dataset of top 100 fleets
             #Pull players of each fleet
             #write individual player data into targets database
-            #fleet_list = await self.client.alliance_service.list_alliances_by_ranking(0,8)
+            #fleet_list = await self.client.alliance_service.list_alliances_by_ranking(0,100)
             #for fleet in fleet_list:
                   #current_fleet_members = await self.client.alliance_service.list_users(ACCESS_TOKEN,fleet.alliance_id,0,fleet.number_of_members)                  
                   #for member in current_fleet_members:
@@ -1768,6 +1768,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                   print("No model set for the target table")
             self.saveStarsCSV()
       async def fetch_user_maxtrophy(self, playername):
+            global API_CALL_COUNT
             responses = await self.client.user_service.search_users(playername)
             API_CALL_COUNT = API_CALL_COUNT+1
             for response in responses:
@@ -1921,6 +1922,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             API_CALL_COUNT = API_CALL_COUNT+1
             return version.recommended_version
       async def fetch_item_list(self):
+            global API_CALL_COUNT
             # Item_Design_Name,Enhancement_Type,Enhancement_Value,Item_Sub_Type  ,Rarity
             # La Paula        ,Ability         ,17.0             ,EquipmentWeapon,Hero
             version = await self.client.get_latest_version()
