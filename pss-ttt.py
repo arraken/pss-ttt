@@ -359,7 +359,6 @@ class MainWindow(QtWidgets.QMainWindow):
             responses = await self.client.user_service.search_users(searchname)
             for response in responses:
                   response = responses[0]
-                  print(f"Player {response.name} has id: {response.id}")
                   self.fleetName.setPlainText(response.alliance_name)
                   try:
                         if(response.alliance > int(self.bestStars.toPlainText())):
@@ -375,6 +374,40 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.submitNewPlayerData()
             total_time = time.time() - start_time
             log_time(f"Fetch user data generation time: {total_time:.4f} seconds")
+            await self.fetch_fleetmembers_from_api(response.alliance_name,response.alliance_id)
+            timer = time.time() - start_time
+            log_time(f"Fetch searched fleet data: {timer:.4f} seconds")
+      async def fetch_fleetmembers_from_api(self, fleetname, fleetid):
+            start_time = time.time()
+            fleet = await self.client.alliance_service.search_alliances(ACCESS_TOKEN,fleetname,0,5)
+            players = await self.client.alliance_service.list_users(ACCESS_TOKEN,fleetid,0,fleet[0].number_of_members)
+            query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetdb"))
+            for i in range(fleet[0].number_of_members):
+                  player = players[i]
+                  pname = player.name
+                  fname = player.alliance_name
+                  if fname != fleetname:
+                        continue
+                  laststars = player.alliance_score
+                  beststars = 0
+                  notes = ""
+                  query.prepare("SELECT * FROM players WHERE playername = :pname")
+                  query.bindValue(":pname", pname)
+                  if query.exec():
+                        if query.next():
+                              beststars = query.value(3)
+                              notes = query.value(4)
+                        else:
+                              throwErrorMessage("Query execution failed [fetch_fleetmembers_from_api]: ", query.lastError().text())
+                              throwErrorMessage(f"Player {pname} of Fleet {fname} caused query.exec failure", query.lastError().text())
+                  player_data = [pname, fname, laststars, beststars, notes]
+                  print(f"Player: {pname} | Fleet: {fname} | LastStars: {laststars} | BestStars: {beststars} | Notes: {notes}")
+                  if write_to_targets_database(player_data):
+                        player_data.clear()
+                  else:
+                        throwErrorMessage("targetdb: Error writing data to the database - Dumping data [fetch_fleetmembers_from_api]", player_data)
+            total_time = time.time()
+            log_time(f"Fetch fleet members generation time: {total_time - start_time:.4f}")
       async def main(self):
             await self.fetch_mass_api_call()
       async def fetch_mass_api_call(self):
@@ -568,6 +601,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pvpTable.setModel(model)
             self.pvpTable.show()
       def searchPlayer(self):
+            print("Searching Player")
             text = self.playerNameSearchBox.toPlainText().strip()
             if not text:
                   return
@@ -586,6 +620,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.updateFightTables("legends")
                         self.updateFightTables("pvp")
                   else:
+                        print("Pulling API user data")
                         asyncio.run(self.fetch_user_data(text))
                         self.updateFightTables("tourny")
                         self.updateFightTables("legends")
@@ -594,10 +629,12 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                   throwErrorMessage("Query execution failed [searchPlayer]: ", query.lastError().text())
                   return
+            print("Pulling API user data")
             asyncio.run(self.fetch_user_data(text))
             self.updateFightTables("tourny")
             self.updateFightTables("legends")
             self.updateFightTables("pvp")
+            print("Finished search player")
       def changeButtonText(self):
             is_locked = self.lockUnlockButton.text() == "Locked"
             self.lockUnlockButton.setText("Unlocked" if is_locked else "Locked")
@@ -1833,6 +1870,26 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             word_list = []
             for line in item_list:
                   item_design_name, rarity, enhancement_type, enhancement_value = line
+                  if enhancement_type == "FireResistance":
+                        enhancement_type = "RST"
+                  elif enhancement_type == "Pilot":
+                        enhancement_type = "PLT"
+                  elif enhancement_type == "Ability":
+                        enhancement_type = "ABL"
+                  elif enhancement_type == "Weapon":
+                        enhancement_type = "WPN"
+                  elif enhancement_type == "Engine":
+                        enhancement_type = "ENG"
+                  elif enhancement_type == "Science":
+                        enhancement_type = "SCI"
+                  elif enhancement_type == "Attack":
+                        enhancement_type = "ATK"
+                  elif enhancement_type == "Stamina":
+                        enhancement_type = "STA"
+                  elif enhancement_type == "Repair":
+                        enhancement_type = "RPR"
+                  elif enhancement_type == "Hp":
+                        enhancement_type = "HP"
                   text = f"{item_design_name} ({enhancement_type} +{enhancement_value})"
                   word_list.append(text)
             return word_list
