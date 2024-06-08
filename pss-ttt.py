@@ -285,7 +285,7 @@ class MainWindow(QtWidgets.QMainWindow):
             super(MainWindow, self).__init__()
             start_time = time.time()
             log_time("Starting application")
-            uic.loadUi(os.path.join('_internal','pss-ttt.ui'), self)
+            uic.loadUi(os.path.join('_internal','_ui','pss-ttt.ui'), self)
             self.show()
             self.client = PssApiClient()
             asyncio.run(self.generateAccessToken())
@@ -537,7 +537,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.starTargetTrack.populateSTT(self.playerNameSearchBox.toPlainText())
             self.starTargetTrack.exec()
       def exportFightsToCSV(self):
-            filepath = os.path.join('_internal', 'exportedfights.csv')
+            filepath = os.path.join('exportedfights.csv')
             fights_data = []
             for db_name in ("tournydb", "legendsdb", "pvpdb"):
                   db = QSqlDatabase.database(db_name)
@@ -561,7 +561,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         writer.writerow(row)
             self.exportPlayerDataToCSV()
       def exportPlayerDataToCSV(self):
-            filepath = os.path.join('_internal', 'exportedplayers.csv')
+            filepath = os.path.join('exportedplayers.csv')
             player_data = []
             db = QSqlDatabase.database("targetdb")
             query = QSqlQuery(db)
@@ -812,7 +812,7 @@ class FilteredListDialog(QtWidgets.QDialog):
       copyItemSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self, title, filter_label, filter_placeholder, parent=None):
             super().__init__(parent)
-            uic.loadUi(os.path.join('_internal', 'pss-ttt-fld.ui'), self)
+            uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt-fld.ui'), self)
             self.setWindowTitle(title)
 
             self.itemSearchClose.clicked.connect(self.accept)
@@ -873,7 +873,7 @@ class FightDataConfirmation(QtWidgets.QDialog):
       fightDataSaved = pyqtSignal(int, float, str, str)
       def __init__(self, parent=None):
             super().__init__(parent)
-            uic.loadUi(os.path.join('_internal','pss-ttt-fdb.ui'), self)
+            uic.loadUi(os.path.join('_internal','_ui','pss-ttt-fdb.ui'), self)
 
             self.submitFightDataButton.clicked.connect(self.saveFightData)
       def saveFightData(self):
@@ -891,7 +891,7 @@ class ImportDialogBox(QtWidgets.QDialog):
       max_counter = 0
       def __init__(self):
             super().__init__()
-            uic.loadUi(os.path.join('_internal','pss-ttt-importdialog.ui'), self)
+            uic.loadUi(os.path.join('_internal','_ui','pss-ttt-importdialog.ui'), self)
             self.importTargetsButton.clicked.connect(self.import_data)
             self.importBrowse.clicked.connect(self.open_fileBrowser)
             self.importSeeChanges.clicked.connect(self.printChangesList)
@@ -997,7 +997,7 @@ class ImportDialogBox(QtWidgets.QDialog):
 class StarsTableDialogBox(QtWidgets.QDialog):
       def __init__(self, profile_name):
             super().__init__()
-            uic.loadUi(os.path.join('_internal','pss-ttt-tsc.ui'), self)
+            uic.loadUi(os.path.join('_internal','_ui','pss-ttt-tsc.ui'), self)
             
             self.starTableHeaders = ['Star Goal', 'Fight 1', 'Fight 2', 'Fight 3', 'Fight 4', 'Fight 5', 'Fight 6']
             self.starsTable = [
@@ -1173,7 +1173,7 @@ class StarsTableDialogBox(QtWidgets.QDialog):
 class CrewTrainerDialogBox(QtWidgets.QDialog):
       def __init__(self):
             super().__init__()
-            uic.loadUi(os.path.join('_internal','pss-ttt-crewtrainer.ui'), self)
+            uic.loadUi(os.path.join('_internal','_ui','pss-ttt-crewtrainer.ui'), self)
 
             self.trainingList = [
                   ("ABL Green", "Steam Yoga", [0,0,4,1,0,0,0,0,0]),
@@ -1623,7 +1623,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
       class CrewTrainerPresetDialog(QtWidgets.QDialog):
             def __init__(self, crewStats, parent=None):
                   super().__init__(parent)
-                  uic.loadUi(os.path.join('_internal','pss-ttt-ctp.ui'), self)
+                  uic.loadUi(os.path.join('_internal','_ui','pss-ttt-ctp.ui'), self)
                   self.crewStats = crewStats
                   self.savePresetButton.clicked.connect(self.savePresetData)
                   self.loadPresetButton.clicked.connect(self.loadPresetData)
@@ -1663,7 +1663,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                               self.presetTableView.setColumnWidth(i,20)
                   self.savePresetCSV()
             def savePresetCSV(self):
-                  with open(os.path.join('_internal','presets.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+                  with open(os.path.join('_internal','_crew','trainingpresets.csv'), 'w', newline='', encoding='utf-8') as csvfile:
                         writer = csv.writer(csvfile)
                         for i in range(self.model.rowCount()):
                               row_data = []
@@ -1672,7 +1672,8 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                                     row_data.append(data)
                               writer.writerow(row_data)
             def loadPresetCSV(self):
-                  filename = os.path.join('_internal','presets.csv')
+                  os.makedirs(os.path.join('_internal','_crew'),exist_ok=True)
+                  filename = os.path.join('_internal','_crew','trainingpresets.csv')
                   if os.path.exists(filename):
                         with open(filename, 'r', newline='', encoding='utf-8') as csvfile:
                               reader = csv.reader(csvfile)
@@ -1697,7 +1698,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
       def __init__(self, profile_name, parent=None):
             super().__init__(parent)
             self.client = PssApiClient()
-            uic.loadUi(os.path.join('_internal','pss-ttt-stt.ui'), self)
+            uic.loadUi(os.path.join('_internal','_ui','pss-ttt-stt.ui'), self)
 
             self.table_widgets = {
             "dayFour": {"button_add": self.dayFourAdd, "button_remove": self.dayFourRemove, "model": QtGui.QStandardItemModel()},
@@ -1834,7 +1835,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
       class StarsTargetTrackConfirmationDialog(QtWidgets.QDialog):
             def __init__(self, parent=None):
                   super().__init__(parent)
-                  uic.loadUi(os.path.join('_internal','pss-ttt-stt-confirm.ui'), self)
+                  uic.loadUi(os.path.join('_internal','_ui','pss-ttt-stt-confirm.ui'), self)
 
                   self.cancelButton.clicked.connect(self.reject)
                   self.confirmButton.clicked.connect(self.accept)
@@ -1861,7 +1862,8 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
       def __init__(self, parent=None):
             super().__init__(parent)
             self.client = PssApiClient()
-            uic.loadUi(os.path.join('_internal', 'pss-ttt-clb.ui'), self)
+            uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt-clb.ui'), self)
+            os.makedirs(os.path.join('_internal', '_equip'), exist_ok=True)
             self.bodyEquipBox = self.findChild(QLineEdit, 'bodyEquipBox')
             self.headEquipBox = self.findChild(QLineEdit, 'headEquipBox')
             self.legEquipBox = self.findChild(QLineEdit, 'legEquipBox')
@@ -1950,7 +1952,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                         self.PET_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
             self.saveToCSVfiles()
       def write_list_to_csv(self, file_name, data_list):
-            with open(os.path.join('_internal',file_name), 'w', newline='', encoding='utf-8') as csvfile:
+            with open(os.path.join('_internal','_equip',file_name), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
                   header = ["Item_Design_Name", "Enhancement_Type", "Enhancement_Value", "Item_Sub_Type", "Rarity"]
                   writer.writerow(header)
@@ -1968,7 +1970,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
       def read_list_from_csv(self, file_name):
             data_list = []
             try:
-                  with open(os.path.join('_internal',file_name), 'r', newline='', encoding='utf-8') as csvfile:
+                  with open(os.path.join('_internal','_equip',file_name), 'r', newline='', encoding='utf-8') as csvfile:
                         reader = csv.reader(csvfile)
                         next(reader)
                         for row in reader:
