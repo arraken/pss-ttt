@@ -1,6 +1,6 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
-from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QEvent
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QCompleter, QPlainTextEdit
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QTimer
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QCompleter
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta, timezone
@@ -11,13 +11,15 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "1.3.5"
+CURRENT_VERSION = "v1.3.5"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
+GITHUB_RELEASE_VERSION = "v1.3.5"
 ITEM_DATABASE_VERSION = None
 API_CALL_COUNT = 0
+NEW_RELEASE = False
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -281,6 +283,7 @@ class MainWindow(QtWidgets.QMainWindow):
       global GITHUB_LINK
       global GITHUB_RELEASE_LINK
       global API_CALL_COUNT
+      global NEW_RELEASE
       def __init__(self):
             super(MainWindow, self).__init__()
             start_time = time.time()
@@ -342,6 +345,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.update_SQL(tournyQuery, "Tourny")
             self.update_SQL(legendQuery, "Legend")
             self.update_SQL(pvpQuery, "PVP")
+
+            print(f"Do we have a new release version? {NEW_RELEASE}")
+            if NEW_RELEASE:
+                  self.timer = QTimer(self)
+                  self.timer.timeout.connect(self.blinkAboutMenu)
+                  self.timer.start(500)
+                  self.color_flag = True
+
             total_time = time.time() - start_time
             log_time(f"Total startup time: {total_time:.4f} seconds")
             #asyncio.run(self.fetch_top100_data())
@@ -451,6 +462,12 @@ class MainWindow(QtWidgets.QMainWindow):
                   print(f"Adding {player.name} to targets database")
                   self.update_player_via_api(player.name)
       Update top 100 players and names in fleets once per day maximum'''
+      def blinkAboutMenu(self):
+            if self.color_flag:
+                  self.menuAbout.setTitle("Update Available")
+            else:
+                  self.menuAbout.setTitle("About")
+            self.color_flag = not self.color_flag
       def openLoadoutBuilder(self):
             self.crewLoadoutBuilder.exec()
       def update_player_via_api(self, searchname):
@@ -778,6 +795,8 @@ class MainWindow(QtWidgets.QMainWindow):
                   return super().data(index, role)
       class AboutInfoDialog(QDialog):
             def __init__(self, version, creator, support_link, github_link, api_calls, parent=None):
+                  global GITHUB_RELEASE_VERSION
+                  global NEW_RELEASE
                   super().__init__(parent)
                   self.setWindowTitle("Information")
                   layout = QVBoxLayout()
@@ -789,9 +808,13 @@ class MainWindow(QtWidgets.QMainWindow):
                         release_info = response.json()
                         commit_release = commit_response.json()
                         latest_version = release_info['tag_name']
+                        GITHUB_RELEASE_VERSION = latest_version
                         commit_version = commit_release[0]['commit']['message']
-                  print(f"Current version {version} - Commit version {commit_version} - Release version {latest_version}")
+                  print(f"Current version {version} - Dev version {commit_version} - Release version {latest_version}")
                   version_label = QLabel(f"Current Version: {version} - Release version: {latest_version} - Dev version: {commit_version}")
+                  if latest_version > version:
+                        print("Converting to new release")
+                        NEW_RELEASE = True
                   creator_label = QLabel(f"Creator: {creator}")
                   support_label = QLabel(f"Support Link: {support_link}")
                   github_label = QLabel(f"Github Link: {github_link}")
