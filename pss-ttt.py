@@ -11,13 +11,13 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.3.6"
+CURRENT_VERSION = "v1.3.7"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
 GITHUB_RELEASE_VERSION = "v1.3.5"
-ITEM_DATABASE_VERSION = None
+ITEM_AND_CREW_DATABASE_VERSION = None
 API_CALL_COUNT = 0
 NEW_RELEASE = False
 
@@ -70,27 +70,6 @@ class ProfileDialog(QDialog):
         
         self.accept()
 def get_or_create_uuid():
-      '''config_file_path = os.path.join('config.json')
-      if os.path.exists(config_file_path):
-            with open(config_file_path, 'r') as file:
-                  config_data = json.load(file)
-      if config_data.get('config'):
-            for entry in config_data['config']:
-                  if entry.get('uuid'):
-                        return entry['uuid']
-      new_uuid = str(uuid.uuid4())
-      new_entry = {
-           "uuid": new_uuid,
-           "item_database" : None,
-           "last_api_call": None,
-           "profile_names": []}
-      if not config_data.get('config'):
-            config_data['config'] = []
-      config_data['config'].append(new_entry)
-
-      with open(config_file_path, 'w') as file:
-            json.dump(config_data, file, indent=4)
-      return new_uuid'''
       config_data = load_config()
       config_list = config_data.get('config')
 
@@ -216,6 +195,12 @@ def write_to_targets_database(data):
             throwErrorMessage("targetdb [write_to_targets_database]:", query.lastError().text())
             return False
       return True
+def write_to_tournaments_database(data):
+      return data
+def write_to_targets_database_batch(self, player_data_list):
+      for player_data in player_data_list:
+            if not write_to_targets_database(player_data):
+                  throwErrorMessage("targetdb: Error writing data to the database - Dumping data [write_to_targets_database_batch]", player_data)
 def modify_SQL():
       query = QSqlQuery(QSqlDatabase.database("targetdb"))
       columns_to_drop = ['trophies', 'maxtrophies']
@@ -264,13 +249,13 @@ def update_last_api_call():
             if entry.get('uuid') == get_or_create_uuid():
                   entry['last_api_call'] = datetime.now().isoformat()
                   save_config(config_data)
-def item_database_needs_update(version):
+def api_database_needs_update(version):
       config_data = load_config()
       if not config_data.get('config'):
             return True
       for entry in config_data['config']:
-            ITEM_DATABASE_VERSION = entry.get('item_database')
-            if ITEM_DATABASE_VERSION is None or ITEM_DATABASE_VERSION < version:
+            ITEM_AND_CREW_DATABASE_VERSION = entry.get('item_database')
+            if ITEM_AND_CREW_DATABASE_VERSION is None or ITEM_AND_CREW_DATABASE_VERSION < version:
                   return True
             else:
                   return False
@@ -285,14 +270,26 @@ class MainWindow(QtWidgets.QMainWindow):
       global API_CALL_COUNT
       global NEW_RELEASE
       def __init__(self):
-            super(MainWindow, self).__init__()
+            super().__init__()
             start_time = time.time()
             log_time("Starting application")
-            uic.loadUi(os.path.join('_internal','_ui','pss-ttt.ui'), self)
+            uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt.ui'), self)
             self.show()
+
             self.client = PssApiClient()
             asyncio.run(self.generateAccessToken())
-            
+
+            self.popProfiles()
+            self.connect_signals()
+            self.initialize_dialogs()
+        
+            self.populate_tables()
+
+            if NEW_RELEASE:
+                  self.start_blinking_about_menu()
+            total_time = time.time() - start_time
+            log_time(f"Total startup time: {total_time:.4f} seconds")
+      def connect_signals(self):
             self.lockUnlockButton.clicked.connect(self.changeButtonText)
             self.searchButton.clicked.connect(self.searchPlayer)
             self.saveNewData.clicked.connect(self.submitNewPlayerData)
@@ -312,7 +309,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionExport_Fights.triggered.connect(self.exportFightsToCSV)
             self.actionAbout.triggered.connect(self.openAboutBox)
             self.actionLoadout_Builder.triggered.connect(self.openLoadoutBuilder)
-
+      
+            self.createNewProfile.clicked.connect(createProfile)
+            self.createNewProfile.clicked.connect(self.popProfiles)
+            self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
+            self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
+      def initialize_dialogs(self):
             self.fightDialog = FightDataConfirmation(parent=self)
             self.fightDialog.fightDataSaved.connect(self.receiveFightData)
 
@@ -323,8 +325,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fleet_name_dialog = FilteredListDialog("Fleet Name Dialog", "Fleet Name", "Search Fleet Name")
             self.fleet_name_dialog.copyItemSearchClicked.connect(self.handleCopyFleetNameSearchClicked)
 
-            self.popProfiles()
-            
             self.importDialog = ImportDialogBox()
             self.trainingDialog = CrewTrainerDialogBox()
             self.profileCreate = ProfileDialog()
@@ -332,30 +332,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.starTargetTrack = StarTargetTrackDialogBox(self.profileComboBox.currentText(), parent=self)
             self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK, API_CALL_COUNT)
             self.crewLoadoutBuilder = CrewLoadoutBuilderDialogBox(parent=self)
-            
-            self.createNewProfile.clicked.connect(createProfile)
-            self.createNewProfile.clicked.connect(self.popProfiles)
-            self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
-            self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
-
-            tournyQuery = QSqlQuery(QSqlDatabase.database("tournydb"))
-            legendQuery = QSqlQuery(QSqlDatabase.database("legendsdb"))
-            pvpQuery = QSqlQuery(QSqlDatabase.database("pvpdb"))
-
-            self.update_SQL(tournyQuery, "Tourny")
-            self.update_SQL(legendQuery, "Legend")
-            self.update_SQL(pvpQuery, "PVP")
-
-            print(f"Do we have a new release version? {NEW_RELEASE}")
-            if NEW_RELEASE:
-                  self.timer = QTimer(self)
-                  self.timer.timeout.connect(self.blinkAboutMenu)
-                  self.timer.start(500)
-                  self.color_flag = True
-
-            total_time = time.time() - start_time
-            log_time(f"Total startup time: {total_time:.4f} seconds")
-            #asyncio.run(self.fetch_top100_data())
+      def populate_tables(self):
+            self.update_SQL(QSqlQuery(QSqlDatabase.database("tournydb")), "Tourny")
+            self.update_SQL(QSqlQuery(QSqlDatabase.database("legendsdb")), "Legend")
+            self.update_SQL(QSqlQuery(QSqlDatabase.database("pvpdb")), "PVP")
+      def start_blinking_about_menu(self):
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.blinkAboutMenu)
+            self.timer.start(500)
+            self.color_flag = True
       async def generateAccessToken(self):
             start_time = time.time()
             global ACCESS_TOKEN
@@ -363,9 +348,9 @@ class MainWindow(QtWidgets.QMainWindow):
             device_key = get_or_create_uuid()
             client_date_time = pssapi.utils.get_utc_now()
             checksum = self.client.user_service.utils.create_device_login_checksum(device_key, self.client.device_type, client_date_time, "5343")
-            API_CALL_COUNT = API_CALL_COUNT+1
+            API_CALL_COUNT += 1
             user_login = await self.client.user_service.device_login(checksum, client_date_time, device_key, self.client.device_type)
-            API_CALL_COUNT = API_CALL_COUNT+1
+            API_CALL_COUNT += 1
             assert isinstance(user_login, pssapi.entities.UserLogin)
             assert user_login.access_token
             ACCESS_TOKEN = user_login.access_token
@@ -376,32 +361,31 @@ class MainWindow(QtWidgets.QMainWindow):
             start_time = time.time()
             try:
                   responses = await self.client.user_service.search_users(searchname)
-                  API_CALL_COUNT = API_CALL_COUNT+1
-            except:
+                  API_CALL_COUNT += 1
+            except Exception:
                   throwErrorMessage(f"API Call Limit {API_CALL_COUNT} has been reached", f"Player: {searchname} was not searched due to API limitation\nPlease wait a few minutes and try again")
                   return
             if not responses:
                   throwErrorMessage("Player Not Found", f"Player: {searchname} was not found")
                   return
-            for response in responses:
-                  response = responses[0]
-                  self.fleetName.setPlainText(response.alliance_name)
-                  try:
-                        if(response.alliance > int(self.bestStars.toPlainText())):
-                              self.bestStars.setPlainText(str(response.alliance_score))
-                  except Exception as e:
+            response = responses[0]
+            self.fleetName.setPlainText(response.alliance_name)
+            try:
+                  if(response.alliance > int(self.bestStars.toPlainText())):
                         self.bestStars.setPlainText(str(response.alliance_score))
-                        self.lastStars.setPlainText("0")
-                  self.currentTrophies.setPlainText(str(response.trophy))
-                  self.maxTrophies.setPlainText(str(response.highest_trophy))
-                  self.updateFightTables("tourny")
-                  self.updateFightTables("legends")
-                  self.updateFightTables("pvp")
-                  self.submitNewPlayerData()
+            except Exception:
+                  self.bestStars.setPlainText(str(response.alliance_score))
+                  self.lastStars.setPlainText("0")
+            self.currentTrophies.setPlainText(str(response.trophy))
+            self.maxTrophies.setPlainText(str(response.highest_trophy))
+            self.updateFightTables("tourny")
+            self.updateFightTables("legends")
+            self.updateFightTables("pvp")
+            self.submitNewPlayerData()
             total_time = time.time() - start_time
             log_time(f"Fetch user data generation time: {total_time:.4f} seconds")
-            boolean = await self.fetch_fleetmembers_from_api(response.alliance_name,response.alliance_id)
-            API_CALL_COUNT = API_CALL_COUNT+1
+            await self.fetch_fleetmembers_from_api(response.alliance_name,response.alliance_id)
+            API_CALL_COUNT += 1
             timer = time.time() - start_time
             log_time(f"Fetch searched fleet data: {timer:.4f} seconds")
       async def fetch_fleetmembers_from_api(self, fleetname, fleetid):
@@ -409,13 +393,38 @@ class MainWindow(QtWidgets.QMainWindow):
             start_time = time.time()
             try:
                   fleet = await self.client.alliance_service.search_alliances(ACCESS_TOKEN,fleetname,0,5)
-                  API_CALL_COUNT = API_CALL_COUNT+1
+                  API_CALL_COUNT += 1
                   players = await self.client.alliance_service.list_users(ACCESS_TOKEN,fleetid,0,fleet[0].number_of_members)
-                  API_CALL_COUNT = API_CALL_COUNT+1
+                  API_CALL_COUNT += 1
             except:
                   throwErrorMessage(f"API Call Limit {API_CALL_COUNT} has been reached", f"Fleet: {fleetname} was not fully updated")
                   return False
-            query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetdb"))
+            query = QSqlQuery(QSqlDatabase.database("targetdb"))
+            player_data_list = []
+
+            for player in players:
+                  pname = player.name
+                  fname = player.alliance_name
+                  if fname != fleetname:
+                        continue
+                  laststars = player.alliance_score
+                  beststars = 0
+                  notes = ""
+                  query.prepare("SELECT * FROM players WHERE playername = :pname")
+                  query.bindValue(":pname", pname)
+                  if query.exec() and query.next():
+                        beststars = query.value(3)
+                        notes = query.value(4)
+                  else:
+                        print(f"Query execution failed on {pname} in fleet {fname} [fetch_fleetmembers_from_api]")
+                  player_data_list.append([pname, fname, laststars, beststars, notes])
+                  print(f"{pname} | {fname} | {laststars} | {beststars} | {notes}")
+            if player_data_list:
+                  await write_to_targets_database_batch(player_data_list)
+            total_time = time.time() - start_time
+            log_time(f"Fetch fleet members data generation time: {total_time:.4f} seconds")
+            return True
+            '''query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetdb"))
             for i in range(fleet[0].number_of_members):
                   player = players[i]
                   pname = player.name
@@ -440,7 +449,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         throwErrorMessage("targetdb: Error writing data to the database - Dumping data [fetch_fleetmembers_from_api]", player_data)
             total_time = time.time()
             log_time(f"Fetch fleet members generation time: {total_time - start_time:.4f}")
-            return True
+            return True'''
       async def main(self):
             await self.fetch_mass_api_call()
       async def fetch_mass_api_call(self):
@@ -500,7 +509,6 @@ class MainWindow(QtWidgets.QMainWindow):
             os.rename(f'_profiles/{old_profile}',f'_oldprofiles/{old_profile}')
             with open('profiles.csv', 'r', newline = '') as infile, \
                   open('profiles.csv.temp', 'w', newline = '') as outfile:
-
                   reader = csv.reader(infile)
                   writer = csv.writer(outfile)
                   for row in reader:
@@ -1794,7 +1802,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
       async def fetch_user_maxtrophy(self, playername):
             global API_CALL_COUNT
             responses = await self.client.user_service.search_users(playername)
-            API_CALL_COUNT = API_CALL_COUNT+1
+            API_CALL_COUNT += 1
             for response in responses:
                   return str(response.highest_trophy)
       def populateSTT(self, player_name):
@@ -1854,7 +1862,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
                               table.setColumnWidth(2, 25)
                               table.setColumnWidth(3, 75)
             except FileNotFoundError:
-                  print("CSV file not found, no data loaded.")
+                  print("CSV file not found, no data loaded. [StarTargetTrack]")
       class StarsTargetTrackConfirmationDialog(QtWidgets.QDialog):
             def __init__(self, parent=None):
                   super().__init__(parent)
@@ -1881,6 +1889,9 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
       WEP_LIST = []
       ACC_LIST = []
       PET_LIST = []
+      CREW_LIST = []
+
+      EQUIPMENT_SLOTS: list[str] = ["Head", "Body", "Leg", "Weapon", "Accessory", "Pet"]
       
       def __init__(self, parent=None):
             super().__init__(parent)
@@ -1894,20 +1905,65 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.accessEquipBox = self.findChild(QLineEdit, 'accessEquipBox')
             self.petEquipBox = self.findChild(QLineEdit, 'petEquipBox')
 
-            version = asyncio.run(self.get_item_db_version())
-            if item_database_needs_update(version):
+            version = asyncio.run(self.get_db_version())
+            if api_database_needs_update(version):
                   print("Loading from API data as update is needed")
                   asyncio.run(self.fetch_item_list())
+                  asyncio.run(self.fetch_crew_list())
             else:
                   print("Loading from established CSV due to no update needed")
-                  self.loadFromCSV()
+                  self.loadItemsFromCSV()
+                  self.readCrewFromCSV()
             self.setup_completer(self.bodyEquipBox, self.BODY_LIST)
             self.setup_completer(self.headEquipBox, self.HEAD_LIST)
             self.setup_completer(self.legEquipBox, self.LEG_LIST)
             self.setup_completer(self.wepEquipBox, self.WEP_LIST)
             self.setup_completer(self.accessEquipBox, self.ACC_LIST)
             self.setup_completer(self.petEquipBox, self.PET_LIST)
-
+      async def fetch_crew_list(self):
+            global API_CALL_COUNT
+            version = await self.get_db_version()
+            config_data = load_config()
+            if not config_data.get('config'):
+                  throwErrorMessage("Fatal Error [fetch_crew_list]", "Config data not loaded properly")
+            for entry in config_data['config']:
+                  entry['item_database'] = version
+                  save_config(config_data)
+            crew_list = await self.client.character_service.list_all_character_designs()
+            API_CALL_COUNT += 1
+            all_crew_data = []
+            for crew in crew_list:
+#                 Crew Name, Equipment Mask, Rarity, Special, Collection, HP, Attack, RPR, ABL, PLT, SCI, ENG, WPN, RST, Walk, Run, TP
+                  crew_data = [crew.character_design_name, crew.equipment_mask, crew.rarity, crew.special_ability_final_argument, crew.collection_design_id, crew.final_hp, crew.final_attack, 
+                               crew.final_repair, crew.special_ability_final_argument, crew.final_pilot, crew.final_science, crew.final_engine, crew.final_weapon,
+                               crew.fire_resistance, crew.walking_speed, crew.run_speed, crew.training_capacity]
+                  self.CREW_LIST.append(crew_data)
+                  all_crew_data.append(crew_data)
+            self.saveCrewtoCSV(all_crew_data)
+      def readCrewFromCSV(self):
+            data_list = []
+            try:
+                  with open(os.path.join('_internal', '_crew', 'crewlist.csv'), 'r', newline='', encoding='utf-8') as csvfile:
+                        reader = csv.reader(csvfile)
+                        next(reader)
+                        for row in reader:
+                              data_list.append((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16]))
+            except FileNotFoundError:
+                  print(f"File crewlist.csv not found")
+            return data_list
+      def loadCrewFromCSV(self):
+            self.CREW_LIST.clear()
+            self.CREW_LIST.extend(self.readCrewtoCSV())
+      def saveCrewtoCSV(self, data_list):
+            with open(os.path.join('_internal','_crew','crewlist.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+                  writer = csv.writer(csvfile)
+                  header = ["Crew Name", "Equipment Mask", "Rarity", "Special", "Collection", "HP", "Attack", "RPR", "ABL", "PLT", "SCI", "ENG", "WPN", "RST", "Walk", "Run", "TP"]
+                  writer.writerow(header)
+                  writer.writerows(data_list)
+      def equipSlots(self, mask):
+            equipment_mask = int(mask)
+            output = [int(x) for x in f"{equipment_mask:06b}"]
+            return [self.EQUIPMENT_SLOTS[5-i] for i, b in enumerate(output) if b]
       def setup_completer(self, line_edit, item_list):
             word_list = self.initiateCompleterList(item_list)
             completer = QCompleter(word_list, parent=self)
@@ -1941,25 +1997,24 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   text = f"{item_design_name} ({enhancement_type} +{enhancement_value})"
                   word_list.append(text)
             return word_list
-      async def get_item_db_version(self):
+      async def get_db_version(self):
             global API_CALL_COUNT
             version = await self.client.get_latest_version()
-            API_CALL_COUNT = API_CALL_COUNT+1
+            API_CALL_COUNT += 1
             return version.recommended_version
       async def fetch_item_list(self):
             global API_CALL_COUNT
             # Item_Design_Name,Enhancement_Type,Enhancement_Value,Item_Sub_Type  ,Rarity
             # La Paula        ,Ability         ,17.0             ,EquipmentWeapon,Hero
-            version = await self.client.get_latest_version()
-            API_CALL_COUNT = API_CALL_COUNT+1
+            version = await self.get_db_version()
             config_data = load_config()
             if not config_data.get('config'):
                   throwErrorMessage("Fatal Error [fetch_item_list]", "Config data not loaded properly")
             for entry in config_data['config']:
-                  entry['item_database'] = version.recommended_version
+                  entry['item_database'] = version
                   save_config(config_data)
             item_designs = await self.client.item_service.list_item_designs()
-            API_CALL_COUNT = API_CALL_COUNT+1
+            API_CALL_COUNT += 1
             for item in item_designs:
                   if item.item_sub_type == 'EquipmentHead':
                         self.HEAD_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
@@ -1973,14 +2028,14 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                         self.ACC_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
                   elif item.item_sub_type == 'EquipmentPet':
                         self.PET_LIST.append((item.item_design_name, item.rarity, item.enhancement_type, item.enhancement_value))
-            self.saveToCSVfiles()
-      def write_list_to_csv(self, file_name, data_list):
+            self.saveItemsToCSVfiles()
+      def write_itemlist_to_csv(self, file_name, data_list):
             with open(os.path.join('_internal','_equip',file_name), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
                   header = ["Item_Design_Name", "Enhancement_Type", "Enhancement_Value", "Item_Sub_Type", "Rarity"]
                   writer.writerow(header)
                   writer.writerows(data_list)
-      def saveToCSVfiles(self):
+      def saveItemsToCSVfiles(self):
             listedcsv = [
                   ('HEAD_LIST.csv', self.HEAD_LIST),
                   ('WEP_LIST.csv', self.WEP_LIST),
@@ -1989,8 +2044,8 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   ('ACC_LIST.csv', self.ACC_LIST),
                   ('PET_LIST.csv', self.PET_LIST)]
             for file_name, data_list in listedcsv:
-                  self.write_list_to_csv(file_name, data_list)
-      def read_list_from_csv(self, file_name):
+                  self.write_itemlist_to_csv(file_name, data_list)
+      def read_itemlist_from_csv(self, file_name):
             data_list = []
             try:
                   with open(os.path.join('_internal','_equip',file_name), 'r', newline='', encoding='utf-8') as csvfile:
@@ -2001,7 +2056,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             except FileNotFoundError:
                   print(f"File {file_name} not found")
             return data_list
-      def loadFromCSV(self):
+      def loadItemsFromCSV(self):
             listedcsv = [
                   ('HEAD_LIST.csv', self.HEAD_LIST),
                   ('WEP_LIST.csv', self.WEP_LIST),
@@ -2012,7 +2067,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             
             for file_name, data_list in listedcsv:
                   data_list.clear()
-                  data_list.extend(self.read_list_from_csv(file_name))
+                  data_list.extend(self.read_itemlist_from_csv(file_name))
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):
