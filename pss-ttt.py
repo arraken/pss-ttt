@@ -26,6 +26,7 @@ DARK_MODE_STYLESHEET = """
                   background-color: #333;
                   color: white;
                   }"""
+CURRENT_STYLESHEET = "default"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 class ProfileDialog(QDialog):
@@ -264,7 +265,7 @@ class MainWindow(QtWidgets.QMainWindow):
       global GITHUB_RELEASE_LINK
       global API_CALL_COUNT
       global NEW_RELEASE
-      global DARK_MODE_STYLESHEET
+      global DARK_MODE_STYLESHEET, CURRENT_STYLESHEET
       def __init__(self, parent=None):
             super().__init__(parent)
             start_time = time.time()
@@ -446,7 +447,9 @@ class MainWindow(QtWidgets.QMainWindow):
       def swapStyle(self):
             if self.actionDark_Mode.isChecked():
                   self.setStyleSheet(DARK_MODE_STYLESHEET)
+                  CURRENT_STYLESHEET="dark"
             else:
+                  CURRENT_STYLESHEET="default"
                   self.setStyleSheet("")
       def blinkAboutMenu(self):
             if self.color_flag:
@@ -455,6 +458,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.menuAbout.setTitle("About")
             self.color_flag = not self.color_flag
       def openLoadoutBuilder(self):
+            self.crewLoadoutBuilder.setStylesheet()
             self.crewLoadoutBuilder.exec()
       def update_player_via_api(self, searchname):
             data = self.fetch_user_data(searchname)
@@ -518,25 +522,33 @@ class MainWindow(QtWidgets.QMainWindow):
                         print(f"Error: {db_name} Update")
                         print("Error:", query.lastError().text())
       def open_fightDialog(self):
+            self.fightDialog.setStylesheet()
             self.fightDialog.exec()
       def open_playerBrowser(self):
+            self.player_dialog.setStylesheet()
             self.player_dialog.populateList("SELECT playername FROM players", None)
             self.player_dialog.exec()
       def open_fleetBrowser(self):
+            self.fleet_dialog.setStylesheet()
             self.fleet_dialog.populateList("SELECT playername FROM players WHERE fleetname = :fleet_name", self.fleetName.toPlainText())
             self.fleet_dialog.exec()
       def open_fleetNameBrowser(self):
+            self.fleet_name_dialog.setStylesheet()
             self.fleet_name_dialog.populateList("SELECT fleetname FROM players", None)
             self.fleet_name_dialog.exec()
       def open_importDialog(self):
+            self.importDialog.setStylesheet()
             self.importDialog.importDialogLabel.setText("")
             self.importDialog.importFilenameBox.setPlainText("")
             self.importDialog.exec()
       def open_tournamentStarsCalc(self):
+            self.starCalculator.setStylesheet()
             self.starCalculator.exec()
       def open_crewTrainer(self):
+            self.trainingDialog.setStylesheet()
             self.trainingDialog.exec()
       def open_stt(self):
+            self.starTargetTrack.setStylesheet()
             self.starTargetTrack.populateSTT(self.playerNameSearchBox.toPlainText())
             self.starTargetTrack.exec()
       def exportFightsToCSV(self):
@@ -697,8 +709,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
                   model = self.CustomSqlTableModel()
                   model.setQuery(query)
+                  if CURRENT_STYLESHEET == "default":
+                        table_widget.setStyleSheet("")
+                  elif CURRENT_STYLESHEET == "dark":
+                        table_widget.setStyleSheet(DARK_MODE_STYLESHEET)
                   table_widget.setModel(model)
-                  table_widget.setColumnWidth(0,40)
+                  table_widget.setColumnWidth(0,35)
                   table_widget.setColumnWidth(1,70)
                   table_widget.setColumnWidth(2,25)
                   table_widget.setColumnWidth(3,40)
@@ -820,6 +836,7 @@ class MainWindow(QtWidgets.QMainWindow):
             def update_api_calls(self, api_calls):
                   self.api_calls_label.setText(f"API Calls: {api_calls}")
 class FilteredListDialog(QtWidgets.QDialog):
+      global CURRENT_STYLESHEET
       copyItemSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self, title, filter_label, filter_placeholder, parent=None):
             super().__init__(parent)
@@ -861,6 +878,11 @@ class FilteredListDialog(QtWidgets.QDialog):
             if selected_item:
                   selected_text = selected_item.text()
                   self.copyItemSearchClicked.emit(selected_text, True)
+      def setStylesheet(self):
+            if CURRENT_STYLESHEET == "default":
+                  self.setStyleSheet("")
+            elif CURRENT_STYLESHEET == "dark":
+                  self.setStyleSheet(DARK_MODE_STYLESHEET)
       def filterList(self):
             filter_text = self.filterBox.toPlainText().lower()
             for i in range(self.itemList.count()):
@@ -881,12 +903,18 @@ class FilteredListDialog(QtWidgets.QDialog):
                         else:
                               item.setHidden(True)
 class FightDataConfirmation(QtWidgets.QDialog):
+      global CURRENT_STYLESHEET
       fightDataSaved = pyqtSignal(int, float, str, str)
       def __init__(self, parent=None):
             super().__init__(parent)
             uic.loadUi(os.path.join('_internal','_ui','pss-ttt-fdb.ui'), self)
 
             self.submitFightDataButton.clicked.connect(self.saveFightData)
+      def setStylesheet(self):
+            if CURRENT_STYLESHEET == "default":
+                  self.setStyleSheet("")
+            elif CURRENT_STYLESHEET == "dark":
+                  self.setStyleSheet(DARK_MODE_STYLESHEET)
       def saveFightData(self):
             rewards = int(self.fightRewardBox.toPlainText())
             remainhp = float(self.fightHPBox.toPlainText())
@@ -895,6 +923,7 @@ class FightDataConfirmation(QtWidgets.QDialog):
             self.fightDataSaved.emit(rewards, remainhp, result, fight)
             self.accept()
 class ImportDialogBox(QtWidgets.QDialog):
+      global CURRENT_STYLESHEET
       progress_signal = pyqtSignal(int)
       updated_records = []
       has_imported = False
@@ -908,6 +937,11 @@ class ImportDialogBox(QtWidgets.QDialog):
             self.importSeeChanges.clicked.connect(self.printChangesList)
 
             self.progress_signal.connect(self.updateProgressBar, QtCore.Qt.ConnectionType.DirectConnection)
+      def setStylesheet(self):
+            if CURRENT_STYLESHEET == "default":
+                  self.setStyleSheet("")
+            elif CURRENT_STYLESHEET == "dark":
+                  self.setStyleSheet(DARK_MODE_STYLESHEET)
       def closeEvent(self, event):
             self.has_imported = False
             super().closeEvent(event)
@@ -1006,6 +1040,7 @@ class ImportDialogBox(QtWidgets.QDialog):
             db.commit()
             return self.counter
 class StarsTableDialogBox(QtWidgets.QDialog):
+      global CURRENT_STYLESHEET
       def __init__(self, profile_name):
             super().__init__()
             uic.loadUi(os.path.join('_internal','_ui','pss-ttt-tsc.ui'), self)
@@ -1042,6 +1077,11 @@ class StarsTableDialogBox(QtWidgets.QDialog):
             total_sum = sum(self.model.getCellValue(7, col) for col in range(self.model.columnCount(None)))
             self.actualStarsBox.setPlainText(str(total_sum))
             self.saveStarsTableToCSV()
+      def setStylesheet(self):
+            if CURRENT_STYLESHEET == "default":
+                  self.setStyleSheet("")
+            elif CURRENT_STYLESHEET == "dark":
+                  self.setStyleSheet(DARK_MODE_STYLESHEET)
       def saveStarsTableToCSV(self):
             file_path = self.getStarsFilePath()
             try:
@@ -1182,6 +1222,7 @@ class StarsTableDialogBox(QtWidgets.QDialog):
             self.tournamentTable.show()
             self.saveStarsTableToCSV()
 class CrewTrainerDialogBox(QtWidgets.QDialog):
+      global CURRENT_STYLESHEET
       def __init__(self):
             super().__init__()
             uic.loadUi(os.path.join('_internal','_ui','pss-ttt-crewtrainer.ui'), self)
@@ -1318,6 +1359,11 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         self.chartTable.setColumnWidth(i,1)
             self.testPushButton.clicked.connect(self.wipeCrewStats)
             self.onComboBoxValueChanged()
+      def setStylesheet(self):
+            if CURRENT_STYLESHEET == "default":
+                  self.setStyleSheet("")
+            elif CURRENT_STYLESHEET == "dark":
+                  self.setStyleSheet(DARK_MODE_STYLESHEET)
       def checkSumValidity(self):
             sum_of_values = sum(row[0] for row in self.crewStats)
             max_TP = self.mergedMaxTP()
@@ -1703,6 +1749,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         self.model.removeRow(index.row())
                   self.savePresetCSV()
 class StarTargetTrackDialogBox(QtWidgets.QDialog):
+      global CURRENT_STYLESHEET
       copyStarsTargetTrackClicked = QtCore.pyqtSignal(str, bool)
       currentStarsTarget = ' '
       global API_CALL_COUNT
@@ -1731,6 +1778,11 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             self.loadStarsCSV()
       def setProfilePath(self, profile_name):
             self.profile_path = profile_name
+      def setStylesheet(self):
+            if CURRENT_STYLESHEET == "default":
+                  self.setStyleSheet("")
+            elif CURRENT_STYLESHEET == "dark":
+                  self.setStyleSheet(DARK_MODE_STYLESHEET)
       def getStarsFilePath(self):
             return os.path.join('_profiles', self.profile_path, 'starstrack.csv')
       def copyDayToSearchBox(self, day):
@@ -1863,6 +1915,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             def reject(self):
                   super().reject()
 class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
+      global CURRENT_STYLESHEET
       HEAD_LIST = []
       BODY_LIST = []
       LEG_LIST = []
@@ -1918,6 +1971,11 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.tpTable.setColumnWidth(2,90)
 
             self.loadCrewDataButton.clicked.connect(self.loadCrewData)
+      def setStylesheet(self):
+            if CURRENT_STYLESHEET == "default":
+                  self.setStyleSheet("")
+            elif CURRENT_STYLESHEET == "dark":
+                  self.setStyleSheet(DARK_MODE_STYLESHEET)
       async def fetch_crew_list(self):
             global API_CALL_COUNT
             version = await self.get_db_version()
