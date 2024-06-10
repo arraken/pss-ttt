@@ -21,20 +21,13 @@ ITEM_AND_CREW_DATABASE_VERSION = None
 API_CALL_COUNT = 0
 NEW_RELEASE = False
 
+DARK_MODE_STYLESHEET = """
+            * {
+                  background-color: #333;
+                  color: white;
+                  }"""
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-'''To-do
-ALL - 
-MAIN - pull stars data properly
-TOURNY - Division A flag to assume 4 star battles for 2 fights every day for est calculator
-       - add a way to check most recent tournament targets and what day they were done on
-IMPORT - 
-FIGHTS - 
-CTC - 
-CPM - Crew Planning Module
-      Create a list of 25 crew, assign roles (Defender, Repairer, Booster, Rusher), Origin Room, Rough notes on their job
-CLB - Crew Loadout Builder
-'''
 class ProfileDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -197,10 +190,12 @@ def write_to_targets_database(data):
       return True
 def write_to_tournaments_database(data):
       return data
-def write_to_targets_database_batch(self, player_data_list):
+def write_to_targets_database_batch(player_data_list):
       for player_data in player_data_list:
             if not write_to_targets_database(player_data):
                   throwErrorMessage("targetdb: Error writing data to the database - Dumping data [write_to_targets_database_batch]", player_data)
+                  return False
+      return True
 def modify_SQL():
       query = QSqlQuery(QSqlDatabase.database("targetdb"))
       columns_to_drop = ['trophies', 'maxtrophies']
@@ -269,8 +264,9 @@ class MainWindow(QtWidgets.QMainWindow):
       global GITHUB_RELEASE_LINK
       global API_CALL_COUNT
       global NEW_RELEASE
-      def __init__(self):
-            super().__init__()
+      global DARK_MODE_STYLESHEET
+      def __init__(self, parent=None):
+            super().__init__(parent)
             start_time = time.time()
             log_time("Starting application")
             uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt.ui'), self)
@@ -309,11 +305,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionExport_Fights.triggered.connect(self.exportFightsToCSV)
             self.actionAbout.triggered.connect(self.openAboutBox)
             self.actionLoadout_Builder.triggered.connect(self.openLoadoutBuilder)
-      
+            self.actionDark_Mode.triggered.connect(self.swapStyle)
+
             self.createNewProfile.clicked.connect(createProfile)
             self.createNewProfile.clicked.connect(self.popProfiles)
             self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
             self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
+
       def initialize_dialogs(self):
             self.fightDialog = FightDataConfirmation(parent=self)
             self.fightDialog.fightDataSaved.connect(self.receiveFightData)
@@ -420,36 +418,10 @@ class MainWindow(QtWidgets.QMainWindow):
                   player_data_list.append([pname, fname, laststars, beststars, notes])
                   print(f"{pname} | {fname} | {laststars} | {beststars} | {notes}")
             if player_data_list:
-                  await write_to_targets_database_batch(player_data_list)
+                  write_to_targets_database_batch(player_data_list)
             total_time = time.time() - start_time
             log_time(f"Fetch fleet members data generation time: {total_time:.4f} seconds")
             return True
-            '''query = QSqlQuery("SELECT * FROM players", QSqlDatabase.database("targetdb"))
-            for i in range(fleet[0].number_of_members):
-                  player = players[i]
-                  pname = player.name
-                  fname = player.alliance_name
-                  if fname != fleetname:
-                        continue
-                  laststars = player.alliance_score
-                  beststars = 0
-                  notes = ""
-                  query.prepare("SELECT * FROM players WHERE playername = :pname")
-                  query.bindValue(":pname", pname)
-                  if query.exec():
-                        if query.next():
-                              beststars = query.value(3)
-                              notes = query.value(4)
-                        else: # They are not in the database, but it is a valid player name. Don't throw error maybe?? Let's try just printing
-                              print(f"Query execution failed on {pname} in fleet {fname} [fetch_fleetmembers_from_api]: ")
-                  player_data = [pname, fname, laststars, beststars, notes]
-                  if write_to_targets_database(player_data):
-                        player_data.clear()
-                  else:
-                        throwErrorMessage("targetdb: Error writing data to the database - Dumping data [fetch_fleetmembers_from_api]", player_data)
-            total_time = time.time()
-            log_time(f"Fetch fleet members generation time: {total_time - start_time:.4f}")
-            return True'''
       async def main(self):
             await self.fetch_mass_api_call()
       async def fetch_mass_api_call(self):
@@ -471,6 +443,11 @@ class MainWindow(QtWidgets.QMainWindow):
                   print(f"Adding {player.name} to targets database")
                   self.update_player_via_api(player.name)
       Update top 100 players and names in fleets once per day maximum'''
+      def swapStyle(self):
+            if self.actionDark_Mode.isChecked():
+                  self.setStyleSheet(DARK_MODE_STYLESHEET)
+            else:
+                  self.setStyleSheet("")
       def blinkAboutMenu(self):
             if self.color_flag:
                   self.menuAbout.setTitle("Update Available")
@@ -490,6 +467,7 @@ class MainWindow(QtWidgets.QMainWindow):
             result = datetime(year, month, 1, 0, 0, 0, 0, timezone.utc)
             return result
       def openAboutBox(self):
+            self.aboutBox.update_api_calls(API_CALL_COUNT)
             self.aboutBox.exec()
       def profileChanged(self, index):
             profile_name = self.profileComboBox.itemText(index)
@@ -826,19 +804,21 @@ class MainWindow(QtWidgets.QMainWindow):
                   creator_label = QLabel(f"Creator: {creator}")
                   support_label = QLabel(f"Support Link: {support_link}")
                   github_label = QLabel(f"Github Link: {github_link}")
-                  api_calls_label = QLabel(f"API Calls: {api_calls}")
+                  self.api_calls_label = QLabel(f"API Calls: {api_calls}")
 
                   layout.addWidget(version_label)
                   layout.addWidget(creator_label)
                   layout.addWidget(support_label)
                   layout.addWidget(github_label)
-                  layout.addWidget(api_calls_label)
+                  layout.addWidget(self.api_calls_label)
 
                   ok_button = QPushButton("OK")
                   ok_button.clicked.connect(self.accept)
                   layout.addWidget(ok_button)
 
                   self.setLayout(layout)
+            def update_api_calls(self, api_calls):
+                  self.api_calls_label.setText(f"API Calls: {api_calls}")
 class FilteredListDialog(QtWidgets.QDialog):
       copyItemSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self, title, filter_label, filter_placeholder, parent=None):

@@ -54,6 +54,9 @@ class Ui_MainWindow(object):
         self.actionTarget_Tracking.setObjectName(u"actionTarget_Tracking")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
+        self.actionDark_Mode = QAction(MainWindow)
+        self.actionDark_Mode.setObjectName(u"actionDark_Mode")
+        self.actionDark_Mode.setCheckable(True)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.fleetNameLabel = QLabel(self.centralwidget)
@@ -289,6 +292,7 @@ class Ui_MainWindow(object):
         self.menuTournament.addAction(self.actionStars_Calculator)
         self.menuTournament.addAction(self.actionTarget_Tracking)
         self.menuAbout.addAction(self.actionAbout)
+        self.menuAbout.addAction(self.actionDark_Mode)
 
         self.retranslateUi(MainWindow)
 
@@ -305,6 +309,7 @@ class Ui_MainWindow(object):
         self.actionStars_Calculator.setText(QCoreApplication.translate("MainWindow", u"Stars Calculator", None))
         self.actionTarget_Tracking.setText(QCoreApplication.translate("MainWindow", u"Target Tracking", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
+        self.actionDark_Mode.setText(QCoreApplication.translate("MainWindow", u"Dark Mode", None))
         self.fleetNameLabel.setText(QCoreApplication.translate("MainWindow", u"Fleet", None))
         self.maxTrophiesLabel.setText(QCoreApplication.translate("MainWindow", u"Max Trophies", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Player Name", None))
