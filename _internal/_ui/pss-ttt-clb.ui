@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>939</width>
-    <height>340</height>
+    <width>557</width>
+    <height>427</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Crew Loadout Builder</string>
   </property>
-  <widget class="QLabel" name="label">
+  <widget class="QLabel" name="bodyEquipLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -26,11 +26,11 @@
     <string>Body</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_2">
+  <widget class="QLabel" name="headEquipLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>80</y>
+     <y>100</y>
      <width>51</width>
      <height>31</height>
     </rect>
@@ -42,7 +42,7 @@
   <widget class="QLineEdit" name="bodyEquipBox">
    <property name="geometry">
     <rect>
-     <x>60</x>
+     <x>70</x>
      <y>40</y>
      <width>211</width>
      <height>31</height>
@@ -52,27 +52,27 @@
   <widget class="QLineEdit" name="headEquipBox">
    <property name="geometry">
     <rect>
-     <x>60</x>
-     <y>80</y>
+     <x>70</x>
+     <y>100</y>
      <width>211</width>
      <height>31</height>
     </rect>
    </property>
   </widget>
-  <widget class="QLineEdit" name="crewName">
+  <widget class="QLineEdit" name="crewNameBox">
    <property name="geometry">
     <rect>
-     <x>130</x>
-     <y>10</y>
-     <width>113</width>
-     <height>20</height>
+     <x>70</x>
+     <y>9</y>
+     <width>171</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton">
+  <widget class="QPushButton" name="loadCrewDataButton">
    <property name="geometry">
     <rect>
-     <x>250</x>
+     <x>240</x>
      <y>10</y>
      <width>51</width>
      <height>23</height>
@@ -82,11 +82,11 @@
     <string>Load</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_3">
+  <widget class="QLabel" name="legEquipLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>120</y>
+     <y>160</y>
      <width>51</width>
      <height>31</height>
     </rect>
@@ -98,19 +98,19 @@
   <widget class="QLineEdit" name="accessEquipBox">
    <property name="geometry">
     <rect>
-     <x>60</x>
-     <y>160</y>
+     <x>70</x>
+     <y>220</y>
      <width>211</width>
      <height>31</height>
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="label_4">
+  <widget class="QLabel" name="accEquipLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>160</y>
-     <width>51</width>
+     <y>220</y>
+     <width>61</width>
      <height>31</height>
     </rect>
    </property>
@@ -121,19 +121,19 @@
   <widget class="QLineEdit" name="legEquipBox">
    <property name="geometry">
     <rect>
-     <x>60</x>
-     <y>120</y>
+     <x>70</x>
+     <y>160</y>
      <width>211</width>
      <height>31</height>
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="label_5">
+  <widget class="QLabel" name="wepEquipLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>200</y>
-     <width>51</width>
+     <y>280</y>
+     <width>61</width>
      <height>31</height>
     </rect>
    </property>
@@ -144,18 +144,18 @@
   <widget class="QLineEdit" name="petEquipBox">
    <property name="geometry">
     <rect>
-     <x>60</x>
-     <y>240</y>
+     <x>70</x>
+     <y>340</y>
      <width>211</width>
      <height>31</height>
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="label_6">
+  <widget class="QLabel" name="petEquipLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>240</y>
+     <y>340</y>
      <width>51</width>
      <height>31</height>
     </rect>
@@ -167,10 +167,484 @@
   <widget class="QLineEdit" name="wepEquipBox">
    <property name="geometry">
     <rect>
-     <x>60</x>
-     <y>200</y>
+     <x>70</x>
+     <y>280</y>
      <width>211</width>
      <height>31</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QTableView" name="crewTPTable">
+   <property name="geometry">
+    <rect>
+     <x>300</x>
+     <y>10</y>
+     <width>81</width>
+     <height>301</height>
+    </rect>
+   </property>
+   <property name="alternatingRowColors">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_7">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>71</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Crew Name</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="petHeroSideDD">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>370</y>
+     <width>91</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>HP</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Attack</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Repair</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Ability</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Stamina</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Pilot</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Science</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Engine</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Weapon</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>RST</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QDoubleSpinBox" name="petHeroSideStat">
+   <property name="geometry">
+    <rect>
+     <x>180</x>
+     <y>370</y>
+     <width>62</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="wepHeroSideDD">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>310</y>
+     <width>91</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>HP</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Attack</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Repair</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Ability</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Stamina</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Pilot</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Science</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Engine</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Weapon</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>RST</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QDoubleSpinBox" name="wepHeroSideStat">
+   <property name="geometry">
+    <rect>
+     <x>180</x>
+     <y>310</y>
+     <width>62</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="accHeroSideDD">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>250</y>
+     <width>91</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>HP</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Attack</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Repair</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Ability</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Stamina</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Pilot</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Science</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Engine</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Weapon</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>RST</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QDoubleSpinBox" name="accHeroSideStat">
+   <property name="geometry">
+    <rect>
+     <x>180</x>
+     <y>250</y>
+     <width>62</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="legHeroSideDD">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>190</y>
+     <width>91</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>HP</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Attack</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Repair</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Ability</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Stamina</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Pilot</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Science</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Engine</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Weapon</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>RST</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QDoubleSpinBox" name="legHeroSideStat">
+   <property name="geometry">
+    <rect>
+     <x>180</x>
+     <y>190</y>
+     <width>62</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="headHeroSideDD">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>130</y>
+     <width>91</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>HP</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Attack</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Repair</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Ability</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Stamina</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Pilot</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Science</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Engine</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Weapon</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>RST</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QDoubleSpinBox" name="headHeroSideStat">
+   <property name="geometry">
+    <rect>
+     <x>180</x>
+     <y>130</y>
+     <width>62</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="bodyHeroSideDD">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>70</y>
+     <width>91</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>HP</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Attack</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Repair</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Ability</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Stamina</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Pilot</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Science</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Engine</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Weapon</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>RST</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QDoubleSpinBox" name="bodyHeroSideStat">
+   <property name="geometry">
+    <rect>
+     <x>180</x>
+     <y>70</y>
+     <width>62</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QTableView" name="finalTableStats">
+   <property name="geometry">
+    <rect>
+     <x>410</x>
+     <y>10</y>
+     <width>141</width>
+     <height>391</height>
     </rect>
    </property>
   </widget>

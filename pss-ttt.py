@@ -11,7 +11,7 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.3.7"
+CURRENT_VERSION = "v1.3.9"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
@@ -1898,12 +1898,14 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.client = PssApiClient()
             uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt-clb.ui'), self)
             os.makedirs(os.path.join('_internal', '_equip'), exist_ok=True)
+            os.makedirs(os.path.join('_internal', '_crew'), exist_ok=True)
             self.bodyEquipBox = self.findChild(QLineEdit, 'bodyEquipBox')
             self.headEquipBox = self.findChild(QLineEdit, 'headEquipBox')
             self.legEquipBox = self.findChild(QLineEdit, 'legEquipBox')
             self.wepEquipBox = self.findChild(QLineEdit, 'wepEquipBox')
             self.accessEquipBox = self.findChild(QLineEdit, 'accessEquipBox')
             self.petEquipBox = self.findChild(QLineEdit, 'petEquipBox')
+            self.crewNameBox = self.findChild(QLineEdit, 'crewNameBox')
 
             version = asyncio.run(self.get_db_version())
             if api_database_needs_update(version):
@@ -1913,13 +1915,29 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             else:
                   print("Loading from established CSV due to no update needed")
                   self.loadItemsFromCSV()
-                  self.readCrewFromCSV()
-            self.setup_completer(self.bodyEquipBox, self.BODY_LIST)
-            self.setup_completer(self.headEquipBox, self.HEAD_LIST)
-            self.setup_completer(self.legEquipBox, self.LEG_LIST)
-            self.setup_completer(self.wepEquipBox, self.WEP_LIST)
-            self.setup_completer(self.accessEquipBox, self.ACC_LIST)
-            self.setup_completer(self.petEquipBox, self.PET_LIST)
+                  self.loadCrewFromCSV()
+            self.setup_completer(self.bodyEquipBox, self.BODY_LIST, "item")
+            self.setup_completer(self.headEquipBox, self.HEAD_LIST, "item")
+            self.setup_completer(self.legEquipBox, self.LEG_LIST, "item")
+            self.setup_completer(self.wepEquipBox, self.WEP_LIST, "item")
+            self.setup_completer(self.accessEquipBox, self.ACC_LIST, "item")
+            self.setup_completer(self.petEquipBox, self.PET_LIST, "item")
+            self.setup_completer(self.crewNameBox, self.CREW_LIST, "crew")
+            self.finalChart = [[0,0] for _ in range(12)]
+            self.finalTable = self.findChild(QTableView, "finalTableStats")
+            self.finalModel = self.FinalStatsTableModel(self.finalChart, self)
+            self.finalTable.setModel(self.finalModel)
+            self.finalTable.setColumnWidth(0,50)
+            self.finalTable.setColumnWidth(1,50)
+            self.tpChart = [[0] for _ in range(9)]
+            self.tpTable = self.findChild(QTableView, "crewTPTable")
+            self.model = self.StatsTableModel(self.tpChart, self)
+            self.tpTable.setModel(self.model)
+            self.tpTable.setColumnWidth(0,50)
+            self.tpTable.setColumnWidth(1,90)
+            self.tpTable.setColumnWidth(2,90)
+
+            self.loadCrewDataButton.clicked.connect(self.loadCrewData)
       async def fetch_crew_list(self):
             global API_CALL_COUNT
             version = await self.get_db_version()
@@ -1940,6 +1958,87 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   self.CREW_LIST.append(crew_data)
                   all_crew_data.append(crew_data)
             self.saveCrewtoCSV(all_crew_data)
+      def loadCrewData(self):
+            crew_name = self.crewNameBox.text()
+            for crew in self.CREW_LIST:
+                  if crew[0] == crew_name:
+                        crew_name, equipment_mask, rarity, special, collection, hp, attack, rpr, abl, plt, sci, eng, wpn, rst, walk, run, tp = crew[0], crew[1], crew[2], crew[3], crew[4], crew[5], crew[6], crew[7], crew[8], crew[9], crew[10], crew[11], crew[12], crew[13], crew[14], crew[15], crew[16]
+                        equip = self.equipSlots(equipment_mask)
+                        self.selectEquipmentBoxes(equip)
+                        self.finalTable[0][0] = hp
+                        self.finalTable[0][1] = attack
+                        self.finalTable[0][2] = rpr
+                        self.finalTable[0][3] = abl
+                        self.finalTable[0][4] = plt
+                        self.finalTable[0][5] = sci
+                        self.finalTable[0][6] = eng
+                        self.finalTable[0][7] = wpn
+                        self.finalTable[0][8] = rst
+                        self.finalTable[0][9] = walk
+                        self.finalTable[0][10] = run
+                        self.finalTable[0][11] = tp
+      def selectEquipmentBoxes(self, equipmask):
+            size = len(equipmask)
+            self.hideAllEquipBoxes()
+            for i in range(size):
+                  if equipmask[i] == "Weapon":
+                        self.wepHeroSideDD.show()
+                        self.wepHeroSideStat.show()
+                        self.wepEquipLabel.show()
+                        self.wepEquipBox.show()
+                  elif equipmask[i] == "Accessory":
+                        self.accHeroSideDD.show()
+                        self.accHeroSideStat.show()
+                        self.accEquipLabel.show()
+                        self.accessEquipBox.show()
+                  elif equipmask[i] == "Leg":
+                        self.legHeroSideDD.show()
+                        self.legHeroSideStat.show()
+                        self.legEquipLabel.show()
+                        self.legEquipBox.show()
+                  elif equipmask[i] == "Head":
+                        self.headHeroSideDD.show()
+                        self.headHeroSideStat.show()
+                        self.headEquipLabel.show()
+                        self.headEquipBox.show()
+                  elif equipmask[i] == "Body":
+                        self.bodyHeroSideDD.show()
+                        self.bodyHeroSideStat.show()
+                        self.bodyEquipLabel.show()
+                        self.bodyEquipBox.show()
+                  elif equipmask[i] == "Pet":
+                        self.petHeroSideDD.show()
+                        self.petHeroSideStat.show()
+                        self.petEquipLabel.show()
+                        self.petEquipBox.show()
+                  else:
+                        throwErrorMessage("Item Data incorrect [selectEquipmentBoxes]", "Equipment Mask data did not load properly")
+                        return
+      def hideAllEquipBoxes(self):
+            self.petHeroSideDD.hide()
+            self.petHeroSideStat.hide()
+            self.petEquipLabel.hide()
+            self.petEquipBox.hide()
+            self.wepHeroSideDD.hide()
+            self.wepHeroSideStat.hide()
+            self.wepEquipLabel.hide()
+            self.wepEquipBox.hide()
+            self.accHeroSideStat.hide()
+            self.accHeroSideDD.hide()
+            self.accEquipLabel.hide()
+            self.accessEquipBox.hide()
+            self.legHeroSideStat.hide()
+            self.legHeroSideDD.hide()
+            self.legEquipLabel.hide()
+            self.legEquipBox.hide()
+            self.headHeroSideStat.hide()
+            self.headHeroSideDD.hide()
+            self.headEquipLabel.hide()
+            self.headEquipBox.hide()
+            self.bodyHeroSideStat.hide()
+            self.bodyHeroSideDD.hide()
+            self.bodyEquipLabel.hide()
+            self.bodyEquipBox.hide()
       def readCrewFromCSV(self):
             data_list = []
             try:
@@ -1953,7 +2052,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             return data_list
       def loadCrewFromCSV(self):
             self.CREW_LIST.clear()
-            self.CREW_LIST.extend(self.readCrewtoCSV())
+            self.CREW_LIST.extend(self.readCrewFromCSV())
       def saveCrewtoCSV(self, data_list):
             with open(os.path.join('_internal','_crew','crewlist.csv'), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
@@ -1964,39 +2063,48 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             equipment_mask = int(mask)
             output = [int(x) for x in f"{equipment_mask:06b}"]
             return [self.EQUIPMENT_SLOTS[5-i] for i, b in enumerate(output) if b]
-      def setup_completer(self, line_edit, item_list):
-            word_list = self.initiateCompleterList(item_list)
+      def setup_completer(self, line_edit, list, type):
+            word_list = self.initiateCompleterList(list, type)
             completer = QCompleter(word_list, parent=self)
             completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
             completer.setFilterMode(Qt.MatchFlag.MatchContains)
             line_edit.setCompleter(completer)
-      def initiateCompleterList(self, item_list):
-            word_list = []
-            for line in item_list:
-                  item_design_name, rarity, enhancement_type, enhancement_value = line
-                  if enhancement_type == "FireResistance":
-                        enhancement_type = "RST"
-                  elif enhancement_type == "Pilot":
-                        enhancement_type = "PLT"
-                  elif enhancement_type == "Ability":
-                        enhancement_type = "ABL"
-                  elif enhancement_type == "Weapon":
-                        enhancement_type = "WPN"
-                  elif enhancement_type == "Engine":
-                        enhancement_type = "ENG"
-                  elif enhancement_type == "Science":
-                        enhancement_type = "SCI"
-                  elif enhancement_type == "Attack":
-                        enhancement_type = "ATK"
-                  elif enhancement_type == "Stamina":
-                        enhancement_type = "STA"
-                  elif enhancement_type == "Repair":
-                        enhancement_type = "RPR"
-                  elif enhancement_type == "Hp":
-                        enhancement_type = "HP"
-                  text = f"{item_design_name} ({enhancement_type} +{enhancement_value})"
-                  word_list.append(text)
-            return word_list
+      def initiateCompleterList(self, data_list, type):
+            if type == "item":
+                  word_list = []
+                  for line in data_list:
+                        item_design_name, rarity, enhancement_type, enhancement_value = line
+                        if enhancement_type == "FireResistance":
+                              enhancement_type = "RST"
+                        elif enhancement_type == "Pilot":
+                              enhancement_type = "PLT"
+                        elif enhancement_type == "Ability":
+                              enhancement_type = "ABL"
+                        elif enhancement_type == "Weapon":
+                              enhancement_type = "WPN"
+                        elif enhancement_type == "Engine":
+                              enhancement_type = "ENG"
+                        elif enhancement_type == "Science":
+                              enhancement_type = "SCI"
+                        elif enhancement_type == "Attack":
+                              enhancement_type = "ATK"
+                        elif enhancement_type == "Stamina":
+                              enhancement_type = "STA"
+                        elif enhancement_type == "Repair":
+                              enhancement_type = "RPR"
+                        elif enhancement_type == "Hp":
+                              enhancement_type = "HP"
+                        text = f"{item_design_name} ({enhancement_type} +{enhancement_value})"
+                        word_list.append(text)
+                  return word_list
+            elif type == "crew":
+                  word_list = []
+                  for line in data_list:
+                        #Crew Name,Equipment Mask,Rarity,Special,Collection,HP,Attack,RPR,ABL,PLT,SCI,ENG,WPN,RST,Walk,Run,TP
+                        crew_name, equipment_mask, rarity, special, collection, hp, attack, rpr, abl, plt, sci, eng, wpn, rst, walk, run, tp = line
+                        text = crew_name
+                        word_list.append(text)
+                  return word_list
       async def get_db_version(self):
             global API_CALL_COUNT
             version = await self.client.get_latest_version()
@@ -2068,6 +2176,79 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             for file_name, data_list in listedcsv:
                   data_list.clear()
                   data_list.extend(self.read_itemlist_from_csv(file_name))
+      class StatsTableModel(QAbstractTableModel):
+            def __init__(self, data, parent=None):
+                  super().__init__()
+                  self._data = data
+                  self.parent = parent
+                  self.verticalHeaders = ['HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN']
+                  self.horizontalHeaders = ['TP']
+            def rowCount(self, index):
+                  return len(self._data)
+            def columnCount(self, index):
+                  return len(self._data[0])
+            def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+                  if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
+                        return str(self._data[index.row()][index.column()])
+            def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+                  if index.isValid() and role == Qt.ItemDataRole.EditRole:
+                        try:
+                              int_value = int(value)
+                        except ValueError:
+                              int_value = 0
+                        self._data[index.row()][index.column()] = int_value
+                        self.dataChanged.emit(index, index)
+                        return True
+                  return False
+            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+                  if role == Qt.ItemDataRole.DisplayRole:
+                        if orientation == Qt.Orientation.Horizontal and section < len(self.horizontalHeaders):
+                              return self.horizontalHeaders[section]
+                        elif role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
+                              return self.verticalHeaders[section]
+                  return None
+            def getCellValue(self, row, column):
+                  return self._data[row][column]
+            def flags(self, index):
+                  if index.column() >= 1:
+                        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+                  else:
+                        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
+      class FinalStatsTableModel(QAbstractTableModel):
+            def __init__(self, data, parent=None):
+                  super().__init__()
+                  self._data = data
+                  self.parent = parent
+                  self.verticalHeaders = ['HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN','RST','Walk','Run']
+                  self.horizontalHeaders = ['Stat', 'Base', 'Final']
+            def rowCount(self, index):
+                  return len(self._data)
+            def columnCount(self, index):
+                  return len(self._data[0])
+            def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+                  if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
+                        return str(self._data[index.row()][index.column()])
+            def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+                  if index.isValid() and role == Qt.ItemDataRole.EditRole:
+                        try:
+                              int_value = int(value)
+                        except ValueError:
+                              int_value = 0
+                        self._data[index.row()][index.column()] = int_value
+                        self.dataChanged.emit(index, index)
+                        return True
+                  return False
+            def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+                  if role == Qt.ItemDataRole.DisplayRole:
+                        if orientation == Qt.Orientation.Horizontal and section < len(self.horizontalHeaders):
+                              return self.horizontalHeaders[section]
+                        elif role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
+                              return self.verticalHeaders[section]
+                  return None
+            def getCellValue(self, row, column):
+                  return self._data[row][column]
+            def flags(self, index):
+                  return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):
