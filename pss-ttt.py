@@ -11,7 +11,7 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.4.1"
+CURRENT_VERSION = "v1.4.2"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
@@ -25,7 +25,12 @@ DARK_MODE_STYLESHEET = """
             * {
                   background-color: #333;
                   color: white;
-                  }"""
+                  }
+            QHeaderView::section 
+            {
+                  background-color: #333;
+                  color: #FFFFFF;
+            }"""
 CURRENT_STYLESHEET = "default"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -265,7 +270,8 @@ class MainWindow(QtWidgets.QMainWindow):
       global GITHUB_RELEASE_LINK
       global API_CALL_COUNT
       global NEW_RELEASE
-      global DARK_MODE_STYLESHEET, CURRENT_STYLESHEET
+      global DARK_MODE_STYLESHEET
+      global CURRENT_STYLESHEET
       def __init__(self, parent=None):
             super().__init__(parent)
             start_time = time.time()
@@ -312,7 +318,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.createNewProfile.clicked.connect(self.popProfiles)
             self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
             self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
-
       def initialize_dialogs(self):
             self.fightDialog = FightDataConfirmation(parent=self)
             self.fightDialog.fightDataSaved.connect(self.receiveFightData)
@@ -451,6 +456,15 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                   CURRENT_STYLESHEET="default"
                   self.setStyleSheet("")
+            tourny = getattr(self, "tournyTable")
+            legends = getattr(self, "legendsTable")
+            pvp = getattr(self, "pvpTable")
+            list = tourny, legends, pvp
+            for table_widget in list:
+                  table_widget.setColumnWidth(0,35)
+                  table_widget.setColumnWidth(1,70)
+                  table_widget.setColumnWidth(2,25)
+                  table_widget.setColumnWidth(3,40)            
       def blinkAboutMenu(self):
             if self.color_flag:
                   self.menuAbout.setTitle("Update Available")
@@ -709,11 +723,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
                   model = self.CustomSqlTableModel()
                   model.setQuery(query)
+                  table_widget.setModel(model)
                   if CURRENT_STYLESHEET == "default":
                         table_widget.setStyleSheet("")
                   elif CURRENT_STYLESHEET == "dark":
                         table_widget.setStyleSheet(DARK_MODE_STYLESHEET)
-                  table_widget.setModel(model)
                   table_widget.setColumnWidth(0,35)
                   table_widget.setColumnWidth(1,70)
                   table_widget.setColumnWidth(2,25)
@@ -773,6 +787,15 @@ class MainWindow(QtWidgets.QMainWindow):
       class CustomSqlTableModel(QSqlTableModel):
             def __init__(self, parent=None):
                   super().__init__(parent)
+            def setStylesheet(self):
+                  if CURRENT_STYLESHEET == "default":
+                        self.setStyleSheet("")
+                  elif CURRENT_STYLESHEET == "dark":
+                        self.setStyleSheet(DARK_MODE_STYLESHEET)
+                  self.setColumnWidth(0,35)
+                  self.setColumnWidth(1,70)
+                  self.setColumnWidth(2,25)
+                  self.setColumnWidth(3,40)
             def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
                   if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
                         headers = {
