@@ -24,8 +24,17 @@ NEW_RELEASE = False
 DARK_MODE_STYLESHEET = """
             * {
                   background-color: #333;
+                  alternate-background-color: #222; 
                   color: white;
                   }
+            QDialogTitleBar {
+                  background-color: #000080;
+                  color: white;
+                  }
+            QTableView::section {
+                  background-color: #333;
+                  color: black;
+            }
             QHeaderView::section 
             {
                   background-color: #333;
@@ -35,39 +44,44 @@ CURRENT_STYLESHEET = "default"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 class ProfileDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+      def __init__(self, parent=None):
+            super().__init__(parent)
 
-        self.setWindowTitle("Create Starter Profile")
-        layout = QVBoxLayout()
-        self.label = QLabel("Enter Profile Name:")
-        layout.addWidget(self.label)
+            self.setWindowTitle("Create Starter Profile")
+            layout = QVBoxLayout()
+            self.label = QLabel("Enter Profile Name:")
+            layout.addWidget(self.label)
 
-        self.profile_name_edit = QLineEdit()
-        self.profile_name_edit.setPlaceholderText("Default Profile Name")
-        layout.addWidget(self.profile_name_edit)
+            self.profile_name_edit = QLineEdit()
+            self.profile_name_edit.setPlaceholderText("Default Profile Name")
+            layout.addWidget(self.profile_name_edit)
 
-        self.create_button = QPushButton("Create Profile")
-        self.create_button.clicked.connect(self.save_profile)
-        layout.addWidget(self.create_button)
+            self.create_button = QPushButton("Create Profile")
+            self.create_button.clicked.connect(self.save_profile)
+            layout.addWidget(self.create_button)
 
-        self.setLayout(layout)
-        self.profile_name = None
-    def save_profile(self):
-        self.profile_name = self.profile_name_edit.text()
+            self.setLayout(layout)
+            self.profile_name = None
+      def save_profile(self):
+            self.profile_name = self.profile_name_edit.text()
 
-        if not self.profile_name:
-            QMessageBox.warning(self, "Input Error", "Profile name cannot be empty!")
-            return
+            if not self.profile_name:
+                  QMessageBox.warning(self, "Input Error", "Profile name cannot be empty!")
+                  return
 
-        profiles_csv = os.path.join('profiles.csv')
-        with open(profiles_csv, mode='a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([self.profile_name])
+            profiles_csv = os.path.join('profiles.csv')
+            with open(profiles_csv, mode='a', newline='') as file:
+                  writer = csv.writer(file)
+                  writer.writerow([self.profile_name])
 
-        QMessageBox.information(self, "Profile Created", f"Profile '{self.profile_name}' has been created and saved.")
+            QMessageBox.information(self, "Profile Created", f"Profile '{self.profile_name}' has been created and saved.")
         
-        self.accept()
+            self.accept()
+      def setStyle(self):
+            if CURRENT_STYLESHEET == "default":
+                  self.setStyleSheet("")
+            elif CURRENT_STYLESHEET == "dark":
+                  self.setStyleSheet(DARK_MODE_STYLESHEET)
 def get_or_create_uuid():
       config_data = load_config()
       config_list = config_data.get('config')
@@ -332,7 +346,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.importDialog = ImportDialogBox()
             self.trainingDialog = CrewTrainerDialogBox()
             self.profileCreate = ProfileDialog()
-            self.starCalculator = StarsTableDialogBox(self.profileComboBox.currentText())
+            self.starCalculator = StarsCalculatorDialogBox(self.profileComboBox.currentText())
             self.starTargetTrack = StarTargetTrackDialogBox(self.profileComboBox.currentText(), parent=self)
             self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK, API_CALL_COUNT)
             self.crewLoadoutBuilder = CrewLoadoutBuilderDialogBox(parent=self)
@@ -450,6 +464,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.update_player_via_api(player.name)
       Update top 100 players and names in fleets once per day maximum'''
       def swapStyle(self):
+            global CURRENT_STYLESHEET
             if self.actionDark_Mode.isChecked():
                   self.setStyleSheet(DARK_MODE_STYLESHEET)
                   CURRENT_STYLESHEET="dark"
@@ -464,7 +479,18 @@ class MainWindow(QtWidgets.QMainWindow):
                   table_widget.setColumnWidth(0,35)
                   table_widget.setColumnWidth(1,70)
                   table_widget.setColumnWidth(2,25)
-                  table_widget.setColumnWidth(3,40)            
+                  table_widget.setColumnWidth(3,40)
+            self.importDialog.setStyle()
+            self.fightDialog.setStyle()
+            self.player_dialog.setStyle()
+            self.fleet_dialog.setStyle()
+            self.fleet_name_dialog.setStyle()
+            self.trainingDialog.setStyle()
+            self.profileCreate.setStyle()
+            self.starCalculator.setStyle()
+            self.starTargetTrack.setStyle()
+            self.aboutBox.setStyle()
+            self.crewLoadoutBuilder.setStyle()
       def blinkAboutMenu(self):
             if self.color_flag:
                   self.menuAbout.setTitle("Update Available")
@@ -472,7 +498,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.menuAbout.setTitle("About")
             self.color_flag = not self.color_flag
       def openLoadoutBuilder(self):
-            self.crewLoadoutBuilder.setStylesheet()
+            self.crewLoadoutBuilder.setStyle()
             self.crewLoadoutBuilder.exec()
       def update_player_via_api(self, searchname):
             data = self.fetch_user_data(searchname)
@@ -536,33 +562,25 @@ class MainWindow(QtWidgets.QMainWindow):
                         print(f"Error: {db_name} Update")
                         print("Error:", query.lastError().text())
       def open_fightDialog(self):
-            self.fightDialog.setStylesheet()
             self.fightDialog.exec()
       def open_playerBrowser(self):
-            self.player_dialog.setStylesheet()
             self.player_dialog.populateList("SELECT playername FROM players", None)
             self.player_dialog.exec()
       def open_fleetBrowser(self):
-            self.fleet_dialog.setStylesheet()
             self.fleet_dialog.populateList("SELECT playername FROM players WHERE fleetname = :fleet_name", self.fleetName.toPlainText())
             self.fleet_dialog.exec()
       def open_fleetNameBrowser(self):
-            self.fleet_name_dialog.setStylesheet()
             self.fleet_name_dialog.populateList("SELECT fleetname FROM players", None)
             self.fleet_name_dialog.exec()
       def open_importDialog(self):
-            self.importDialog.setStylesheet()
             self.importDialog.importDialogLabel.setText("")
             self.importDialog.importFilenameBox.setPlainText("")
             self.importDialog.exec()
       def open_tournamentStarsCalc(self):
-            self.starCalculator.setStylesheet()
             self.starCalculator.exec()
       def open_crewTrainer(self):
-            self.trainingDialog.setStylesheet()
             self.trainingDialog.exec()
       def open_stt(self):
-            self.starTargetTrack.setStylesheet()
             self.starTargetTrack.populateSTT(self.playerNameSearchBox.toPlainText())
             self.starTargetTrack.exec()
       def exportFightsToCSV(self):
@@ -787,7 +805,7 @@ class MainWindow(QtWidgets.QMainWindow):
       class CustomSqlTableModel(QSqlTableModel):
             def __init__(self, parent=None):
                   super().__init__(parent)
-            def setStylesheet(self):
+            def setStyle(self):
                   if CURRENT_STYLESHEET == "default":
                         self.setStyleSheet("")
                   elif CURRENT_STYLESHEET == "dark":
@@ -858,6 +876,11 @@ class MainWindow(QtWidgets.QMainWindow):
                   self.setLayout(layout)
             def update_api_calls(self, api_calls):
                   self.api_calls_label.setText(f"API Calls: {api_calls}")
+            def setStyle(self):
+                  if CURRENT_STYLESHEET == "default":
+                        self.setStyleSheet("")
+                  elif CURRENT_STYLESHEET == "dark":
+                        self.setStyleSheet(DARK_MODE_STYLESHEET)
 class FilteredListDialog(QtWidgets.QDialog):
       global CURRENT_STYLESHEET
       copyItemSearchClicked = QtCore.pyqtSignal(str, bool)
@@ -901,7 +924,7 @@ class FilteredListDialog(QtWidgets.QDialog):
             if selected_item:
                   selected_text = selected_item.text()
                   self.copyItemSearchClicked.emit(selected_text, True)
-      def setStylesheet(self):
+      def setStyle(self):
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
@@ -933,7 +956,7 @@ class FightDataConfirmation(QtWidgets.QDialog):
             uic.loadUi(os.path.join('_internal','_ui','pss-ttt-fdb.ui'), self)
 
             self.submitFightDataButton.clicked.connect(self.saveFightData)
-      def setStylesheet(self):
+      def setStyle(self):
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
@@ -960,7 +983,7 @@ class ImportDialogBox(QtWidgets.QDialog):
             self.importSeeChanges.clicked.connect(self.printChangesList)
 
             self.progress_signal.connect(self.updateProgressBar, QtCore.Qt.ConnectionType.DirectConnection)
-      def setStylesheet(self):
+      def setStyle(self):
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
@@ -1062,7 +1085,7 @@ class ImportDialogBox(QtWidgets.QDialog):
                         throwErrorMessage("Database Error", query.lastError().text())
             db.commit()
             return self.counter
-class StarsTableDialogBox(QtWidgets.QDialog):
+class StarsCalculatorDialogBox(QtWidgets.QDialog):
       global CURRENT_STYLESHEET
       def __init__(self, profile_name):
             super().__init__()
@@ -1100,11 +1123,13 @@ class StarsTableDialogBox(QtWidgets.QDialog):
             total_sum = sum(self.model.getCellValue(7, col) for col in range(self.model.columnCount(None)))
             self.actualStarsBox.setPlainText(str(total_sum))
             self.saveStarsTableToCSV()
-      def setStylesheet(self):
+      def setStyle(self):
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
                   self.setStyleSheet(DARK_MODE_STYLESHEET)
+            for i in range(7):
+                  self.tournamentTable.setColumnWidth(i,50)
       def saveStarsTableToCSV(self):
             file_path = self.getStarsFilePath()
             try:
@@ -1360,6 +1385,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             self.chartModel = self.TrainingChartTableModel(self.trainingChart, self.trainingStatBox)
             self.trainingStatBox = self.findChild(QtWidgets.QComboBox, "trainingStatBox")
             self.statsTable.setModel(self.model)
+            self.setStyle()
             self.statsTable.setColumnWidth(0,50)
             self.statsTable.setColumnWidth(1,90)
             self.statsTable.setColumnWidth(2,90)
@@ -1382,11 +1408,23 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         self.chartTable.setColumnWidth(i,1)
             self.testPushButton.clicked.connect(self.wipeCrewStats)
             self.onComboBoxValueChanged()
-      def setStylesheet(self):
+      def setStyle(self):
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
+                  self.chartTable.setStyleSheet("")
+                  self.statsTable.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
                   self.setStyleSheet(DARK_MODE_STYLESHEET)
+                  self.chartTable.setStyleSheet(DARK_MODE_STYLESHEET)
+                  self.statsTable.setStyleSheet(DARK_MODE_STYLESHEET)
+            self.statsTable.setColumnWidth(0,50)
+            self.statsTable.setColumnWidth(1,90)
+            self.statsTable.setColumnWidth(2,90)
+            for i in range(10):
+                  if i == 0:
+                        self.chartTable.setColumnWidth(i,125)
+                  else:
+                        self.chartTable.setColumnWidth(i,1)
       def checkSumValidity(self):
             sum_of_values = sum(row[0] for row in self.crewStats)
             max_TP = self.mergedMaxTP()
@@ -1609,6 +1647,11 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   self.trainingStatBox = trainingStatBox
                   self.horizontalHeaders = ['Training', 'HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN']
                   self.verticalHeaders = [''] * len(data)
+            def setStyle(self):
+                  if CURRENT_STYLESHEET == "default":
+                        self.setStyleSheet("")
+                  elif CURRENT_STYLESHEET == "dark":
+                        self.setStyleSheet(DARK_MODE_STYLESHEET)
             def rowCount(self, index):
                   return len(self._data)
             def columnCount(self, index):
@@ -1628,12 +1671,21 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   elif role == Qt.ItemDataRole.BackgroundRole:
                         value = self.data(index, Qt.ItemDataRole.DisplayRole)
                         col = index.column()
-                        if value == 0:
-                              return QColor(198,239,206)
-                        elif self.trainingStatBox.currentText() == self.horizontalHeaders[col]:
-                              return QColor(189,215,238)
-                        else:
-                              return QColor(255,255,255)
+                        if CURRENT_STYLESHEET=="dark":
+                              if value == 0:
+                                    return QColor(76,175,80)
+                              elif self.trainingStatBox.currentText() == self.horizontalHeaders[col]:
+                                    return QColor(25,118,210)
+                              else:
+                                    return QColor(51,51,51)
+                        elif CURRENT_STYLESHEET=="default":
+                              if value == 0:
+                                    return QColor(198,239,206)
+                              elif self.trainingStatBox.currentText() == self.horizontalHeaders[col]:
+                                    return QColor(189,215,238)
+                              else:
+                                    return QColor(255,255,255)
+
                   return None
             def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
                   if role == Qt.ItemDataRole.EditRole and index.isValid():
@@ -1801,7 +1853,7 @@ class StarTargetTrackDialogBox(QtWidgets.QDialog):
             self.loadStarsCSV()
       def setProfilePath(self, profile_name):
             self.profile_path = profile_name
-      def setStylesheet(self):
+      def setStyle(self):
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
@@ -1994,7 +2046,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.tpTable.setColumnWidth(2,90)
 
             self.loadCrewDataButton.clicked.connect(self.loadCrewData)
-      def setStylesheet(self):
+      def setStyle(self):
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
