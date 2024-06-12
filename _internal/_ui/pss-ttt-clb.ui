@@ -95,7 +95,7 @@
     <string>Leg</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="accessEquipBox">
+  <widget class="QLineEdit" name="accessoryEquipBox">
    <property name="geometry">
     <rect>
      <x>70</x>
@@ -105,7 +105,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="accEquipLabel">
+  <widget class="QLabel" name="accessoryEquipLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -128,7 +128,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="wepEquipLabel">
+  <widget class="QLabel" name="weaponEquipLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -164,7 +164,7 @@
     <string>Pet</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="wepEquipBox">
+  <widget class="QLineEdit" name="weaponEquipBox">
    <property name="geometry">
     <rect>
      <x>70</x>
@@ -273,7 +273,7 @@
     <number>1</number>
    </property>
   </widget>
-  <widget class="QComboBox" name="wepHeroSideDD">
+  <widget class="QComboBox" name="weaponHeroSideDD">
    <property name="geometry">
     <rect>
      <x>70</x>
@@ -333,7 +333,7 @@
     </property>
    </item>
   </widget>
-  <widget class="QDoubleSpinBox" name="wepHeroSideStat">
+  <widget class="QDoubleSpinBox" name="weaponHeroSideStat">
    <property name="geometry">
     <rect>
      <x>180</x>
@@ -346,7 +346,7 @@
     <number>1</number>
    </property>
   </widget>
-  <widget class="QComboBox" name="accHeroSideDD">
+  <widget class="QComboBox" name="accessoryHeroSideDD">
    <property name="geometry">
     <rect>
      <x>70</x>
@@ -406,7 +406,7 @@
     </property>
    </item>
   </widget>
-  <widget class="QDoubleSpinBox" name="accHeroSideStat">
+  <widget class="QDoubleSpinBox" name="accessoryHeroSideStat">
    <property name="geometry">
     <rect>
      <x>180</x>

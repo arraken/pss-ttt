@@ -2010,8 +2010,8 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.bodyEquipBox = self.findChild(QLineEdit, 'bodyEquipBox')
             self.headEquipBox = self.findChild(QLineEdit, 'headEquipBox')
             self.legEquipBox = self.findChild(QLineEdit, 'legEquipBox')
-            self.wepEquipBox = self.findChild(QLineEdit, 'wepEquipBox')
-            self.accessEquipBox = self.findChild(QLineEdit, 'accessEquipBox')
+            self.weaponEquipBox = self.findChild(QLineEdit, 'weaponEquipBox')
+            self.accessoryEquipBox = self.findChild(QLineEdit, 'accessoryEquipBox')
             self.petEquipBox = self.findChild(QLineEdit, 'petEquipBox')
             self.crewNameBox = self.findChild(QLineEdit, 'crewNameBox')
 
@@ -2027,8 +2027,8 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.bodyCompleter = self.setup_completer(self.bodyEquipBox, self.BODY_LIST, "item")
             self.headCompleter = self.setup_completer(self.headEquipBox, self.HEAD_LIST, "item")
             self.legCompleter = self.setup_completer(self.legEquipBox, self.LEG_LIST, "item")
-            self.wepCompleter = self.setup_completer(self.wepEquipBox, self.WEP_LIST, "item")
-            self.accCompleter = self.setup_completer(self.accessEquipBox, self.ACC_LIST, "item")
+            self.wepCompleter = self.setup_completer(self.weaponEquipBox, self.WEP_LIST, "item")
+            self.accCompleter = self.setup_completer(self.accessoryEquipBox, self.ACC_LIST, "item")
             self.petCompleter = self.setup_completer(self.petEquipBox, self.PET_LIST, "item")
             self.crewCompleter = self.setup_completer(self.crewNameBox, self.CREW_LIST, "crew")
             self.finalChart = [[0,0] for _ in range(12)]
@@ -2046,7 +2046,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.tpTable.setColumnWidth(2,90)
 
             self.loadCrewDataButton.clicked.connect(self.loadCrewData)
-            self.hideAllEquipBoxes()
+            self.hideAllEquipBoxes([])
             
             self.wepCompleter.activated.connect(self.onCompleterActivated)
             self.accCompleter.activated.connect(self.onCompleterActivated)
@@ -2123,99 +2123,85 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             else:
                   return False
       def selectEquipmentBoxes(self, equipmask):
-            size = len(equipmask)
-            self.hideAllEquipBoxes()
-            for i in range(size):
-                  if equipmask[i] == "Weapon":
-                        self.wepEquipLabel.show()
-                        self.wepEquipBox.show()
-                        if self.checkEquipRarity(self.wepEquipBox.text(), self.WEP_LIST):
-                              self.wepHeroSideDD.show()
-                              self.wepHeroSideStat.show()
-                  elif equipmask[i] == "Accessory":
-                        self.accEquipLabel.show()
-                        self.accessEquipBox.show()
-                        if self.checkEquipRarity(self.accessEquipBox.text(), self.ACC_LIST):
-                              self.accHeroSideDD.show()
-                              self.accHeroSideStat.show()
-                  elif equipmask[i] == "Leg":
+            self.hideAllEquipBoxes(equipmask)
+
+            for equipment in equipmask:
+                  if equipment == "Weapon":
+                        self.weaponEquipLabel.show()
+                        self.weaponEquipBox.show()
+                        if self.checkEquipRarity(self.weaponEquipBox.text(), self.WEP_LIST):
+                              self.weaponHeroSideDD.show()
+                              self.weaponHeroSideStat.show()
+                  elif equipment == "Accessory":
+                        self.accessoryEquipLabel.show()
+                        self.accessoryEquipBox.show()
+                        if self.checkEquipRarity(self.accessoryEquipBox.text(), self.ACC_LIST):
+                              self.accessoryHeroSideDD.show()
+                              self.accessoryHeroSideStat.show()
+                  elif equipment == "Leg":
                         self.legEquipLabel.show()
                         self.legEquipBox.show()
                         if self.checkEquipRarity(self.legEquipBox.text(), self.LEG_LIST):
                               self.legHeroSideDD.show()
                               self.legHeroSideStat.show()
-                  elif equipmask[i] == "Head":
+                  elif equipment == "Head":
                         self.headEquipLabel.show()
                         self.headEquipBox.show()
                         if self.checkEquipRarity(self.headEquipBox.text(), self.HEAD_LIST):
                               self.headHeroSideDD.show()
                               self.headHeroSideStat.show()
-                  elif equipmask[i] == "Body":
+                  elif equipment == "Body":
                         self.bodyEquipLabel.show()
                         self.bodyEquipBox.show()
                         if self.checkEquipRarity(self.bodyEquipBox.text(), self.BODY_LIST):
                               self.bodyHeroSideDD.show()
                               self.bodyHeroSideStat.show()
-                  elif equipmask[i] == "Pet":
+                  elif equipment == "Pet":
                         self.petEquipLabel.show()
                         self.petEquipBox.show()
                         if self.checkEquipRarity(self.petEquipBox.text(), self.PET_LIST):
                               self.petHeroSideDD.show()
                               self.petHeroSideStat.show()
                   else:
-                        throwErrorMessage("Item Data incorrect [selectEquipmentBoxes]", "Equipment Mask data did not load properly")
+                        self.throwErrorMessage("Item Data incorrect [selectEquipmentBoxes]", "Equipment Mask data did not load properly")
                         return
-      def hideAllEquipBoxes(self):
-            self.petHeroSideDD.hide()
-            self.petHeroSideStat.hide()
-            self.petEquipLabel.hide()
-            self.petEquipBox.hide()
-            self.petEquipBox.setText("")
-            self.wepHeroSideDD.hide()
-            self.wepHeroSideStat.hide()
-            self.wepEquipLabel.hide()
-            self.wepEquipBox.hide()
-            self.wepEquipBox.setText("")
-            self.accHeroSideStat.hide()
-            self.accHeroSideDD.hide()
-            self.accEquipLabel.hide()
-            self.accessEquipBox.hide()
-            self.accessEquipBox.setText("")
-            self.legHeroSideStat.hide()
-            self.legHeroSideDD.hide()
-            self.legEquipLabel.hide()
-            self.legEquipBox.hide()
-            self.legEquipBox.setText("")
-            self.headHeroSideStat.hide()
-            self.headHeroSideDD.hide()
-            self.headEquipLabel.hide()
-            self.headEquipBox.hide()
-            self.headEquipBox.setText("")
-            self.bodyHeroSideStat.hide()
-            self.bodyHeroSideDD.hide()
-            self.bodyEquipLabel.hide()
-            self.bodyEquipBox.hide()
-            self.bodyEquipBox.setText("")
+      def hideAllEquipBoxes(self, equipmask):
+            equipment_boxes = {
+                  "Weapon": self.weaponEquipBox,
+                  "Accessory": self.accessoryEquipBox,
+                  "Leg": self.legEquipBox,
+                  "Head": self.headEquipBox,
+                  "Body": self.bodyEquipBox,
+                  "Pet": self.petEquipBox
+                  }
+
+            for equipment, box in equipment_boxes.items():
+                  if equipment not in equipmask:
+                        getattr(self, f"{equipment.lower()}EquipLabel").hide()
+                        getattr(self, f"{equipment.lower()}EquipBox").hide()
+                        getattr(self, f"{equipment.lower()}EquipBox").setText("")
+                        getattr(self, f"{equipment.lower()}HeroSideDD").hide()
+                        getattr(self, f"{equipment.lower()}HeroSideStat").hide()
+                  else:
+                        getattr(self, f"{equipment.lower()}EquipLabel").show()
+                        getattr(self, f"{equipment.lower()}EquipBox").show()
       def calculateStats(self):
-            #HP,Attack,RPR,ABL,PLT,SCI,ENG,WPN,RST,Walk,Run,TP
             base_stats = {
-                  "hp": 0,
-                  "attack": 0,
-                  "rpr": 0,
-                  "abl": 0,
-                  "sta": 0,
-                  "plt": 0,
-                  "sci": 0,
-                  "eng": 0,
-                  "wpn": 0,
-                  "rst": 0,
+                  "hp": 0.0,
+                  "attack": 0.0,
+                  "rpr": 0.0,
+                  "abl": 0.0,
+                  "sta": 0.0,
+                  "plt": 0.0,
+                  "sci": 0.0,
+                  "eng": 0.0,
+                  "wpn": 0.0,
+                  "rst": 0.0,
                   "walk": 0,
                   "run": 0,
                   "tp": 0}
-            # Retrieve the crew name
             crew_name = self.crewNameBox.text()
 
-            # Find and set base stats for the crew
             for crew in self.CREW_LIST:
                   if crew[0] == crew_name:
                         crew_data = crew[5:17]
@@ -2224,66 +2210,81 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                               print(f"Error: Expected {len(keys)} values but got {len(crew_data) + 1}")
                               return
                         for i, key in enumerate(keys):
-                              if i == 10:
-                                    base_stats[key] = float(0)
+                              if i == 4:
+                                    print(f"Modifying [{key}] for base_stats [{i}] to 0")
+                                    base_stats[key] = 0.0  # Special case for key 10
+                              elif i > 4:
+                                    print(f"Modifying [{key}] for base_stats [{i}] to {float(crew_data[i - 1])}")
+                                    base_stats[key] = float(crew_data[i - 1])  # Adjust index for keys after 10
                               else:
-                                    base_stats[key] = float(crew_data[i]) if i > 10 else float(crew_data[i - 1])
+                                    print(f"Modifying [{key}] for base_stats [{i}] to {float(crew_data[i])}")
+                                    base_stats[key] = float(crew_data[i])
                         break
 
-            # Debug: Print base stats
-            print(f"Base Stats: {base_stats}")
-
-            # Convert tpChart values to float and store in tp_values
             tp_values = []
-            for tp_value in self.tpChart:
+            for i in range(len(self.tpChart)):
                   try:
-                        if isinstance(tp_value, list) and tp_value:
-                              tp_values.append(float(tp_value[0]))
+                        if isinstance(self.tpChart[i], list) and len(self.tpChart[i]) > 0:
+                              tp_values.append(float(self.tpChart[i][0]))
                         else:
-                              tp_values.append(float(tp_value))
+                              tp_values.append(float(self.tpChart[i]))
                   except ValueError as e:
                         print(f"Error converting tpChart value to float: {e}")
                         return
 
-            # Debug: Print TP values
-            print(f"TP Values: {tp_values}")
-
-            if len(tp_values) - 3 != len(base_stats) - 1:
-                  print(f"Error: Expected {len(base_stats) - 1} values in tp_values but got {len(tp_values)}")
+            if len(tp_values) != 9:
+                  print(f"Error: Expected 9 values in tp_values but got {len(tp_values)}")
                   return
 
-            tp_values_subset = tp_values[:9]
-            tp_stats = {key: (1 + (tp_values_subset[i] / 100)) * base_stats[key] for i, key in enumerate(base_stats) if key != 'rst'}
+            keys_for_tp = list(base_stats.keys())[:9]
+            tp_stats = {key: (1 + (tp_values[i] / 100)) * base_stats[key] for i, key in enumerate(keys_for_tp)}
 
-            # Initialize equipment stats
-            eqp_stats = {key: 0 for key in base_stats if key != 'walk' and key != 'run' and key != 'tp'}
+            eqp_stats = {
+                  'hp': 0.0, 'attack': 0.0, 'rpr': 0.0, 'abl': 0.0,
+                  'sta': 0.0, 'plt': 0.0, 'sci': 0.0, 'eng': 0.0,
+                  'wpn': 0.0, 'rst': 0.0, 'walk': 0, 'run': 0,
+                  'tp': 0
+            }
 
-            # Retrieve and calculate equipment stats
-            equipment_lists = [self.ACC_LIST, self.HEAD_LIST, self.BODY_LIST, self.LEG_LIST, self.WEP_LIST, self.PET_LIST]
-            equipment_texts = [self.accessEquipBox.text(), self.headEquipBox.text(), self.bodyEquipBox.text(), self.legEquipBox.text(), self.wepEquipBox.text(), self.petEquipBox.text()]
+            equipment_boxes = {
+                  'Accessory': self.accessoryEquipBox.text(),
+                  'Head': self.headEquipBox.text(),
+                  'Body': self.bodyEquipBox.text(),
+                  'Leg': self.legEquipBox.text(),
+                  'Weapon': self.weaponEquipBox.text(),
+                  'Pet': self.petEquipBox.text()
+                  }
+            equipment_lists = {
+                  'Accessory': self.ACC_LIST,
+                  'Head': self.HEAD_LIST,
+                  'Body': self.BODY_LIST,
+                  'Leg': self.LEG_LIST,
+                  'Weapon': self.WEP_LIST,
+                  'Pet': self.PET_LIST
+                  }
 
-            for eq_list, eq_text in zip(equipment_lists, equipment_texts):
-                  for item in eq_list:
+            for eq_type, eq_text in equipment_boxes.items():
+                  eq_text = self.extract_text_before_parenthesis(eq_text)
+                  for item in equipment_lists[eq_type]:
                         if item[0] == eq_text:
-                              stat_type = item[2].lower()
-                              eqp_stats[stat_type] += float(item[3])
+                              stat_type = self.convert_abbr(item[2].lower())
+                              print(f"Searching ({stat_type})")
+                              if stat_type in eqp_stats:
+                                    eqp_stats[stat_type] += float(item[3])
+                              else:
+                                    print(f"Warning: Unexpected stat type '{stat_type}' in item '{item[0]}'")
                               break
 
-            # Debug: Print equipment stats
-            print(f"Equipment Stats: {eqp_stats}")
-
-            # Calculate final stats
             final_stats = {}
             for key in base_stats:
                   if key in tp_stats:
                         final_stats[key] = tp_stats[key] + eqp_stats.get(key, 0)
                   else:
                         final_stats[key] = base_stats[key] + eqp_stats.get(key, 0)
+            
+            final_stats = {key: tp_stats.get(key, 0) + eqp_stats.get(key, 0) for key in base_stats}
+            final_stats['rst'] = base_stats['rst'] + eqp_stats['rst']
 
-            # Debug: Print final stats
-            print(f"Final Stats: {final_stats}")
-
-            # Update the final model with the calculated stats
             self.finalModel.setData(self.finalModel.index(0, 1), final_stats["hp"])
             self.finalModel.setData(self.finalModel.index(1, 1), final_stats["attack"])
             self.finalModel.setData(self.finalModel.index(2, 1), final_stats["rpr"])
@@ -2296,6 +2297,30 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.finalModel.setData(self.finalModel.index(9, 1), final_stats["rst"])
             self.finalModel.setData(self.finalModel.index(10, 1), final_stats["walk"])
             self.finalModel.setData(self.finalModel.index(11, 1), final_stats["run"])
+      def extract_text_before_parenthesis(self, eq_text):
+            index = eq_text.find('(')
+            if index != -1:
+                  return eq_text[:index - 1].strip()
+            return eq_text.strip()
+      def convert_abbr(self, full_name):
+            if full_name == 'repair':
+                  return 'rpr'
+            elif full_name == 'ability':
+                  return 'abl'
+            elif full_name == 'stamina':
+                  return 'sta'
+            elif full_name == 'pilot':
+                  return 'plt'
+            elif full_name == 'science':
+                  return 'sci'
+            elif full_name == 'engine':
+                  return 'eng'
+            elif full_name == 'weapon':
+                  return 'wpn'
+            elif full_name == 'fireresistance':
+                  return 'rst'
+            else:
+                  return full_name
       def readCrewFromCSV(self):
             data_list = []
             try:
@@ -2478,21 +2503,26 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   self._data = data
                   self.parent = parent
                   self.verticalHeaders = ['HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN','RST','Walk','Run']
-                  self.horizontalHeaders = ['Stat', 'Base', 'Final']
+                  self.horizontalHeaders = ['Base', 'Stat', 'Final']
             def rowCount(self, index):
                   return len(self._data)
             def columnCount(self, index):
                   return len(self._data[0])
             def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-                  if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
-                        return float(self._data[index.row()][index.column()])
+                  if index.isValid and role == Qt.ItemDataRole.DisplayRole:
+                        value = self._data[index.row()][index.column()]
+                        if index.column() == 0:
+                              return str(int(value))                              
+                        elif index.column() == 1:
+                              return f"{value:.1f}"
+                  return None
             def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
                   if index.isValid() and role == Qt.ItemDataRole.EditRole:
                         try:
-                              int_value = int(value)
+                              float_value = float(value)
                         except ValueError:
-                              int_value = 0
-                        self._data[index.row()][index.column()] = int_value
+                              float_value = 0
+                        self._data[index.row()][index.column()] = float_value
                         self.dataChanged.emit(index, index)
                         return True
                   return False
