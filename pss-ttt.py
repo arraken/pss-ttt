@@ -2129,14 +2129,12 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   if equipmask[i] == "Weapon":
                         self.wepEquipLabel.show()
                         self.wepEquipBox.show()
-                        print(f"Text WEP: {self.wepEquipBox.text()}")
                         if self.checkEquipRarity(self.wepEquipBox.text(), self.WEP_LIST):
                               self.wepHeroSideDD.show()
                               self.wepHeroSideStat.show()
                   elif equipmask[i] == "Accessory":
                         self.accEquipLabel.show()
                         self.accessEquipBox.show()
-                        print(f"Text ACC: {self.wepEquipBox.text()}")
                         if self.checkEquipRarity(self.accessEquipBox.text(), self.ACC_LIST):
                               self.accHeroSideDD.show()
                               self.accHeroSideStat.show()
@@ -2199,135 +2197,105 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.bodyEquipBox.hide()
             self.bodyEquipBox.setText("")
       def calculateStats(self):
-            #We need to look at when QCompleters are finished to update from equipment stats or when TP is entered to calculate new stats
-            #First pass - Calculate when tp has changed to update final stats
-            #Second pass - Calculate with equipment change
-
-            base_hp = base_attack = base_rpr = base_abl = base_sta = 0
-            base_plt = base_sci = base_eng = base_wpn = base_rst = walk = run = tp = 0
-
+            #HP,Attack,RPR,ABL,PLT,SCI,ENG,WPN,RST,Walk,Run,TP
+            base_stats = {
+                  "hp": 0,
+                  "attack": 0,
+                  "rpr": 0,
+                  "abl": 0,
+                  "sta": 0,
+                  "plt": 0,
+                  "sci": 0,
+                  "eng": 0,
+                  "wpn": 0,
+                  "rst": 0,
+                  "walk": 0,
+                  "run": 0,
+                  "tp": 0}
+            # Retrieve the crew name
             crew_name = self.crewNameBox.text()
+
+            # Find and set base stats for the crew
             for crew in self.CREW_LIST:
                   if crew[0] == crew_name:
-                        crew_name, equipment_mask, rarity, special, collection, base_hp, base_attack, base_rpr, base_abl, base_plt, base_sci, base_eng, base_wpn, base_rst, walk, run, tp = (
-                        crew[0], 
-                        crew[1], 
-                        crew[2], 
-                        crew[3], 
-                        crew[4], 
-                        crew[5], 
-                        crew[6], 
-                        crew[7], 
-                        crew[8], 
-                        crew[9], 
-                        crew[10], 
-                        crew[11], 
-                        crew[12], 
-                        crew[13], 
-                        crew[14], 
-                        crew[15], 
-                        crew[16])
+                        crew_data = crew[5:17]
+                        keys = list(base_stats.keys())
+                        if len(keys) != len(crew_data) + 1:
+                              print(f"Error: Expected {len(keys)} values but got {len(crew_data) + 1}")
+                              return
+                        for i, key in enumerate(keys):
+                              if i == 10:
+                                    base_stats[key] = float(0)
+                              else:
+                                    base_stats[key] = float(crew_data[i]) if i > 10 else float(crew_data[i - 1])
+                        break
 
-            print(f"Base HP before conversion: {base_hp}, Type: {type(base_hp)}")
+            # Debug: Print base stats
+            print(f"Base Stats: {base_stats}")
 
-            base_hp = float(base_hp)
-            base_attack = float(base_attack)
-            base_rpr = float(base_rpr)
-            base_abl = float(base_abl)
-            base_plt = float(base_plt)
-            base_sci = float(base_sci)
-            base_eng = float(base_eng)
-            base_wpn = float(base_wpn)
-            base_rst = float(base_rst)
-            walk = float(walk)
-            run = float(run)
-            tp = float(tp)
-
+            # Convert tpChart values to float and store in tp_values
             tp_values = []
-            for i in range(len(self.tpChart)):
+            for tp_value in self.tpChart:
                   try:
-                        if isinstance(self.tpChart[i], list) and len(self.tpChart[i]) > 0:
-                              tp_values.append(float(self.tpChart[i][0]))
+                        if isinstance(tp_value, list) and tp_value:
+                              tp_values.append(float(tp_value[0]))
                         else:
-                              tp_values.append(float(self.tpChart[i]))
+                              tp_values.append(float(tp_value))
                   except ValueError as e:
                         print(f"Error converting tpChart value to float: {e}")
                         return
 
-            print(f"Base HP: {base_hp}, TP Values: {tp_values}")
-            print(f"Type of base_hp: {type(base_hp)}, Type of tp_values[0]: {type(tp_values[0])}")
+            # Debug: Print TP values
+            print(f"TP Values: {tp_values}")
 
-            tp_hp = (1+(tp_values[0] / 100)) * base_hp
-            tp_atk = (1+(tp_values[1] / 100)) * base_attack
-            tp_rpr = (1+(tp_values[2] / 100)) * base_rpr
-            tp_abl = (1+(tp_values[3] / 100)) * base_abl
-            tp_sta = (1+(tp_values[4] / 100)) * base_sta
-            tp_plt = (1+(tp_values[5] / 100)) * base_plt
-            tp_sci = (1+(tp_values[6] / 100)) * base_sci
-            tp_eng = (1+(tp_values[7] / 100)) * base_eng
-            tp_wpn = (1+(tp_values[8] / 100)) * base_wpn
+            if len(tp_values) - 3 != len(base_stats) - 1:
+                  print(f"Error: Expected {len(base_stats) - 1} values in tp_values but got {len(tp_values)}")
+                  return
 
-            eqp_hp = eqp_atk = eqp_rpr = eqp_abl = eqp_sta = 0
-            eqp_plt = eqp_sci = eqp_eng = eqp_wpn = eqp_rst = 0
-            # Need to get equip data for each slot now
-            accessory = self.accessEquipBox.text()
-            head = self.headEquipBox.text()
-            body = self.bodyEquipBox.text()
-            legs = self.legEquipBox.text()
-            wep = self.wepEquipBox.text()
-            pet = self.petEquipBox.text()
-            #item[0] Name
-            #item[1] Rarity
-            #item[2] Boost Stat
-            #item[3] Boost Amount
+            tp_values_subset = tp_values[:9]
+            tp_stats = {key: (1 + (tp_values_subset[i] / 100)) * base_stats[key] for i, key in enumerate(base_stats) if key != 'rst'}
 
+            # Initialize equipment stats
+            eqp_stats = {key: 0 for key in base_stats if key != 'walk' and key != 'run' and key != 'tp'}
+
+            # Retrieve and calculate equipment stats
             equipment_lists = [self.ACC_LIST, self.HEAD_LIST, self.BODY_LIST, self.LEG_LIST, self.WEP_LIST, self.PET_LIST]
-            equipment_texts = [accessory, head, body, legs, wep, pet]
+            equipment_texts = [self.accessEquipBox.text(), self.headEquipBox.text(), self.bodyEquipBox.text(), self.legEquipBox.text(), self.wepEquipBox.text(), self.petEquipBox.text()]
 
             for eq_list, eq_text in zip(equipment_lists, equipment_texts):
                   for item in eq_list:
                         if item[0] == eq_text:
-                              if item[2] == "HP":
-                                    eqp_hp += float(item[3])
-                              elif item[2] == "Attack":
-                                    eqp_atk += float(item[3])
-                              elif item[2] == "Repair":
-                                    eqp_rpr += float(item[3])
-                              elif item[2] == "Ability":
-                                    eqp_abl += float(item[3])
-                              elif item[2] == "Stamina":
-                                    eqp_sta += float(item[3])
-                              elif item[2] == "Pilot":
-                                    eqp_plt += float(item[3])
-                              elif item[2] == "Science":
-                                    eqp_sci += float(item[3])
-                              elif item[2] == "Engine":
-                                    eqp_eng += float(item[3])
-                              elif item[2] == "Weapon":
-                                    eqp_wpn += float(item[3])
-                              elif item[2] == "FireResistance":
-                                    eqp_rst += float(item[3])
-            final_hp = (base_hp*tp_hp) + eqp_hp
-            final_atk = (base_attack*tp_atk) + eqp_atk
-            final_rpr = (base_rpr*tp_rpr) + eqp_rpr
-            final_abl = (base_abl*tp_abl) * eqp_abl
-            final_sta = (base_sta+tp_sta) + eqp_sta
-            final_plt = (base_plt*tp_plt) + eqp_plt
-            final_sci = (base_sci*tp_sci) + eqp_sci
-            final_eng = (base_eng*tp_eng) + eqp_eng
-            final_wpn = (base_wpn*tp_wpn) + eqp_wpn
-            final_rst = (base_rst) + eqp_rst
+                              stat_type = item[2].lower()
+                              eqp_stats[stat_type] += float(item[3])
+                              break
 
-            self.finalModel.setData(self.finalModel.index(0, 1), final_hp)
-            self.finalModel.setData(self.finalModel.index(1, 1), final_atk)
-            self.finalModel.setData(self.finalModel.index(2, 1), final_rpr)
-            self.finalModel.setData(self.finalModel.index(3, 1), final_abl)
-            self.finalModel.setData(self.finalModel.index(4, 1), final_sta)
-            self.finalModel.setData(self.finalModel.index(5, 1), final_plt)
-            self.finalModel.setData(self.finalModel.index(6, 1), final_sci)
-            self.finalModel.setData(self.finalModel.index(7, 1), final_eng)
-            self.finalModel.setData(self.finalModel.index(8, 1), final_wpn)
-            self.finalModel.setData(self.finalModel.index(9, 1), final_rst)
+            # Debug: Print equipment stats
+            print(f"Equipment Stats: {eqp_stats}")
+
+            # Calculate final stats
+            final_stats = {}
+            for key in base_stats:
+                  if key in tp_stats:
+                        final_stats[key] = tp_stats[key] + eqp_stats.get(key, 0)
+                  else:
+                        final_stats[key] = base_stats[key] + eqp_stats.get(key, 0)
+
+            # Debug: Print final stats
+            print(f"Final Stats: {final_stats}")
+
+            # Update the final model with the calculated stats
+            self.finalModel.setData(self.finalModel.index(0, 1), final_stats["hp"])
+            self.finalModel.setData(self.finalModel.index(1, 1), final_stats["attack"])
+            self.finalModel.setData(self.finalModel.index(2, 1), final_stats["rpr"])
+            self.finalModel.setData(self.finalModel.index(3, 1), final_stats["abl"])
+            self.finalModel.setData(self.finalModel.index(4, 1), final_stats["sta"])
+            self.finalModel.setData(self.finalModel.index(5, 1), final_stats["plt"])
+            self.finalModel.setData(self.finalModel.index(6, 1), final_stats["sci"])
+            self.finalModel.setData(self.finalModel.index(7, 1), final_stats["eng"])
+            self.finalModel.setData(self.finalModel.index(8, 1), final_stats["wpn"])
+            self.finalModel.setData(self.finalModel.index(9, 1), final_stats["rst"])
+            self.finalModel.setData(self.finalModel.index(10, 1), final_stats["walk"])
+            self.finalModel.setData(self.finalModel.index(11, 1), final_stats["run"])
       def readCrewFromCSV(self):
             data_list = []
             try:
