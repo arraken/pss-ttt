@@ -2048,12 +2048,13 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.loadCrewDataButton.clicked.connect(self.loadCrewData)
             self.hideAllEquipBoxes()
             
-            self.wepCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
-            self.accCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
-            self.legCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
-            self.headCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
-            self.bodyCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
-            self.petCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
+            self.wepCompleter.activated.connect(self.onCompleterActivated)
+            self.accCompleter.activated.connect(self.onCompleterActivated)
+            self.legCompleter.activated.connect(self.onCompleterActivated)
+            self.headCompleter.activated.connect(self.onCompleterActivated)
+            self.bodyCompleter.activated.connect(self.onCompleterActivated)
+            self.petCompleter.activated.connect(self.onCompleterActivated)
+
       def setStyle(self):
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
@@ -2079,6 +2080,9 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   self.CREW_LIST.append(crew_data)
                   all_crew_data.append(crew_data)
             self.saveCrewtoCSV(all_crew_data)
+      def onCompleterActivated(self):
+            self.selectEquipmentBoxes(self.getEquipMask())
+            self.calculateStats()
       def getEquipMask(self):
             crew_name = self.crewNameBox.text()
             for crew in self.CREW_LIST:
@@ -2092,7 +2096,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                         # Crew Name,Equipment Mask,Rarity,Special,Collection,HP,Attack,RPR,ABL,PLT,SCI,ENG,WPN,RST,Walk,Run,TP
                         crew_name, equipment_mask, rarity, special, collection, hp, attack, rpr, abl, plt, sci, eng, wpn, rst, walk, run, tp = crew[0], crew[1], crew[2], crew[3], crew[4], crew[5], float(crew[6]), float(crew[7]), crew[8], float(crew[9]), float(crew[10]), float(crew[11]), float(crew[12]), crew[13], crew[14], crew[15], crew[16]
                         sta = 0
-                        print(f"('{crew_name}', '{equipment_mask}', '{rarity}', '{special}', '{collection}', '{hp}', '{attack}', '{rpr}', '{abl}', '{plt}', '{sci}', '{eng}', '{wpn}', '{rst}', '{walk}', '{run}', '{tp}')")
                         equip = self.equipSlots(equipment_mask)
                         self.selectEquipmentBoxes(equip)
                         self.finalModel.setData(self.finalModel.index(0, 0), hp)
@@ -2169,29 +2172,162 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.petHeroSideStat.hide()
             self.petEquipLabel.hide()
             self.petEquipBox.hide()
+            self.petEquipBox.setText("")
             self.wepHeroSideDD.hide()
             self.wepHeroSideStat.hide()
             self.wepEquipLabel.hide()
             self.wepEquipBox.hide()
+            self.wepEquipBox.setText("")
             self.accHeroSideStat.hide()
             self.accHeroSideDD.hide()
             self.accEquipLabel.hide()
             self.accessEquipBox.hide()
+            self.accessEquipBox.setText("")
             self.legHeroSideStat.hide()
             self.legHeroSideDD.hide()
             self.legEquipLabel.hide()
             self.legEquipBox.hide()
+            self.legEquipBox.setText("")
             self.headHeroSideStat.hide()
             self.headHeroSideDD.hide()
             self.headEquipLabel.hide()
             self.headEquipBox.hide()
+            self.headEquipBox.setText("")
             self.bodyHeroSideStat.hide()
             self.bodyHeroSideDD.hide()
             self.bodyEquipLabel.hide()
             self.bodyEquipBox.hide()
+            self.bodyEquipBox.setText("")
       def calculateStats(self):
-            '''We need to look at when QCompleters are finished to update from equipment stats or when TP is entered to calculate new stats'''
-            return
+            #We need to look at when QCompleters are finished to update from equipment stats or when TP is entered to calculate new stats
+            #First pass - Calculate when tp has changed to update final stats
+            #Second pass - Calculate with equipment change
+
+            base_hp = base_attack = base_rpr = base_abl = base_sta = 0
+            base_plt = base_sci = base_eng = base_wpn = base_rst = walk = run = tp = 0
+
+            crew_name = self.crewNameBox.text()
+            for crew in self.CREW_LIST:
+                  if crew[0] == crew_name:
+                        crew_name, equipment_mask, rarity, special, collection, base_hp, base_attack, base_rpr, base_abl, base_plt, base_sci, base_eng, base_wpn, base_rst, walk, run, tp = (
+                        crew[0], 
+                        crew[1], 
+                        crew[2], 
+                        crew[3], 
+                        crew[4], 
+                        crew[5], 
+                        crew[6], 
+                        crew[7], 
+                        crew[8], 
+                        crew[9], 
+                        crew[10], 
+                        crew[11], 
+                        crew[12], 
+                        crew[13], 
+                        crew[14], 
+                        crew[15], 
+                        crew[16])
+
+            print(f"Base HP before conversion: {base_hp}, Type: {type(base_hp)}")
+
+            base_hp = float(base_hp)
+            base_attack = float(base_attack)
+            base_rpr = float(base_rpr)
+            base_abl = float(base_abl)
+            base_plt = float(base_plt)
+            base_sci = float(base_sci)
+            base_eng = float(base_eng)
+            base_wpn = float(base_wpn)
+            base_rst = float(base_rst)
+            walk = float(walk)
+            run = float(run)
+            tp = float(tp)
+
+            tp_values = []
+            for i in range(len(self.tpChart)):
+                  try:
+                        if isinstance(self.tpChart[i], list) and len(self.tpChart[i]) > 0:
+                              tp_values.append(float(self.tpChart[i][0]))
+                        else:
+                              tp_values.append(float(self.tpChart[i]))
+                  except ValueError as e:
+                        print(f"Error converting tpChart value to float: {e}")
+                        return
+
+            print(f"Base HP: {base_hp}, TP Values: {tp_values}")
+            print(f"Type of base_hp: {type(base_hp)}, Type of tp_values[0]: {type(tp_values[0])}")
+
+            tp_hp = (1+(tp_values[0] / 100)) * base_hp
+            tp_atk = (1+(tp_values[1] / 100)) * base_attack
+            tp_rpr = (1+(tp_values[2] / 100)) * base_rpr
+            tp_abl = (1+(tp_values[3] / 100)) * base_abl
+            tp_sta = (1+(tp_values[4] / 100)) * base_sta
+            tp_plt = (1+(tp_values[5] / 100)) * base_plt
+            tp_sci = (1+(tp_values[6] / 100)) * base_sci
+            tp_eng = (1+(tp_values[7] / 100)) * base_eng
+            tp_wpn = (1+(tp_values[8] / 100)) * base_wpn
+
+            eqp_hp = eqp_atk = eqp_rpr = eqp_abl = eqp_sta = 0
+            eqp_plt = eqp_sci = eqp_eng = eqp_wpn = eqp_rst = 0
+            # Need to get equip data for each slot now
+            accessory = self.accessEquipBox.text()
+            head = self.headEquipBox.text()
+            body = self.bodyEquipBox.text()
+            legs = self.legEquipBox.text()
+            wep = self.wepEquipBox.text()
+            pet = self.petEquipBox.text()
+            #item[0] Name
+            #item[1] Rarity
+            #item[2] Boost Stat
+            #item[3] Boost Amount
+
+            equipment_lists = [self.ACC_LIST, self.HEAD_LIST, self.BODY_LIST, self.LEG_LIST, self.WEP_LIST, self.PET_LIST]
+            equipment_texts = [accessory, head, body, legs, wep, pet]
+
+            for eq_list, eq_text in zip(equipment_lists, equipment_texts):
+                  for item in eq_list:
+                        if item[0] == eq_text:
+                              if item[2] == "HP":
+                                    eqp_hp += float(item[3])
+                              elif item[2] == "Attack":
+                                    eqp_atk += float(item[3])
+                              elif item[2] == "Repair":
+                                    eqp_rpr += float(item[3])
+                              elif item[2] == "Ability":
+                                    eqp_abl += float(item[3])
+                              elif item[2] == "Stamina":
+                                    eqp_sta += float(item[3])
+                              elif item[2] == "Pilot":
+                                    eqp_plt += float(item[3])
+                              elif item[2] == "Science":
+                                    eqp_sci += float(item[3])
+                              elif item[2] == "Engine":
+                                    eqp_eng += float(item[3])
+                              elif item[2] == "Weapon":
+                                    eqp_wpn += float(item[3])
+                              elif item[2] == "FireResistance":
+                                    eqp_rst += float(item[3])
+            final_hp = (base_hp*tp_hp) + eqp_hp
+            final_atk = (base_attack*tp_atk) + eqp_atk
+            final_rpr = (base_rpr*tp_rpr) + eqp_rpr
+            final_abl = (base_abl*tp_abl) * eqp_abl
+            final_sta = (base_sta+tp_sta) + eqp_sta
+            final_plt = (base_plt*tp_plt) + eqp_plt
+            final_sci = (base_sci*tp_sci) + eqp_sci
+            final_eng = (base_eng*tp_eng) + eqp_eng
+            final_wpn = (base_wpn*tp_wpn) + eqp_wpn
+            final_rst = (base_rst) + eqp_rst
+
+            self.finalModel.setData(self.finalModel.index(0, 1), final_hp)
+            self.finalModel.setData(self.finalModel.index(1, 1), final_atk)
+            self.finalModel.setData(self.finalModel.index(2, 1), final_rpr)
+            self.finalModel.setData(self.finalModel.index(3, 1), final_abl)
+            self.finalModel.setData(self.finalModel.index(4, 1), final_sta)
+            self.finalModel.setData(self.finalModel.index(5, 1), final_plt)
+            self.finalModel.setData(self.finalModel.index(6, 1), final_sci)
+            self.finalModel.setData(self.finalModel.index(7, 1), final_eng)
+            self.finalModel.setData(self.finalModel.index(8, 1), final_wpn)
+            self.finalModel.setData(self.finalModel.index(9, 1), final_rst)
       def readCrewFromCSV(self):
             data_list = []
             try:
