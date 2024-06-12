@@ -178,6 +178,9 @@ class Ui_Dialog(object):
         self.finalTableStats = QTableView(Dialog)
         self.finalTableStats.setObjectName(u"finalTableStats")
         self.finalTableStats.setGeometry(QRect(410, 10, 141, 391))
+        self.maxTPLabel = QLabel(Dialog)
+        self.maxTPLabel.setObjectName(u"maxTPLabel")
+        self.maxTPLabel.setGeometry(QRect(300, 320, 81, 16))
 
         self.retranslateUi(Dialog)
 
@@ -260,5 +263,6 @@ class Ui_Dialog(object):
         self.bodyHeroSideDD.setItemText(8, QCoreApplication.translate("Dialog", u"Weapon", None))
         self.bodyHeroSideDD.setItemText(9, QCoreApplication.translate("Dialog", u"RST", None))
 
+        self.maxTPLabel.setText(QCoreApplication.translate("Dialog", u"TextLabel", None))
     # retranslateUi
 

@@ -347,7 +347,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.trainingDialog = CrewTrainerDialogBox()
             self.profileCreate = ProfileDialog()
             self.starCalculator = StarsCalculatorDialogBox(self.profileComboBox.currentText())
-            self.starTargetTrack = StarTargetTrackDialogBox(self.profileComboBox.currentText(), parent=self)
+            self.starTargetTrack = TargetTournyTrackDialogBox(self.profileComboBox.currentText(), parent=self)
             self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK, API_CALL_COUNT)
             self.crewLoadoutBuilder = CrewLoadoutBuilderDialogBox(parent=self)
       def populate_tables(self):
@@ -1823,7 +1823,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   for index in sorted(selected_index, reverse=True):
                         self.model.removeRow(index.row())
                   self.savePresetCSV()
-class StarTargetTrackDialogBox(QtWidgets.QDialog):
+class TargetTournyTrackDialogBox(QtWidgets.QDialog):
       global CURRENT_STYLESHEET
       copyStarsTargetTrackClicked = QtCore.pyqtSignal(str, bool)
       currentStarsTarget = ' '
@@ -2024,13 +2024,13 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   print("Loading from established CSV due to no update needed")
                   self.loadItemsFromCSV()
                   self.loadCrewFromCSV()
-            self.setup_completer(self.bodyEquipBox, self.BODY_LIST, "item")
-            self.setup_completer(self.headEquipBox, self.HEAD_LIST, "item")
-            self.setup_completer(self.legEquipBox, self.LEG_LIST, "item")
-            self.setup_completer(self.wepEquipBox, self.WEP_LIST, "item")
-            self.setup_completer(self.accessEquipBox, self.ACC_LIST, "item")
-            self.setup_completer(self.petEquipBox, self.PET_LIST, "item")
-            self.setup_completer(self.crewNameBox, self.CREW_LIST, "crew")
+            self.bodyCompleter = self.setup_completer(self.bodyEquipBox, self.BODY_LIST, "item")
+            self.headCompleter = self.setup_completer(self.headEquipBox, self.HEAD_LIST, "item")
+            self.legCompleter = self.setup_completer(self.legEquipBox, self.LEG_LIST, "item")
+            self.wepCompleter = self.setup_completer(self.wepEquipBox, self.WEP_LIST, "item")
+            self.accCompleter = self.setup_completer(self.accessEquipBox, self.ACC_LIST, "item")
+            self.petCompleter = self.setup_completer(self.petEquipBox, self.PET_LIST, "item")
+            self.crewCompleter = self.setup_completer(self.crewNameBox, self.CREW_LIST, "crew")
             self.finalChart = [[0,0] for _ in range(12)]
             self.finalTable = self.findChild(QTableView, "finalTableStats")
             self.finalModel = self.FinalStatsTableModel(self.finalChart, self)
@@ -2046,6 +2046,14 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.tpTable.setColumnWidth(2,90)
 
             self.loadCrewDataButton.clicked.connect(self.loadCrewData)
+            self.hideAllEquipBoxes()
+            
+            self.wepCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
+            self.accCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
+            self.legCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
+            self.headCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
+            self.bodyCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
+            self.petCompleter.activated.connect(lambda: self.selectEquipmentBoxes(self.getEquipMask()))
       def setStyle(self):
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
@@ -2071,59 +2079,88 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   self.CREW_LIST.append(crew_data)
                   all_crew_data.append(crew_data)
             self.saveCrewtoCSV(all_crew_data)
+      def getEquipMask(self):
+            crew_name = self.crewNameBox.text()
+            for crew in self.CREW_LIST:
+                  if crew[0] == crew_name:
+                        equip_mask = crew[1]
+            return self.equipSlots(equip_mask)
       def loadCrewData(self):
             crew_name = self.crewNameBox.text()
             for crew in self.CREW_LIST:
                   if crew[0] == crew_name:
-                        crew_name, equipment_mask, rarity, special, collection, hp, attack, rpr, abl, plt, sci, eng, wpn, rst, walk, run, tp = crew[0], crew[1], crew[2], crew[3], crew[4], crew[5], crew[6], crew[7], crew[8], crew[9], crew[10], crew[11], crew[12], crew[13], crew[14], crew[15], crew[16]
+                        # Crew Name,Equipment Mask,Rarity,Special,Collection,HP,Attack,RPR,ABL,PLT,SCI,ENG,WPN,RST,Walk,Run,TP
+                        crew_name, equipment_mask, rarity, special, collection, hp, attack, rpr, abl, plt, sci, eng, wpn, rst, walk, run, tp = crew[0], crew[1], crew[2], crew[3], crew[4], crew[5], float(crew[6]), float(crew[7]), crew[8], float(crew[9]), float(crew[10]), float(crew[11]), float(crew[12]), crew[13], crew[14], crew[15], crew[16]
+                        sta = 0
+                        print(f"('{crew_name}', '{equipment_mask}', '{rarity}', '{special}', '{collection}', '{hp}', '{attack}', '{rpr}', '{abl}', '{plt}', '{sci}', '{eng}', '{wpn}', '{rst}', '{walk}', '{run}', '{tp}')")
                         equip = self.equipSlots(equipment_mask)
                         self.selectEquipmentBoxes(equip)
-                        self.finalTable[0][0] = hp
-                        self.finalTable[0][1] = attack
-                        self.finalTable[0][2] = rpr
-                        self.finalTable[0][3] = abl
-                        self.finalTable[0][4] = plt
-                        self.finalTable[0][5] = sci
-                        self.finalTable[0][6] = eng
-                        self.finalTable[0][7] = wpn
-                        self.finalTable[0][8] = rst
-                        self.finalTable[0][9] = walk
-                        self.finalTable[0][10] = run
-                        self.finalTable[0][11] = tp
+                        self.finalModel.setData(self.finalModel.index(0, 0), hp)
+                        self.finalModel.setData(self.finalModel.index(1, 0), attack)
+                        self.finalModel.setData(self.finalModel.index(2, 0), rpr)
+                        self.finalModel.setData(self.finalModel.index(3, 0), abl)
+                        self.finalModel.setData(self.finalModel.index(4, 0), sta)
+                        self.finalModel.setData(self.finalModel.index(5, 0), plt)
+                        self.finalModel.setData(self.finalModel.index(6, 0), sci)
+                        self.finalModel.setData(self.finalModel.index(7, 0), eng)
+                        self.finalModel.setData(self.finalModel.index(8, 0), wpn)
+                        self.finalModel.setData(self.finalModel.index(9, 0), rst)
+                        self.finalModel.setData(self.finalModel.index(10, 0), walk)
+                        self.finalModel.setData(self.finalModel.index(11, 0), run)
+                        self.finalModel.setData(self.finalModel.index(12, 0), tp)
+      def checkEquipRarity(self, text, list):
+            index = text.find("(")
+            if index == "-1" or not text or text == "":
+                  return False
+            for item in list:
+                  if item[0] == text[:index].strip():
+                        rarity = item[1]
+            if rarity == "Hero" or rarity == "Special":
+                  return True
+            else:
+                  return False
       def selectEquipmentBoxes(self, equipmask):
             size = len(equipmask)
             self.hideAllEquipBoxes()
             for i in range(size):
                   if equipmask[i] == "Weapon":
-                        self.wepHeroSideDD.show()
-                        self.wepHeroSideStat.show()
                         self.wepEquipLabel.show()
                         self.wepEquipBox.show()
+                        print(f"Text WEP: {self.wepEquipBox.text()}")
+                        if self.checkEquipRarity(self.wepEquipBox.text(), self.WEP_LIST):
+                              self.wepHeroSideDD.show()
+                              self.wepHeroSideStat.show()
                   elif equipmask[i] == "Accessory":
-                        self.accHeroSideDD.show()
-                        self.accHeroSideStat.show()
                         self.accEquipLabel.show()
                         self.accessEquipBox.show()
+                        print(f"Text ACC: {self.wepEquipBox.text()}")
+                        if self.checkEquipRarity(self.accessEquipBox.text(), self.ACC_LIST):
+                              self.accHeroSideDD.show()
+                              self.accHeroSideStat.show()
                   elif equipmask[i] == "Leg":
-                        self.legHeroSideDD.show()
-                        self.legHeroSideStat.show()
                         self.legEquipLabel.show()
                         self.legEquipBox.show()
+                        if self.checkEquipRarity(self.legEquipBox.text(), self.LEG_LIST):
+                              self.legHeroSideDD.show()
+                              self.legHeroSideStat.show()
                   elif equipmask[i] == "Head":
-                        self.headHeroSideDD.show()
-                        self.headHeroSideStat.show()
                         self.headEquipLabel.show()
                         self.headEquipBox.show()
+                        if self.checkEquipRarity(self.headEquipBox.text(), self.HEAD_LIST):
+                              self.headHeroSideDD.show()
+                              self.headHeroSideStat.show()
                   elif equipmask[i] == "Body":
-                        self.bodyHeroSideDD.show()
-                        self.bodyHeroSideStat.show()
                         self.bodyEquipLabel.show()
                         self.bodyEquipBox.show()
+                        if self.checkEquipRarity(self.bodyEquipBox.text(), self.BODY_LIST):
+                              self.bodyHeroSideDD.show()
+                              self.bodyHeroSideStat.show()
                   elif equipmask[i] == "Pet":
-                        self.petHeroSideDD.show()
-                        self.petHeroSideStat.show()
                         self.petEquipLabel.show()
                         self.petEquipBox.show()
+                        if self.checkEquipRarity(self.petEquipBox.text(), self.PET_LIST):
+                              self.petHeroSideDD.show()
+                              self.petHeroSideStat.show()
                   else:
                         throwErrorMessage("Item Data incorrect [selectEquipmentBoxes]", "Equipment Mask data did not load properly")
                         return
@@ -2152,6 +2189,9 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.bodyHeroSideDD.hide()
             self.bodyEquipLabel.hide()
             self.bodyEquipBox.hide()
+      def calculateStats(self):
+            '''We need to look at when QCompleters are finished to update from equipment stats or when TP is entered to calculate new stats'''
+            return
       def readCrewFromCSV(self):
             data_list = []
             try:
@@ -2182,6 +2222,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
             completer.setFilterMode(Qt.MatchFlag.MatchContains)
             line_edit.setCompleter(completer)
+            return completer
       def initiateCompleterList(self, data_list, type):
             if type == "item":
                   word_list = []
@@ -2253,7 +2294,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
       def write_itemlist_to_csv(self, file_name, data_list):
             with open(os.path.join('_internal','_equip',file_name), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
-                  header = ["Item_Design_Name", "Enhancement_Type", "Enhancement_Value", "Item_Sub_Type", "Rarity"]
+                  header = ["Item_Design_Name", "Rarity", "Enhancement_Type", "Enhancement_Value"]
                   writer.writerow(header)
                   writer.writerows(data_list)
       def saveItemsToCSVfiles(self):
@@ -2340,7 +2381,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   return len(self._data[0])
             def data(self, index, role=Qt.ItemDataRole.DisplayRole):
                   if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
-                        return str(self._data[index.row()][index.column()])
+                        return float(self._data[index.row()][index.column()])
             def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
                   if index.isValid() and role == Qt.ItemDataRole.EditRole:
                         try:
