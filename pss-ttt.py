@@ -11,7 +11,7 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.4.7"
+CURRENT_VERSION = "v1.4.9"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
@@ -2288,10 +2288,10 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                               if stat_type in eqp_stats:
                                     if stat_type == 'abl':
                                           stat_increase = (float(item[3])/100)
-                                          eqp_stats[stat_type] = stat_increase
+                                          eqp_stats[stat_type] += stat_increase
                                           print(f"Eqp_stats1[stat_type] {eqp_stats[stat_type]}")
                                     else:
-                                          eqp_stats[stat_type] = float(item[3])
+                                          eqp_stats[stat_type] += float(item[3])
                               else:
                                     print(f"Warning: Unexpected stat type '{stat_type}' in item '{item[0]}'")
                               break
