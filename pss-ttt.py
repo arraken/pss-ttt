@@ -2235,31 +2235,26 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                                     base_stats[key] = float(crew_data[i])
                         break
 
-            tp_values = []
-            for i in range(len(self.tpChart)):
+            tp_keys = ["hp", "attack", "rpr", "abl", "sta", "plt", "sci", "eng", "wpn"]
+            tp_values = {key: 0.0 for key in tp_keys}
+            for i in range(len(tp_keys)):
                   try:
-                        if isinstance(self.tpChart[i], list) and len(self.tpChart[i]) > 0:
-                              tp_values.append(float(self.tpChart[i][0]))
-                        else:
-                              tp_values.append(float(self.tpChart[i]))
+                        if i < len(self.tpChart):
+                              if isinstance(self.tpChart[i], list) and len(self.tpChart[i]) > 0:
+                                    tp_values[tp_keys[i]] = float(self.tpChart[i][0])
+                              else:
+                                    tp_values[tp_keys[i]] = float(self.tpChart[i])
                   except ValueError as e:
                         print(f"Error converting tpChart value to float: {e}")
                         return
 
-            if len(tp_values) != 9:
+            if len(tp_values) != len(tp_keys):
                   print(f"Error: Expected 9 values in tp_values but got {len(tp_values)}")
                   return
 
-            tp_stat = base_stats.get('abl', 0)
-            print(f"TP Stat {tp_stat}")
-            abl_percentile_increase = math.floor(tp_stat / 100.0)
-            print(f"ABL % Inc {abl_percentile_increase}")
-
-            base_stats['abl'] *= (1 + abl_percentile_increase)
-            print(f"Base_stars[abl] {base_stats['abl']}")
-
-            keys_for_tp = list(base_stats.keys())[:9]
-            tp_stats = {key: (1 + (tp_values[i] / 100)) * base_stats[key] for i, key in enumerate(keys_for_tp)}
+            #keys_for_tp = list(base_stats.keys())[:9]
+            #tp_stats = {key: (1 + (tp_values[i] / 100)) * base_stats[key] if i != 3 else (1 + (tp_values[3] / 100)) * base_stats[key] for i, key in enumerate(keys_for_tp)}
+            print(f"tp_values:{tp_values}")
 
             eqp_stats = {
                   'hp': 0.0, 'attack': 0.0, 'rpr': 0.0, 'abl': 0.0,
@@ -2292,22 +2287,27 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                               stat_type = self.convert_abbr(item[2].lower())
                               if stat_type in eqp_stats:
                                     if stat_type == 'abl':
-                                          print(f"Item3 [{(1+float(item[3])/100)}]")
-                                          stat_increase = float((1+float(item[3])/100))
-                                          eqp_stats[stat_type] *= stat_increase
-                                          print(f"Eqp_stats1[key] {eqp_stats[key]}")
+                                          stat_increase = (float(item[3])/100)
+                                          eqp_stats[stat_type] = stat_increase
+                                          print(f"Eqp_stats1[stat_type] {eqp_stats[stat_type]}")
                                     else:
-                                          eqp_stats[stat_type] += float(item[3])
+                                          eqp_stats[stat_type] = float(item[3])
                               else:
                                     print(f"Warning: Unexpected stat type '{stat_type}' in item '{item[0]}'")
                               break
             final_stats = {}
             for key in base_stats:
-                  if key in tp_stats:
+                  if key in tp_values:
                         if key == 'abl':
-                              final_stats[key] = base_stats[key] * (1 + eqp_stats[key] / 100) * (1 + tp_stats[key] / 100)
+                              print(f"Base Stat[{key}]: {base_stats[key]}")
+                              print(f"Eqp Stats[{key}]: {1+(eqp_stats[key])}")
+                              print(f"TP Values[{key}]: {1+(tp_values[key]/100)}")
+                              final_stats[key] = base_stats[key] * (1 + eqp_stats[key] ) * (1 + tp_values[key] / 100)
                         else:
-                              final_stats[key] = tp_stats[key] + eqp_stats.get(key, 0)
+                              #print(f"Base Stat[{key}]: {base_stats[key]}")
+                              #print(f"Eqp Stats[{key}]: {eqp_stats[key]}")
+                              #print(f"TP Values[{key}]: {tp_values[key]}")
+                              final_stats[key] = base_stats[key] + tp_values[key] + eqp_stats.get(key, 0)
                   else:
                         final_stats[key] = base_stats[key] + eqp_stats.get(key, 0)
             
@@ -2326,7 +2326,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                         #print(f"Key Problem: '{stat_name}' not found in final_stats keys.")
                 #        print('')
 
-            final_stats['abl'] = math.floor(final_stats['abl'])
+            #final_stats['abl'] = math.floor(final_stats['abl'])
 
             self.finalModel.setData(self.finalModel.index(0, 1), final_stats["hp"])
             self.finalModel.setData(self.finalModel.index(1, 1), final_stats["attack"])
