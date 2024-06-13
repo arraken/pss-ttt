@@ -1,6 +1,6 @@
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
 from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QTimer
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QCompleter
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QTableView, QApplication, QFileDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QCompleter, QDoubleSpinBox
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta, timezone
@@ -289,7 +289,6 @@ class MainWindow(QtWidgets.QMainWindow):
       def __init__(self, parent=None):
             super().__init__(parent)
             start_time = time.time()
-            log_time("Starting application")
             uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt.ui'), self)
             self.show()
 
@@ -853,7 +852,6 @@ class MainWindow(QtWidgets.QMainWindow):
                         latest_version = release_info['tag_name']
                         GITHUB_RELEASE_VERSION = latest_version
                         commit_version = commit_release[0]['commit']['message']
-                  print(f"Current version {version} - Dev version {commit_version} - Release version {latest_version}")
                   version_label = QLabel(f"Current Version: {version} - Release version: {latest_version} - Dev version: {commit_version}")
                   if latest_version > version:
                         print("Converting to new release")
@@ -2014,7 +2012,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.accessoryEquipBox = self.findChild(QLineEdit, 'accessoryEquipBox')
             self.petEquipBox = self.findChild(QLineEdit, 'petEquipBox')
             self.crewNameBox = self.findChild(QLineEdit, 'crewNameBox')
-
             version = asyncio.run(self.get_db_version())
             if api_database_needs_update(version):
                   print("Loading from API data as update is needed")
@@ -2054,6 +2051,21 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.headCompleter.activated.connect(self.onCompleterActivated)
             self.bodyCompleter.activated.connect(self.onCompleterActivated)
             self.petCompleter.activated.connect(self.onCompleterActivated)
+
+            self.bodyHeroSideStat.valueChanged.connect(self.onCompleterActivated)
+            self.bodyHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
+            self.headHeroSideStat.valueChanged.connect(self.onCompleterActivated)
+            self.headHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
+            self.weaponHeroSideStat.valueChanged.connect(self.onCompleterActivated)
+            self.weaponHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
+            self.petHeroSideStat.valueChanged.connect(self.onCompleterActivated)
+            self.petHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
+            self.accessoryHeroSideStat.valueChanged.connect(self.onCompleterActivated)
+            self.accessoryHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
+            self.legHeroSideStat.valueChanged.connect(self.onCompleterActivated)
+            self.legHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
+
+            self.model.dataChanged.connect(self.onCompleterActivated)
 
       def setStyle(self):
             if CURRENT_STYLESHEET == "default":
@@ -2181,7 +2193,12 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                         getattr(self, f"{equipment.lower()}EquipBox").hide()
                         getattr(self, f"{equipment.lower()}EquipBox").setText("")
                         getattr(self, f"{equipment.lower()}HeroSideDD").hide()
+                        hero_side_dd = getattr(self, f"{equipment.lower()}HeroSideDD", None)
+                        hero_side_dd.setCurrentIndex(0)
                         getattr(self, f"{equipment.lower()}HeroSideStat").hide()
+                        hero_side_stat = getattr(self, f"{equipment.lower()}HeroSideStat", None)
+                        hero_side_stat.setValue(0.0)
+                        
                   else:
                         getattr(self, f"{equipment.lower()}EquipLabel").show()
                         getattr(self, f"{equipment.lower()}EquipBox").show()
@@ -2211,13 +2228,10 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                               return
                         for i, key in enumerate(keys):
                               if i == 4:
-                                    print(f"Modifying [{key}] for base_stats [{i}] to 0")
-                                    base_stats[key] = 0.0  # Special case for key 10
+                                    base_stats[key] = 0.0
                               elif i > 4:
-                                    print(f"Modifying [{key}] for base_stats [{i}] to {float(crew_data[i - 1])}")
-                                    base_stats[key] = float(crew_data[i - 1])  # Adjust index for keys after 10
+                                    base_stats[key] = float(crew_data[i - 1])
                               else:
-                                    print(f"Modifying [{key}] for base_stats [{i}] to {float(crew_data[i])}")
                                     base_stats[key] = float(crew_data[i])
                         break
 
@@ -2236,8 +2250,14 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   print(f"Error: Expected 9 values in tp_values but got {len(tp_values)}")
                   return
 
+            tp_stat = base_stats.get('abl', 0)
+            abl_percentile_increase = math.floor(tp_stat / 100.0)
+
+            base_stats['abl'] *= (1 + abl_percentile_increase)
+
             keys_for_tp = list(base_stats.keys())[:9]
             tp_stats = {key: (1 + (tp_values[i] / 100)) * base_stats[key] for i, key in enumerate(keys_for_tp)}
+            print(f"Tp_stats1[key] {tp_stats['abl']}")
 
             eqp_stats = {
                   'hp': 0.0, 'attack': 0.0, 'rpr': 0.0, 'abl': 0.0,
@@ -2268,22 +2288,48 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   for item in equipment_lists[eq_type]:
                         if item[0] == eq_text:
                               stat_type = self.convert_abbr(item[2].lower())
-                              print(f"Searching ({stat_type})")
                               if stat_type in eqp_stats:
-                                    eqp_stats[stat_type] += float(item[3])
+                                    if stat_type == 'abl':
+                                          print(f"Item3 [{(1+float(item[3])/100)}]")
+                                          stat_increase = float((1+float(item[3])/100))
+                                          eqp_stats[stat_type] *= stat_increase
+                                          print(f"Eqp_stats1[key] {eqp_stats[key]}")
+                                    else:
+                                          eqp_stats[stat_type] += float(item[3])
                               else:
                                     print(f"Warning: Unexpected stat type '{stat_type}' in item '{item[0]}'")
                               break
 
+            print(f"Eqp_stats2[key] {eqp_stats['abl']}")
+
             final_stats = {}
             for key in base_stats:
                   if key in tp_stats:
-                        final_stats[key] = tp_stats[key] + eqp_stats.get(key, 0)
+                        if key == 'abl':
+                              print(f"Eqp_stats3[key] {eqp_stats[key]}")
+                              print(f"TP_stats2[key] {tp_stats[key]}")
+                              final_stats[key] = base_stats[key] * (1 + eqp_stats[key] / 100) * (1 + tp_stats[key] / 100)
+                        else:
+                              final_stats[key] = tp_stats[key] + eqp_stats.get(key, 0)
                   else:
                         final_stats[key] = base_stats[key] + eqp_stats.get(key, 0)
             
-            final_stats = {key: tp_stats.get(key, 0) + eqp_stats.get(key, 0) for key in base_stats}
-            final_stats['rst'] = base_stats['rst'] + eqp_stats['rst']
+            final_hero_side_stats = {
+                  'bodyHeroSideStat': self.getHeroSideStatAdd('bodyHeroSideStat', 'bodyHeroSideDD', final_stats),
+                  'headHeroSideStat': self.getHeroSideStatAdd('headHeroSideStat', 'headHeroSideDD', final_stats),
+                  'accessoryHeroSideStat': self.getHeroSideStatAdd('accessoryHeroSideStat', 'accessoryHeroSideDD', final_stats),
+                  'weaponHeroSideStat': self.getHeroSideStatAdd('weaponHeroSideStat', 'weaponHeroSideDD', final_stats),
+                  'petHeroSideStat': self.getHeroSideStatAdd('petHeroSideStat', 'petHeroSideDD', final_stats),
+                  'legHeroSideStat': self.getHeroSideStatAdd('legHeroSideStat', 'legHeroSideDD', final_stats)
+                  }
+            #for stat_name, stat_value in final_hero_side_stats.items():
+             #     if stat_name in final_stats:
+              #          final_stats[stat_name] += stat_value
+               #   else:
+                        #print(f"Key Problem: '{stat_name}' not found in final_stats keys.")
+                #        print('')
+
+            final_stats['abl'] = math.floor(final_stats['abl'])
 
             self.finalModel.setData(self.finalModel.index(0, 1), final_stats["hp"])
             self.finalModel.setData(self.finalModel.index(1, 1), final_stats["attack"])
@@ -2297,6 +2343,29 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.finalModel.setData(self.finalModel.index(9, 1), final_stats["rst"])
             self.finalModel.setData(self.finalModel.index(10, 1), final_stats["walk"])
             self.finalModel.setData(self.finalModel.index(11, 1), final_stats["run"])
+
+            #print("Final Stats:", final_stats)
+      def getHeroSideStatAdd(self, stat_widget_name, dd_widget_name, final_stats):
+            try:
+                  stat_value = float(getattr(self, stat_widget_name).value())
+                  old_key = getattr(self, dd_widget_name).currentText()
+                  dd_key = self.convert_abbr(old_key.lower())
+                  if dd_key.lower() not in final_stats:
+                        print(f"Warning: '{dd_key.lower()}' not found in final_stats keys.")
+                        return 0.0
+                  base_stat_value = final_stats.get(dd_key, 0.0)
+                  if dd_key.lower() == 'abl':
+                        final_stats[dd_key.lower()] *= (1 + (stat_value / 100))
+                  else:
+                        final_stats[dd_key.lower()] += stat_value
+                  return stat_value - base_stat_value
+            except AttributeError as e:
+                  print(f"Error: Widget attribute error in get_hero_side_stat_addition: {e}")
+            except ValueError as e:
+                  print(f"Error: Value conversion error in get_hero_side_stat_addition: {e}")
+            except KeyError as e:
+                  print(f"Error: Key error accessing final_stats in get_hero_side_stat_addition: {e}")
+            return 0.0
       def extract_text_before_parenthesis(self, eq_text):
             index = eq_text.find('(')
             if index != -1:
@@ -2464,7 +2533,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   super().__init__()
                   self._data = data
                   self.parent = parent
-                  self.verticalHeaders = ['HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN']
+                  self.verticalHeaders = ['HP','ATK','RPR', 'ABL','STA','PLT','SCI','ENG','WPN']
                   self.horizontalHeaders = ['TP']
             def rowCount(self, index):
                   return len(self._data)
@@ -2503,7 +2572,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   self._data = data
                   self.parent = parent
                   self.verticalHeaders = ['HP','ATK','RPR','ABL','STA','PLT','SCI','ENG','WPN','RST','Walk','Run']
-                  self.horizontalHeaders = ['Base', 'Stat', 'Final']
+                  self.horizontalHeaders = ['Base', 'Final']
             def rowCount(self, index):
                   return len(self._data)
             def columnCount(self, index):
