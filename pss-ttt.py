@@ -11,7 +11,7 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.4.9"
+CURRENT_VERSION = "v1.5.0"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
@@ -2310,7 +2310,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                               #print(f"Base Stat[{key}]: {base_stats[key]}")
                               #print(f"Eqp Stats[{key}]: {eqp_stats[key]}")
                               #print(f"TP Values[{key}]: {tp_values[key]}")
-                              final_stats[key] = base_stats[key] + tp_values[key] + eqp_stats.get(key, 0) + final_hero_side_stats.get(key, 0)
+                              final_stats[key] = (base_stats[key] * (1 + tp_values[key]/100)) + eqp_stats.get(key, 0) + final_hero_side_stats.get(key, 0)
                   else:
                         final_stats[key] = base_stats[key] + eqp_stats.get(key, 0) + final_hero_side_stats.get(key, 0)
                   #print(f"Final_stats[{key}]: {final_stats[key]}")
@@ -2347,26 +2347,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
 
             #print("Final Stats:", final_stats)
       def getHeroSideStatAdd(self):
-            '''try:
-                  stat_value = float(getattr(self, stat_widget_name).value())
-                  old_key = getattr(self, dd_widget_name).currentText()
-                  dd_key = self.convert_abbr(old_key.lower())
-                  if dd_key.lower() not in final_stats:
-                        print(f"Warning: '{dd_key.lower()}' not found in final_stats keys.")
-                        return 0.0
-                  base_stat_value = final_stats.get(dd_key, 0.0)
-                  if dd_key.lower() == 'abl':
-                        final_stats[dd_key.lower()] *= (1 + (stat_value / 100))
-                  else:
-                        final_stats[dd_key.lower()] += stat_value
-                  return stat_value - base_stat_value
-            except AttributeError as e:
-                  print(f"Error: Widget attribute error in get_hero_side_stat_addition: {e}")
-            except ValueError as e:
-                  print(f"Error: Value conversion error in get_hero_side_stat_addition: {e}")
-            except KeyError as e:
-                  print(f"Error: Key error accessing final_stats in get_hero_side_stat_addition: {e}")
-            return 0.0'''
             sidestatbonus = {
                   "hp": 0.0,
                   "attack": 0.0,
