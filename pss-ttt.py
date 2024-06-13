@@ -2254,7 +2254,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
 
             #keys_for_tp = list(base_stats.keys())[:9]
             #tp_stats = {key: (1 + (tp_values[i] / 100)) * base_stats[key] if i != 3 else (1 + (tp_values[3] / 100)) * base_stats[key] for i, key in enumerate(keys_for_tp)}
-            print(f"tp_values:{tp_values}")
+            #print(f"tp_values:{tp_values}")
 
             eqp_stats = {
                   'hp': 0.0, 'attack': 0.0, 'rpr': 0.0, 'abl': 0.0,
@@ -2289,29 +2289,33 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                                     if stat_type == 'abl':
                                           stat_increase = (float(item[3])/100)
                                           eqp_stats[stat_type] += stat_increase
-                                          print(f"Eqp_stats1[stat_type] {eqp_stats[stat_type]}")
+                                          #print(f"Eqp_stats1[stat_type] {eqp_stats[stat_type]}")
                                     else:
                                           eqp_stats[stat_type] += float(item[3])
                               else:
                                     print(f"Warning: Unexpected stat type '{stat_type}' in item '{item[0]}'")
                               break
             final_stats = {}
+            final_hero_side_stats = self.getHeroSideStatAdd()
             for key in base_stats:
                   if key in tp_values:
                         if key == 'abl':
                               print(f"Base Stat[{key}]: {base_stats[key]}")
-                              print(f"Eqp Stats[{key}]: {1+(eqp_stats[key])}")
+                              print(f"Eqp Stats[{key}]: {(eqp_stats[key])}")
                               print(f"TP Values[{key}]: {1+(tp_values[key]/100)}")
-                              final_stats[key] = base_stats[key] * (1 + eqp_stats[key] ) * (1 + tp_values[key] / 100)
+                              print(f"FHSS[{key}]: {final_hero_side_stats[key]/100}")
+                              print(f"Merged gear[{key}]: {(1 + eqp_stats[key] + (final_hero_side_stats[key]/100))}")
+                              final_stats[key] = base_stats[key] * (1 + eqp_stats[key] + (final_hero_side_stats[key] / 100)) * (1 + tp_values[key] / 100)
                         else:
                               #print(f"Base Stat[{key}]: {base_stats[key]}")
                               #print(f"Eqp Stats[{key}]: {eqp_stats[key]}")
                               #print(f"TP Values[{key}]: {tp_values[key]}")
-                              final_stats[key] = base_stats[key] + tp_values[key] + eqp_stats.get(key, 0)
+                              final_stats[key] = base_stats[key] + tp_values[key] + eqp_stats.get(key, 0) + final_hero_side_stats.get(key, 0)
                   else:
-                        final_stats[key] = base_stats[key] + eqp_stats.get(key, 0)
+                        final_stats[key] = base_stats[key] + eqp_stats.get(key, 0) + final_hero_side_stats.get(key, 0)
+                  #print(f"Final_stats[{key}]: {final_stats[key]}")
             
-            final_hero_side_stats = {
+            '''{
                   'bodyHeroSideStat': self.getHeroSideStatAdd('bodyHeroSideStat', 'bodyHeroSideDD', final_stats),
                   'headHeroSideStat': self.getHeroSideStatAdd('headHeroSideStat', 'headHeroSideDD', final_stats),
                   'accessoryHeroSideStat': self.getHeroSideStatAdd('accessoryHeroSideStat', 'accessoryHeroSideDD', final_stats),
@@ -2319,14 +2323,14 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   'petHeroSideStat': self.getHeroSideStatAdd('petHeroSideStat', 'petHeroSideDD', final_stats),
                   'legHeroSideStat': self.getHeroSideStatAdd('legHeroSideStat', 'legHeroSideDD', final_stats)
                   }
-            #for stat_name, stat_value in final_hero_side_stats.items():
-             #     if stat_name in final_stats:
-              #          final_stats[stat_name] += stat_value
-               #   else:
-                        #print(f"Key Problem: '{stat_name}' not found in final_stats keys.")
-                #        print('')
+            for stat_name, stat_value in final_hero_side_stats.items():
+                  if stat_name in final_stats:
+                        final_stats[stat_name] += stat_value
+                  else:
+                        print(f"Key Problem: '{stat_name}' not found in final_stats keys.")
+                        print('')
 
-            #final_stats['abl'] = math.floor(final_stats['abl'])
+            final_stats['abl'] = math.floor(final_stats['abl'])'''
 
             self.finalModel.setData(self.finalModel.index(0, 1), final_stats["hp"])
             self.finalModel.setData(self.finalModel.index(1, 1), final_stats["attack"])
@@ -2342,8 +2346,8 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.finalModel.setData(self.finalModel.index(11, 1), final_stats["run"])
 
             #print("Final Stats:", final_stats)
-      def getHeroSideStatAdd(self, stat_widget_name, dd_widget_name, final_stats):
-            try:
+      def getHeroSideStatAdd(self):
+            '''try:
                   stat_value = float(getattr(self, stat_widget_name).value())
                   old_key = getattr(self, dd_widget_name).currentText()
                   dd_key = self.convert_abbr(old_key.lower())
@@ -2362,13 +2366,53 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   print(f"Error: Value conversion error in get_hero_side_stat_addition: {e}")
             except KeyError as e:
                   print(f"Error: Key error accessing final_stats in get_hero_side_stat_addition: {e}")
-            return 0.0
+            return 0.0'''
+            sidestatbonus = {
+                  "hp": 0.0,
+                  "attack": 0.0,
+                  "rpr": 0.0,
+                  "abl": 0.0,
+                  "sta": 0.0,
+                  "plt": 0.0,
+                  "sci": 0.0,
+                  "eng": 0.0,
+                  "wpn": 0.0,
+                  "rst": 0.0
+            }
+            bodyHeroSide = self.convert_abbr(self.bodyHeroSideDD.currentText())
+            bodyHeroSideStat = self.bodyHeroSideStat.value()
+            headHeroSide = self.convert_abbr(self.headHeroSideDD.currentText())
+            headHeroSideStat = self.headHeroSideStat.value()
+            legHeroSide = self.convert_abbr(self.legHeroSideDD.currentText())
+            legHeroSideStat = self.legHeroSideStat.value()
+            weaponHeroSide = self.convert_abbr(self.weaponHeroSideDD.currentText())
+            weaponHeroSideStat = self.weaponHeroSideStat.value()
+            accessoryHeroSide = self.convert_abbr(self.accessoryHeroSideDD.currentText())
+            accessoryHeroSideStat = self.accessoryHeroSideStat.value()
+            petHeroSide = self.convert_abbr(self.petHeroSideDD.currentText())
+            petHeroSideStat = self.petHeroSideStat.value()
+
+            for key in sidestatbonus:
+                  if key == bodyHeroSide.lower():
+                        sidestatbonus[key] += bodyHeroSideStat
+                  if key == headHeroSide.lower():
+                        sidestatbonus[key] += headHeroSideStat
+                  if key == legHeroSide.lower():
+                        sidestatbonus[key] += legHeroSideStat
+                  if key == weaponHeroSide.lower():
+                        sidestatbonus[key] += weaponHeroSideStat
+                  if key == accessoryHeroSide.lower():
+                        sidestatbonus[key] += accessoryHeroSideStat
+                  if key == petHeroSide.lower():
+                        sidestatbonus[key] += petHeroSideStat
+            return sidestatbonus
       def extract_text_before_parenthesis(self, eq_text):
             index = eq_text.find('(')
             if index != -1:
                   return eq_text[:index - 1].strip()
             return eq_text.strip()
-      def convert_abbr(self, full_name):
+      def convert_abbr(self, name):
+            full_name = name.lower()
             if full_name == 'repair':
                   return 'rpr'
             elif full_name == 'ability':
