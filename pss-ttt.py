@@ -2631,17 +2631,21 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def __init__(self, parent=None):
             super().__init__(parent)
             global CREW_LIST
-            #API_CLIENT = PssApiClient()
             self.current_crew_list = ["Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie"]
             self.target_crew = ["Reaper"]
-            for i in range(len(self.target_crew)):
+            for i in range(len(self.current_crew_list)):
                   for crew in CREW_LIST:
                         if crew[0] == self.current_crew_list[i]:
-                               prestige_list = asyncio.run(self.prestige_from(crew[1]))
-               #               prestige_list = asyncio.run(self.prestige_from(crew[1]))
-                  print(f"Prestige List: [{prestige_list[0]}]")
-            
+                              prestige_list = asyncio.run(self.prestige_from(crew[1]))
                   
+            test_name = f"{self.get_crew_name_from_id(prestige_list[0].character_design_id_1)} + {self.get_crew_name_from_id(prestige_list[0].character_design_id_2)} = {self.get_crew_name_from_id(prestige_list[0].to_character_design_id)}"
+            print(f"Prestige List: [{test_name}]")
+            
+      def get_crew_name_from_id(self, crewid):
+            global CREW_LIST
+            for crew in CREW_LIST:
+                  if int(crew[1]) == int(crewid):
+                        return crew[0]
       async def prestige_from(self, crewid):
             global API_CALL_COUNT, API_CLIENT
             API_CALL_COUNT += 1
