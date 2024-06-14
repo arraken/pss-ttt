@@ -11,7 +11,7 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.5.3"
+CURRENT_VERSION = "v1.5.4"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
@@ -2631,19 +2631,27 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def __init__(self, parent=None):
             super().__init__(parent)
             global CREW_LIST
-            global API_CLIENT
             #API_CLIENT = PssApiClient()
             self.current_crew_list = ["Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie"]
-            for i in range(len(self.current_crew_list)):
+            self.target_crew = ["Reaper"]
+            for i in range(len(self.target_crew)):
                   for crew in CREW_LIST:
                         if crew[0] == self.current_crew_list[i]:
-                              prestige_list = asyncio.run(self.prestige_to(crew[1]))
-      async def prestige_to(self, crewid):
-            global API_CALL_COUNT
+                               prestige_list = asyncio.run(self.prestige_from(crew[1]))
+               #               prestige_list = asyncio.run(self.prestige_from(crew[1]))
+                  print(f"Prestige List: [{prestige_list[0]}]")
+            
+                  
+      async def prestige_from(self, crewid):
+            global API_CALL_COUNT, API_CLIENT
             API_CALL_COUNT += 1
             response = await API_CLIENT.character_service.prestige_character_from(crewid)
             return response
-
+      async def prestige_to(self, crewid):
+            global API_CALL_COUNT, API_CLIENT
+            API_CALL_COUNT += 1
+            response = await API_CLIENT.character_service.prestige_character_to(crewid)
+            return response
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):
