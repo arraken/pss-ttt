@@ -304,7 +304,7 @@ class Ui_MainWindow(object):
         self.actionImport_Data.setText(QCoreApplication.translate("MainWindow", u"Import Data", None))
         self.actionExport_Fights.setText(QCoreApplication.translate("MainWindow", u"Export Fights", None))
         self.actionTrainer.setText(QCoreApplication.translate("MainWindow", u"Trainer", None))
-        self.actionLoadout_Builder.setText(QCoreApplication.translate("MainWindow", u"Loadout Builder (NOT IMPLEMENTED)", None))
+        self.actionLoadout_Builder.setText(QCoreApplication.translate("MainWindow", u"Loadout Builder (Beta)", None))
         self.actionPlanner.setText(QCoreApplication.translate("MainWindow", u"Planner (NOT IMPLEMENTED)", None))
         self.actionStars_Calculator.setText(QCoreApplication.translate("MainWindow", u"Stars Calculator", None))
         self.actionTarget_Tracking.setText(QCoreApplication.translate("MainWindow", u"Target Tracking", None))

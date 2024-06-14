@@ -807,7 +807,7 @@
   </action>
   <action name="actionLoadout_Builder">
    <property name="text">
-    <string>Loadout Builder (NOT IMPLEMENTED)</string>
+    <string>Loadout Builder (Beta)</string>
    </property>
   </action>
   <action name="actionPlanner">
