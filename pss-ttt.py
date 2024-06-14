@@ -11,16 +11,17 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.5.0"
+CURRENT_VERSION = "v1.5.2"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
-GITHUB_RELEASE_VERSION = "v1.4.1"
+GITHUB_RELEASE_VERSION = "v1.5.2"
 ITEM_AND_CREW_DATABASE_VERSION = None
 API_CALL_COUNT = 0
 NEW_RELEASE = False
-
+CREW_LIST = []
+API_CLIENT = None
 DARK_MODE_STYLESHEET = """
             * {
                   background-color: #333;
@@ -277,22 +278,14 @@ def api_database_needs_update(version):
 def log_time(message):
       logging.info(message)
 class MainWindow(QtWidgets.QMainWindow):
-      global CURRENT_VERSION
-      global CREATOR
-      global SUPPORT_LINK
-      global GITHUB_LINK
-      global GITHUB_RELEASE_LINK
-      global API_CALL_COUNT
-      global NEW_RELEASE
-      global DARK_MODE_STYLESHEET
-      global CURRENT_STYLESHEET
       def __init__(self, parent=None):
+            global API_CLIENT, NEW_RELEASE
             super().__init__(parent)
             start_time = time.time()
             uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt.ui'), self)
             self.show()
 
-            self.client = PssApiClient()
+            API_CLIENT = PssApiClient()
             asyncio.run(self.generateAccessToken())
 
             self.popProfiles()
@@ -332,6 +325,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.deleteSelectedProfile.clicked.connect(self.deleteProfile)
             self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
       def initialize_dialogs(self):
+            global CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK, API_CALL_COUNT
             self.fightDialog = FightDataConfirmation(parent=self)
             self.fightDialog.fightDataSaved.connect(self.receiveFightData)
 
@@ -349,6 +343,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.starTargetTrack = TargetTournyTrackDialogBox(self.profileComboBox.currentText(), parent=self)
             self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK, API_CALL_COUNT)
             self.crewLoadoutBuilder = CrewLoadoutBuilderDialogBox(parent=self)
+            self.crewPrestiger = CrewPrestigeDialogBox(parent=self)
       def populate_tables(self):
             self.update_SQL(QSqlQuery(QSqlDatabase.database("tournydb")), "Tourny")
             self.update_SQL(QSqlQuery(QSqlDatabase.database("legendsdb")), "Legend")
@@ -360,13 +355,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.color_flag = True
       async def generateAccessToken(self):
             start_time = time.time()
-            global ACCESS_TOKEN
-            global API_CALL_COUNT
+            global ACCESS_TOKEN, API_CALL_COUNT, API_CLIENT
             device_key = get_or_create_uuid()
             client_date_time = pssapi.utils.get_utc_now()
-            checksum = self.client.user_service.utils.create_device_login_checksum(device_key, self.client.device_type, client_date_time, "5343")
+            checksum = API_CLIENT.user_service.utils.create_device_login_checksum(device_key, API_CLIENT.device_type, client_date_time, "5343")
             API_CALL_COUNT += 1
-            user_login = await self.client.user_service.device_login(checksum, client_date_time, device_key, self.client.device_type)
+            user_login = await API_CLIENT.user_service.device_login(checksum, client_date_time, device_key, API_CLIENT.device_type)
             API_CALL_COUNT += 1
             assert isinstance(user_login, pssapi.entities.UserLogin)
             assert user_login.access_token
@@ -374,10 +368,10 @@ class MainWindow(QtWidgets.QMainWindow):
             total_time = time.time() - start_time
             log_time(f"Total access token generation time: {total_time:.4f} seconds")
       async def fetch_user_data(self, searchname):
-            global API_CALL_COUNT
+            global API_CALL_COUNT, API_CLIENT
             start_time = time.time()
             try:
-                  responses = await self.client.user_service.search_users(searchname)
+                  responses = await API_CLIENT.user_service.search_users(searchname)
                   API_CALL_COUNT += 1
             except Exception:
                   throwErrorMessage(f"API Call Limit {API_CALL_COUNT} has been reached", f"Player: {searchname} was not searched due to API limitation\nPlease wait a few minutes and try again")
@@ -406,12 +400,12 @@ class MainWindow(QtWidgets.QMainWindow):
             timer = time.time() - start_time
             log_time(f"Fetch searched fleet data: {timer:.4f} seconds")
       async def fetch_fleetmembers_from_api(self, fleetname, fleetid):
-            global API_CALL_COUNT
+            global API_CALL_COUNT, API_CLIENT
             start_time = time.time()
             try:
-                  fleet = await self.client.alliance_service.search_alliances(ACCESS_TOKEN,fleetname,0,5)
+                  fleet = await API_CLIENT.alliance_service.search_alliances(ACCESS_TOKEN,fleetname,0,5)
                   API_CALL_COUNT += 1
-                  players = await self.client.alliance_service.list_users(ACCESS_TOKEN,fleetid,0,fleet[0].number_of_members)
+                  players = await API_CLIENT.alliance_service.list_users(ACCESS_TOKEN,fleetid,0,fleet[0].number_of_members)
                   API_CALL_COUNT += 1
             except:
                   throwErrorMessage(f"API Call Limit {API_CALL_COUNT} has been reached", f"Fleet: {fleetname} was not fully updated")
@@ -451,19 +445,19 @@ class MainWindow(QtWidgets.QMainWindow):
             #Pull dataset of top 100 fleets
             #Pull players of each fleet
             #write individual player data into targets database
-            #fleet_list = await self.client.alliance_service.list_alliances_by_ranking(0,100)
+            #fleet_list = await API_CLIENT.alliance_service.list_alliances_by_ranking(0,100)
             #for fleet in fleet_list:
-                  #current_fleet_members = await self.client.alliance_service.list_users(ACCESS_TOKEN,fleet.alliance_id,0,fleet.number_of_members)                  
+                  #current_fleet_members = await API_CLIENT.alliance_service.list_users(ACCESS_TOKEN,fleet.alliance_id,0,fleet.number_of_members)                  
                   #for member in current_fleet_members:
                         #print(member.name)
-            topplayers = await self.client.ladder_service.list_users_by_ranking(ACCESS_TOKEN,0,100)
+            topplayers = await API_CLIENT.ladder_service.list_users_by_ranking(ACCESS_TOKEN,0,100)
             update_last_api_call()
             for player in topplayers:
                   print(f"Adding {player.name} to targets database")
                   self.update_player_via_api(player.name)
       Update top 100 players and names in fleets once per day maximum'''
       def swapStyle(self):
-            global CURRENT_STYLESHEET
+            global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if self.actionDark_Mode.isChecked():
                   self.setStyleSheet(DARK_MODE_STYLESHEET)
                   CURRENT_STYLESHEET="dark"
@@ -875,12 +869,12 @@ class MainWindow(QtWidgets.QMainWindow):
             def update_api_calls(self, api_calls):
                   self.api_calls_label.setText(f"API Calls: {api_calls}")
             def setStyle(self):
+                  global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
                   if CURRENT_STYLESHEET == "default":
                         self.setStyleSheet("")
                   elif CURRENT_STYLESHEET == "dark":
                         self.setStyleSheet(DARK_MODE_STYLESHEET)
 class FilteredListDialog(QtWidgets.QDialog):
-      global CURRENT_STYLESHEET
       copyItemSearchClicked = QtCore.pyqtSignal(str, bool)
       def __init__(self, title, filter_label, filter_placeholder, parent=None):
             super().__init__(parent)
@@ -923,6 +917,7 @@ class FilteredListDialog(QtWidgets.QDialog):
                   selected_text = selected_item.text()
                   self.copyItemSearchClicked.emit(selected_text, True)
       def setStyle(self):
+            global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
@@ -947,7 +942,6 @@ class FilteredListDialog(QtWidgets.QDialog):
                         else:
                               item.setHidden(True)
 class FightDataConfirmation(QtWidgets.QDialog):
-      global CURRENT_STYLESHEET
       fightDataSaved = pyqtSignal(int, float, str, str)
       def __init__(self, parent=None):
             super().__init__(parent)
@@ -955,6 +949,7 @@ class FightDataConfirmation(QtWidgets.QDialog):
 
             self.submitFightDataButton.clicked.connect(self.saveFightData)
       def setStyle(self):
+            global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
@@ -967,7 +962,6 @@ class FightDataConfirmation(QtWidgets.QDialog):
             self.fightDataSaved.emit(rewards, remainhp, result, fight)
             self.accept()
 class ImportDialogBox(QtWidgets.QDialog):
-      global CURRENT_STYLESHEET
       progress_signal = pyqtSignal(int)
       updated_records = []
       has_imported = False
@@ -982,6 +976,7 @@ class ImportDialogBox(QtWidgets.QDialog):
 
             self.progress_signal.connect(self.updateProgressBar, QtCore.Qt.ConnectionType.DirectConnection)
       def setStyle(self):
+            global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
@@ -1268,7 +1263,6 @@ class StarsCalculatorDialogBox(QtWidgets.QDialog):
             self.tournamentTable.show()
             self.saveStarsTableToCSV()
 class CrewTrainerDialogBox(QtWidgets.QDialog):
-      global CURRENT_STYLESHEET
       def __init__(self):
             super().__init__()
             uic.loadUi(os.path.join('_internal','_ui','pss-ttt-crewtrainer.ui'), self)
@@ -1407,6 +1401,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
             self.testPushButton.clicked.connect(self.wipeCrewStats)
             self.onComboBoxValueChanged()
       def setStyle(self):
+            global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
                   self.chartTable.setStyleSheet("")
@@ -1646,6 +1641,7 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                   self.horizontalHeaders = ['Training', 'HP','ATK','ABL','STA','RPR','PLT','SCI','ENG','WPN']
                   self.verticalHeaders = [''] * len(data)
             def setStyle(self):
+                  global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
                   if CURRENT_STYLESHEET == "default":
                         self.setStyleSheet("")
                   elif CURRENT_STYLESHEET == "dark":
@@ -1822,13 +1818,12 @@ class CrewTrainerDialogBox(QtWidgets.QDialog):
                         self.model.removeRow(index.row())
                   self.savePresetCSV()
 class TargetTournyTrackDialogBox(QtWidgets.QDialog):
-      global CURRENT_STYLESHEET
       copyStarsTargetTrackClicked = QtCore.pyqtSignal(str, bool)
       currentStarsTarget = ' '
-      global API_CALL_COUNT
       def __init__(self, profile_name, parent=None):
+            global API_CLIENT
             super().__init__(parent)
-            self.client = PssApiClient()
+            API_CLIENT = PssApiClient()
             uic.loadUi(os.path.join('_internal','_ui','pss-ttt-stt.ui'), self)
 
             self.table_widgets = {
@@ -1852,6 +1847,7 @@ class TargetTournyTrackDialogBox(QtWidgets.QDialog):
       def setProfilePath(self, profile_name):
             self.profile_path = profile_name
       def setStyle(self):
+            global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
@@ -1905,8 +1901,8 @@ class TargetTournyTrackDialogBox(QtWidgets.QDialog):
                   print("No model set for the target table")
             self.saveStarsCSV()
       async def fetch_user_maxtrophy(self, playername):
-            global API_CALL_COUNT
-            responses = await self.client.user_service.search_users(playername)
+            global API_CALL_COUNT, API_CLIENT
+            responses = await API_CLIENT.user_service.search_users(playername)
             API_CALL_COUNT += 1
             for response in responses:
                   return str(response.highest_trophy)
@@ -1988,20 +1984,19 @@ class TargetTournyTrackDialogBox(QtWidgets.QDialog):
             def reject(self):
                   super().reject()
 class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
-      global CURRENT_STYLESHEET
       HEAD_LIST = []
       BODY_LIST = []
       LEG_LIST = []
       WEP_LIST = []
       ACC_LIST = []
       PET_LIST = []
-      CREW_LIST = []
 
       EQUIPMENT_SLOTS: list[str] = ["Head", "Body", "Leg", "Weapon", "Accessory", "Pet"]
       
       def __init__(self, parent=None):
+            global CREW_LIST, API_CLIENT
             super().__init__(parent)
-            self.client = PssApiClient()
+            API_CLIENT = PssApiClient()
             uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt-clb.ui'), self)
             os.makedirs(os.path.join('_internal', '_equip'), exist_ok=True)
             os.makedirs(os.path.join('_internal', '_crew'), exist_ok=True)
@@ -2027,7 +2022,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.wepCompleter = self.setup_completer(self.weaponEquipBox, self.WEP_LIST, "item")
             self.accCompleter = self.setup_completer(self.accessoryEquipBox, self.ACC_LIST, "item")
             self.petCompleter = self.setup_completer(self.petEquipBox, self.PET_LIST, "item")
-            self.crewCompleter = self.setup_completer(self.crewNameBox, self.CREW_LIST, "crew")
+            self.crewCompleter = self.setup_completer(self.crewNameBox, CREW_LIST, "crew")
             self.finalChart = [[0,0] for _ in range(12)]
             self.finalTable = self.findChild(QTableView, "finalTableStats")
             self.finalModel = self.FinalStatsTableModel(self.finalChart, self)
@@ -2068,12 +2063,13 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.model.dataChanged.connect(self.onCompleterActivated)
 
       def setStyle(self):
+            global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if CURRENT_STYLESHEET == "default":
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
                   self.setStyleSheet(DARK_MODE_STYLESHEET)
       async def fetch_crew_list(self):
-            global API_CALL_COUNT
+            global API_CALL_COUNT, CREW_LIST
             version = await self.get_db_version()
             config_data = load_config()
             if not config_data.get('config'):
@@ -2081,32 +2077,34 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             for entry in config_data['config']:
                   entry['item_database'] = version
                   save_config(config_data)
-            crew_list = await self.client.character_service.list_all_character_designs()
+            crew_list = await API_CLIENT.character_service.list_all_character_designs()
             API_CALL_COUNT += 1
             all_crew_data = []
             for crew in crew_list:
-#                 Crew Name, Equipment Mask, Rarity, Special, Collection, HP, Attack, RPR, ABL, PLT, SCI, ENG, WPN, RST, Walk, Run, TP
-                  crew_data = [crew.character_design_name, crew.equipment_mask, crew.rarity, crew.special_ability_final_argument, crew.collection_design_id, crew.final_hp, crew.final_attack, 
+#                 Crew Name, ID, Equipment Mask, Rarity, Special, Collection, HP, Attack, RPR, ABL, PLT, SCI, ENG, WPN, RST, Walk, Run, TP
+                  crew_data = [crew.character_design_name, crew.root_character_design_id, crew.equipment_mask, crew.rarity, crew.special_ability_final_argument, crew.collection_design_id, crew.final_hp, crew.final_attack, 
                                crew.final_repair, crew.special_ability_final_argument, crew.final_pilot, crew.final_science, crew.final_engine, crew.final_weapon,
                                crew.fire_resistance, crew.walking_speed, crew.run_speed, crew.training_capacity]
-                  self.CREW_LIST.append(crew_data)
+                  CREW_LIST.append(crew_data)
                   all_crew_data.append(crew_data)
             self.saveCrewtoCSV(all_crew_data)
       def onCompleterActivated(self):
             self.selectEquipmentBoxes(self.getEquipMask())
             self.calculateStats()
       def getEquipMask(self):
+            global CREW_LIST
             crew_name = self.crewNameBox.text()
-            for crew in self.CREW_LIST:
+            for crew in CREW_LIST:
                   if crew[0] == crew_name:
-                        equip_mask = crew[1]
+                        equip_mask = crew[2]
             return self.equipSlots(equip_mask)
       def loadCrewData(self):
+            global CREW_LIST
             crew_name = self.crewNameBox.text()
-            for crew in self.CREW_LIST:
+            for crew in CREW_LIST:
                   if crew[0] == crew_name:
                         # Crew Name,Equipment Mask,Rarity,Special,Collection,HP,Attack,RPR,ABL,PLT,SCI,ENG,WPN,RST,Walk,Run,TP
-                        crew_name, equipment_mask, rarity, special, collection, hp, attack, rpr, abl, plt, sci, eng, wpn, rst, walk, run, tp = crew[0], crew[1], crew[2], crew[3], crew[4], crew[5], float(crew[6]), float(crew[7]), crew[8], float(crew[9]), float(crew[10]), float(crew[11]), float(crew[12]), crew[13], crew[14], crew[15], crew[16]
+                        crew_name, crewid, equipment_mask, rarity, special, collection, hp, attack, rpr, abl, plt, sci, eng, wpn, rst, walk, run, tp = crew[0], crew[1], crew[2], crew[3], crew[4], crew[5], crew[6], float(crew[7]), crew[8], float(crew[9]), float(crew[10]), float(crew[11]), float(crew[12]), float(crew[13]), crew[14], crew[15], crew[16], crew[17]
                         sta = 0
                         equip = self.equipSlots(equipment_mask)
                         self.selectEquipmentBoxes(equip)
@@ -2203,6 +2201,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                         getattr(self, f"{equipment.lower()}EquipLabel").show()
                         getattr(self, f"{equipment.lower()}EquipBox").show()
       def calculateStats(self):
+            global CREW_LIST
             base_stats = {
                   "hp": 0.0,
                   "attack": 0.0,
@@ -2219,7 +2218,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   "tp": 0}
             crew_name = self.crewNameBox.text()
 
-            for crew in self.CREW_LIST:
+            for crew in CREW_LIST:
                   if crew[0] == crew_name:
                         crew_data = crew[5:17]
                         keys = list(base_stats.keys())
@@ -2418,17 +2417,18 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                         reader = csv.reader(csvfile)
                         next(reader)
                         for row in reader:
-                              data_list.append((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16]))
+                              data_list.append((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16], row[17]))
             except FileNotFoundError:
                   print(f"File crewlist.csv not found")
             return data_list
       def loadCrewFromCSV(self):
-            self.CREW_LIST.clear()
-            self.CREW_LIST.extend(self.readCrewFromCSV())
+            global CREW_LIST
+            CREW_LIST.clear()
+            CREW_LIST.extend(self.readCrewFromCSV())
       def saveCrewtoCSV(self, data_list):
             with open(os.path.join('_internal','_crew','crewlist.csv'), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
-                  header = ["Crew Name", "Equipment Mask", "Rarity", "Special", "Collection", "HP", "Attack", "RPR", "ABL", "PLT", "SCI", "ENG", "WPN", "RST", "Walk", "Run", "TP"]
+                  header = ["Crew Name", "ID", "Equipment Mask", "Rarity", "Special", "Collection", "HP", "Attack", "RPR", "ABL", "PLT", "SCI", "ENG", "WPN", "RST", "Walk", "Run", "TP"]
                   writer.writerow(header)
                   writer.writerows(data_list)
       def equipSlots(self, mask):
@@ -2474,17 +2474,17 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   word_list = []
                   for line in data_list:
                         #Crew Name,Equipment Mask,Rarity,Special,Collection,HP,Attack,RPR,ABL,PLT,SCI,ENG,WPN,RST,Walk,Run,TP
-                        crew_name, equipment_mask, rarity, special, collection, hp, attack, rpr, abl, plt, sci, eng, wpn, rst, walk, run, tp = line
+                        crew_name, id, equipment_mask, rarity, special, collection, hp, attack, rpr, abl, plt, sci, eng, wpn, rst, walk, run, tp = line
                         text = crew_name
                         word_list.append(text)
                   return word_list
       async def get_db_version(self):
-            global API_CALL_COUNT
-            version = await self.client.get_latest_version()
+            global API_CALL_COUNT, API_CLIENT
+            version = await API_CLIENT.get_latest_version()
             API_CALL_COUNT += 1
             return version.recommended_version
       async def fetch_item_list(self):
-            global API_CALL_COUNT
+            global API_CALL_COUNT, API_CLIENT
             # Item_Design_Name,Enhancement_Type,Enhancement_Value,Item_Sub_Type  ,Rarity
             # La Paula        ,Ability         ,17.0             ,EquipmentWeapon,Hero
             version = await self.get_db_version()
@@ -2494,7 +2494,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             for entry in config_data['config']:
                   entry['item_database'] = version
                   save_config(config_data)
-            item_designs = await self.client.item_service.list_item_designs()
+            item_designs = await API_CLIENT.item_service.list_item_designs()
             API_CALL_COUNT += 1
             for item in item_designs:
                   if item.item_sub_type == 'EquipmentHead':
@@ -2627,6 +2627,23 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   return self._data[row][column]
             def flags(self, index):
                   return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+class CrewPrestigeDialogBox(QtWidgets.QDialog):
+      def __init__(self, parent=None):
+            super().__init__(parent)
+            global CREW_LIST
+            global API_CLIENT
+            #API_CLIENT = PssApiClient()
+            self.current_crew_list = ["Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie"]
+            for i in range(len(self.current_crew_list)):
+                  for crew in CREW_LIST:
+                        if crew[0] == self.current_crew_list[i]:
+                              prestige_list = asyncio.run(self.prestige_to(crew[1]))
+      async def prestige_to(self, crewid):
+            global API_CALL_COUNT
+            API_CALL_COUNT += 1
+            response = await API_CLIENT.character_service.prestige_character_from(crewid)
+            return response
+
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):
