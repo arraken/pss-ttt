@@ -11,12 +11,12 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.5.2"
+CURRENT_VERSION = "v1.5.3"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
-GITHUB_RELEASE_VERSION = "v1.5.2"
+GITHUB_RELEASE_VERSION = "v1.5.3"
 ITEM_AND_CREW_DATABASE_VERSION = None
 API_CALL_COUNT = 0
 NEW_RELEASE = False
