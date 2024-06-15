@@ -2647,6 +2647,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
 class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def __init__(self, parent=None):
             super().__init__(parent)
+            uic.loadUi(os.path.join('_internal','ui', 'pss-ttt-pc.ui'), self)
             #self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Ardent Templar'), self.CrewMember('Apex'), self.CrewMember('Alibaba')]
             self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Rainbow Giant Slime'), self.CrewMember('Rainbow Ardent Templar'), self.CrewMember('Mr Cray'), self.CrewMember('Le Vincent'), self.CrewMember('Infecteddy'), self.CrewMember('Government Troop'), self.CrewMember('Giant Slime'), self.CrewMember('Floozey'), self.CrewMember('Ennui'), self.CrewMember('Elf'), self.CrewMember('Ardent Templar'), self.CrewMember('Aaron'), self.CrewMember('Dr Sera'), self.CrewMember('Alibaba'), self.CrewMember('Apex')]
             self.prestige_recipes = { ('', ''): ''}
