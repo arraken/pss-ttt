@@ -11,13 +11,14 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.5.4"
+CURRENT_VERSION = "v1.5.6"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
 GITHUB_RELEASE_VERSION = "v1.5.3"
-ITEM_AND_CREW_DATABASE_VERSION = None
+ITEM_DATABASE_VERSION = None
+CREW_DATABASE_VERSION = None
 API_CALL_COUNT = 0
 NEW_RELEASE = False
 CREW_LIST = []
@@ -94,6 +95,8 @@ def get_or_create_uuid():
             config_entry['uuid'] = str(uuid.uuid4())
       if 'item_database' not in config_entry:
             config_entry['item_database'] = None
+      if 'crew_database' not in config_entry:
+            config_entry['crew_database'] = None
       if 'last_api_call' not in config_entry:
             config_entry['last_api_call'] = None
       if 'profile_names' not in config_entry:
@@ -101,6 +104,7 @@ def get_or_create_uuid():
       config_data['config'] = [OrderedDict([
            ('uuid', config_entry['uuid']),
            ('item_database', config_entry['item_database']),
+           ('crew_database', config_entry['crew_database']),
            ('last_api_call', config_entry['last_api_call']),
            ('profile_names', config_entry['profile_names'])
             ])]
@@ -130,6 +134,7 @@ def getProfiles(create_if_missing=False):
                   new_entry = {
                         "uuid": str(uuid.uuid4()),
                         "item_database" : None,
+                        "crew_database" : None,
                         "last_api_call": None,
                         "profile_names": profile_names
                         }
@@ -270,8 +275,9 @@ def api_database_needs_update(version):
       if not config_data.get('config'):
             return True
       for entry in config_data['config']:
-            ITEM_AND_CREW_DATABASE_VERSION = entry.get('item_database')
-            if ITEM_AND_CREW_DATABASE_VERSION is None or ITEM_AND_CREW_DATABASE_VERSION < version:
+            ITEM_DATABASE_VERSION = entry.get('item_database')
+            CREW_DATABASE_VERSION = entry.get('crew_database')           
+            if ITEM_DATABASE_VERSION is None or ITEM_DATABASE_VERSION < version.item_design_version or CREW_DATABASE_VERSION is None or CREW_DATABASE_VERSION < version.character_design_version:
                   return True
             else:
                   return False
@@ -1990,16 +1996,24 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
       WEP_LIST = []
       ACC_LIST = []
       PET_LIST = []
-
       EQUIPMENT_SLOTS: list[str] = ["Head", "Body", "Leg", "Weapon", "Accessory", "Pet"]
-      
       def __init__(self, parent=None):
-            global CREW_LIST, API_CLIENT
             super().__init__(parent)
-            API_CLIENT = PssApiClient()
+
+            self.api_client = PssApiClient()
+            self.setup_ui()
+            self.setup_directories()
+            self.setup_boxes()
+            self.setup_tables()
+            self.setup_completers()
+            self.setup_signals()
+            self.check_for_updates_and_load_data()
+      def setup_ui(self):
             uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt-clb.ui'), self)
+      def setup_directories(self):
             os.makedirs(os.path.join('_internal', '_equip'), exist_ok=True)
             os.makedirs(os.path.join('_internal', '_crew'), exist_ok=True)
+      def setup_boxes(self):
             self.bodyEquipBox = self.findChild(QLineEdit, 'bodyEquipBox')
             self.headEquipBox = self.findChild(QLineEdit, 'headEquipBox')
             self.legEquipBox = self.findChild(QLineEdit, 'legEquipBox')
@@ -2007,6 +2021,55 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.accessoryEquipBox = self.findChild(QLineEdit, 'accessoryEquipBox')
             self.petEquipBox = self.findChild(QLineEdit, 'petEquipBox')
             self.crewNameBox = self.findChild(QLineEdit, 'crewNameBox')
+      def setup_tables(self):
+            self.finalChart = [[0, 0] for _ in range(12)]
+            self.finalTable = self.findChild(QTableView, "finalTableStats")
+            self.finalModel = self.FinalStatsTableModel(self.finalChart, self)
+            self.finalTable.setModel(self.finalModel)
+            self.finalTable.setColumnWidth(0, 50)
+            self.finalTable.setColumnWidth(1, 50)
+
+            self.tpChart = [[0] for _ in range(9)]
+            self.tpTable = self.findChild(QTableView, "crewTPTable")
+            self.model = self.StatsTableModel(self.tpChart, self)
+            self.tpTable.setModel(self.model)
+            self.tpTable.setColumnWidth(0, 50)
+            self.tpTable.setColumnWidth(1, 90)
+            self.tpTable.setColumnWidth(2, 90)
+      def setup_completers(self):
+            global CREW_LIST
+            self.bodyCompleter = self.setup_completer(self.bodyEquipBox, self.BODY_LIST, "item")
+            self.headCompleter = self.setup_completer(self.headEquipBox, self.HEAD_LIST, "item")
+            self.legCompleter = self.setup_completer(self.legEquipBox, self.LEG_LIST, "item")
+            self.wepCompleter = self.setup_completer(self.weaponEquipBox, self.WEP_LIST, "item")
+            self.accCompleter = self.setup_completer(self.accessoryEquipBox, self.ACC_LIST, "item")
+            self.petCompleter = self.setup_completer(self.petEquipBox, self.PET_LIST, "item")
+            self.crewCompleter = self.setup_completer(self.crewNameBox, CREW_LIST, "crew")
+      def setup_signals(self):
+            self.loadCrewDataButton.clicked.connect(self.loadCrewData)
+            self.hideAllEquipBoxes([])
+
+            completers = [
+                  self.bodyCompleter, self.headCompleter, self.legCompleter,
+                  self.wepCompleter, self.accCompleter, self.petCompleter
+                        ]
+            for completer in completers:
+                  completer.activated.connect(self.onCompleterActivated)
+
+            hero_side_widgets = [
+                  (self.bodyHeroSideStat, self.bodyHeroSideDD),
+                  (self.headHeroSideStat, self.headHeroSideDD),
+                  (self.weaponHeroSideStat, self.weaponHeroSideDD),
+                  (self.petHeroSideStat, self.petHeroSideDD),
+                  (self.accessoryHeroSideStat, self.accessoryHeroSideDD),
+                  (self.legHeroSideStat, self.legHeroSideDD)
+                              ]
+            for stat_widget, dd_widget in hero_side_widgets:
+                  stat_widget.valueChanged.connect(self.onCompleterActivated)
+                  dd_widget.currentIndexChanged.connect(self.onCompleterActivated)
+
+            self.model.dataChanged.connect(self.onCompleterActivated)
+      def check_for_updates_and_load_data(self):
             version = asyncio.run(self.get_db_version())
             if api_database_needs_update(version):
                   print("Loading from API data as update is needed")
@@ -2016,52 +2079,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   print("Loading from established CSV due to no update needed")
                   self.loadItemsFromCSV()
                   self.loadCrewFromCSV()
-            self.bodyCompleter = self.setup_completer(self.bodyEquipBox, self.BODY_LIST, "item")
-            self.headCompleter = self.setup_completer(self.headEquipBox, self.HEAD_LIST, "item")
-            self.legCompleter = self.setup_completer(self.legEquipBox, self.LEG_LIST, "item")
-            self.wepCompleter = self.setup_completer(self.weaponEquipBox, self.WEP_LIST, "item")
-            self.accCompleter = self.setup_completer(self.accessoryEquipBox, self.ACC_LIST, "item")
-            self.petCompleter = self.setup_completer(self.petEquipBox, self.PET_LIST, "item")
-            self.crewCompleter = self.setup_completer(self.crewNameBox, CREW_LIST, "crew")
-            self.finalChart = [[0,0] for _ in range(12)]
-            self.finalTable = self.findChild(QTableView, "finalTableStats")
-            self.finalModel = self.FinalStatsTableModel(self.finalChart, self)
-            self.finalTable.setModel(self.finalModel)
-            self.finalTable.setColumnWidth(0,50)
-            self.finalTable.setColumnWidth(1,50)
-            self.tpChart = [[0] for _ in range(9)]
-            self.tpTable = self.findChild(QTableView, "crewTPTable")
-            self.model = self.StatsTableModel(self.tpChart, self)
-            self.tpTable.setModel(self.model)
-            self.tpTable.setColumnWidth(0,50)
-            self.tpTable.setColumnWidth(1,90)
-            self.tpTable.setColumnWidth(2,90)
-
-            self.loadCrewDataButton.clicked.connect(self.loadCrewData)
-            self.hideAllEquipBoxes([])
-            
-            self.wepCompleter.activated.connect(self.onCompleterActivated)
-            self.accCompleter.activated.connect(self.onCompleterActivated)
-            self.legCompleter.activated.connect(self.onCompleterActivated)
-            self.headCompleter.activated.connect(self.onCompleterActivated)
-            self.bodyCompleter.activated.connect(self.onCompleterActivated)
-            self.petCompleter.activated.connect(self.onCompleterActivated)
-
-            self.bodyHeroSideStat.valueChanged.connect(self.onCompleterActivated)
-            self.bodyHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
-            self.headHeroSideStat.valueChanged.connect(self.onCompleterActivated)
-            self.headHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
-            self.weaponHeroSideStat.valueChanged.connect(self.onCompleterActivated)
-            self.weaponHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
-            self.petHeroSideStat.valueChanged.connect(self.onCompleterActivated)
-            self.petHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
-            self.accessoryHeroSideStat.valueChanged.connect(self.onCompleterActivated)
-            self.accessoryHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
-            self.legHeroSideStat.valueChanged.connect(self.onCompleterActivated)
-            self.legHeroSideDD.currentIndexChanged.connect(self.onCompleterActivated)
-
-            self.model.dataChanged.connect(self.onCompleterActivated)
-
       def setStyle(self):
             global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if CURRENT_STYLESHEET == "default":
@@ -2075,7 +2092,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             if not config_data.get('config'):
                   throwErrorMessage("Fatal Error [fetch_crew_list]", "Config data not loaded properly")
             for entry in config_data['config']:
-                  entry['item_database'] = version
+                  entry['crew_database'] = version.character_design_version
                   save_config(config_data)
             crew_list = await API_CLIENT.character_service.list_all_character_designs()
             API_CALL_COUNT += 1
@@ -2482,7 +2499,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             global API_CALL_COUNT, API_CLIENT
             version = await API_CLIENT.get_latest_version()
             API_CALL_COUNT += 1
-            return version.recommended_version
+            return version
       async def fetch_item_list(self):
             global API_CALL_COUNT, API_CLIENT
             # Item_Design_Name,Enhancement_Type,Enhancement_Value,Item_Sub_Type  ,Rarity
@@ -2492,7 +2509,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             if not config_data.get('config'):
                   throwErrorMessage("Fatal Error [fetch_item_list]", "Config data not loaded properly")
             for entry in config_data['config']:
-                  entry['item_database'] = version
+                  entry['item_database'] = version.item_design_version
                   save_config(config_data)
             item_designs = await API_CLIENT.item_service.list_item_designs()
             API_CALL_COUNT += 1
@@ -2630,18 +2647,32 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
 class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def __init__(self, parent=None):
             super().__init__(parent)
-            global CREW_LIST
-            self.current_crew_list = ["Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie", "Zombie"]
-            self.target_crew = ["Reaper"]
-            for i in range(len(self.current_crew_list)):
-                  for crew in CREW_LIST:
-                        if crew[0] == self.current_crew_list[i]:
-                              prestige_list = asyncio.run(self.prestige_from(crew[1]))
-                  
-            test_name = f"{self.get_crew_name_from_id(prestige_list[0].character_design_id_1)} + {self.get_crew_name_from_id(prestige_list[0].character_design_id_2)} = {self.get_crew_name_from_id(prestige_list[0].to_character_design_id)}"
-            print(f"Prestige List: [{test_name}]")
-            
-      def get_crew_name_from_id(self, crewid):
+            self.prestige_recipes = { ('', ''): ''}
+            self.reverse_prestige_recipes = { ('', ''): ''}
+            for crew in CREW_LIST:
+                  if crew[3] == "Special" or crew[3] == "Legendary" or crew[3] == "Common" or crew[3] == "Elite":
+                        continue
+                  prestige_crews = asyncio.run(self.prestige_from(crew[1]))
+                  crew1 = self.getCrewName(prestige_crews[0].character_design_id_1)
+                  crew2 = self.getCrewName(prestige_crews[0].character_design_id_2)
+                  result = self.getCrewName(prestige_crews[0].to_character_design_id)
+                  recipe_key = (crew1, crew2)
+                  if recipe_key in self.prestige_recipes or (crew2, crew1) in self.prestige_recipes:
+                        continue
+                  self.prestige_recipes[recipe_key] = result
+                  self.reverse_prestige_recipes[(crew2, crew1)] = result
+                  print(f"Added new prestige recipe: {crew1} + {crew2} -> {result}")
+            self.writeToCSV(self.prestige_recipes)
+      def writeToCSV(self, recipes):
+            with open('prestige.csv', 'w', newline='', encoding='utf-8') as csvfile:
+                  writer = csv.writer(csvfile)
+                  header = ["Crew 1", "Crew 2", "Result"]
+                  writer.writerow(header)
+                  for (crew1, crew2), result in recipes.items():
+                        writer.writerow([crew1, crew2, result])
+      def findPrestigeOptions(current_crew, prestige_recipes, reverse_prestige_recipes):
+            return
+      def getCrewName(self, crewid):
             global CREW_LIST
             for crew in CREW_LIST:
                   if int(crew[1]) == int(crewid):
