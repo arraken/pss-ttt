@@ -11,7 +11,7 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.5.6"
+CURRENT_VERSION = "v1.5.7"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
@@ -2099,7 +2099,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             all_crew_data = []
             for crew in crew_list:
 #                 Crew Name, ID, Equipment Mask, Rarity, Special, Collection, HP, Attack, RPR, ABL, PLT, SCI, ENG, WPN, RST, Walk, Run, TP
-                  crew_data = [crew.character_design_name, crew.root_character_design_id, crew.equipment_mask, crew.rarity, crew.special_ability_final_argument, crew.collection_design_id, crew.final_hp, crew.final_attack, 
+                  crew_data = [crew.character_design_name, crew.character_design_id, crew.equipment_mask, crew.rarity, crew.special_ability_final_argument, crew.collection_design_id, crew.final_hp, crew.final_attack, 
                                crew.final_repair, crew.special_ability_final_argument, crew.final_pilot, crew.final_science, crew.final_engine, crew.final_weapon,
                                crew.fire_resistance, crew.walking_speed, crew.run_speed, crew.training_capacity]
                   CREW_LIST.append(crew_data)
@@ -2647,22 +2647,42 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
 class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def __init__(self, parent=None):
             super().__init__(parent)
+            #self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Ardent Templar'), self.CrewMember('Apex'), self.CrewMember('Alibaba')]
+            self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Rainbow Giant Slime'), self.CrewMember('Rainbow Ardent Templar'), self.CrewMember('Mr Cray'), self.CrewMember('Le Vincent'), self.CrewMember('Infecteddy'), self.CrewMember('Government Troop'), self.CrewMember('Giant Slime'), self.CrewMember('Floozey'), self.CrewMember('Ennui'), self.CrewMember('Elf'), self.CrewMember('Ardent Templar'), self.CrewMember('Aaron'), self.CrewMember('Dr Sera'), self.CrewMember('Alibaba'), self.CrewMember('Apex')]
             self.prestige_recipes = { ('', ''): ''}
             self.reverse_prestige_recipes = { ('', ''): ''}
+            self.readfromCSV()
+            stars5 = self.findPrestigeOptions(self.current_crew, self.prestige_recipes, self.reverse_prestige_recipes)
+            legendary = []
+            legendarydupes = []
+            for key, value in stars5.items():
+                  legendary.append(self.CrewMember(value))
+                  legendarydupes.append(value)
+            debug = self.findPrestigeOptions(legendary, self.prestige_recipes, self.reverse_prestige_recipes)
+            legendaryprint = self.removeDuplicatePrestigeOptions(legendarydupes)
+            #print(legendaryprint)
+            
+            debugprint = []
+            for key, value in debug.items():
+                  debugprint.append(value)
+            print(self.removeDuplicatePrestigeOptions(debugprint))
+      def initialize_prestige_recipes(self):
             for crew in CREW_LIST:
-                  if crew[3] == "Special" or crew[3] == "Legendary" or crew[3] == "Common" or crew[3] == "Elite":
+                  if crew[3] in ["Special", "Legendary", "Common", "Elite"]:
                         continue
                   prestige_crews = asyncio.run(self.prestige_from(crew[1]))
-                  crew1 = self.getCrewName(prestige_crews[0].character_design_id_1)
-                  crew2 = self.getCrewName(prestige_crews[0].character_design_id_2)
-                  result = self.getCrewName(prestige_crews[0].to_character_design_id)
-                  recipe_key = (crew1, crew2)
-                  if recipe_key in self.prestige_recipes or (crew2, crew1) in self.prestige_recipes:
+                  if not prestige_crews:
                         continue
-                  self.prestige_recipes[recipe_key] = result
-                  self.reverse_prestige_recipes[(crew2, crew1)] = result
-                  print(f"Added new prestige recipe: {crew1} + {crew2} -> {result}")
-            self.writeToCSV(self.prestige_recipes)
+                  for prestige_crew in prestige_crews:
+                        crew1 = self.getCrewName(prestige_crew.character_design_id_1)
+                        crew2 = self.getCrewName(prestige_crew.character_design_id_2)
+                        result = self.getCrewName(prestige_crew.to_character_design_id)
+                        #print(f"Crew1 {crew1} + Crew2 {crew2} -> Result {result}")
+                        recipe_key = (crew1, crew2)
+                        if recipe_key in self.prestige_recipes or (crew2, crew1) in self.prestige_recipes:
+                              continue
+                        self.prestige_recipes[recipe_key] = result
+                        self.reverse_prestige_recipes[(crew2, crew1)] = result
       def writeToCSV(self, recipes):
             with open('prestige.csv', 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
@@ -2670,8 +2690,48 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   writer.writerow(header)
                   for (crew1, crew2), result in recipes.items():
                         writer.writerow([crew1, crew2, result])
-      def findPrestigeOptions(current_crew, prestige_recipes, reverse_prestige_recipes):
-            return
+      def readfromCSV(self):
+            try:
+                  with open('prestige.csv', 'r', newline='', encoding='utf-8') as csvfile:
+                        print("Prestige file found - Pulling Data")
+                        reader = csv.reader(csvfile)
+                        next(reader)
+                        for row in reader:
+                              crew1 = row[0]
+                              crew2 = row[1]
+                              result = row[2]
+                              self.prestige_recipes[(crew1, crew2)] = result
+                              self.reverse_prestige_recipes[(crew2, crew1)] = result
+            except FileNotFoundError:
+                  print("Prestige file not found - Generating")
+                  self.initialize_prestige_recipes()
+                  self.writeToCSV(self.prestige_recipes)
+                  for (crew1, crew2), result in self.prestige_recipes.items():
+                        self.reverse_prestige_recipes[(crew2, crew1)] = result
+      def findPrestigeOptions(self, current_crew, prestige_recipes, reverse_prestige_recipes):
+            possible_prestiges = {}
+            #crew_names = set([crew.name for crew in current_crew])
+            for crew1 in current_crew:
+                  for crew2 in current_crew:
+                        if crew1 != crew2:
+                              recipe_key = (crew1.name, crew2.name)
+                              if recipe_key in prestige_recipes:
+                                    result_name = prestige_recipes[recipe_key]
+                                    if recipe_key not in possible_prestiges:
+                                          possible_prestiges[recipe_key] = result_name
+                              #elif recipe_key in reverse_prestige_recipes:
+                               #     result_name = reverse_prestige_recipes[recipe_key]
+                                #    if recipe_key not in possible_prestiges:
+                                 #         possible_prestiges[recipe_key] = result_name
+            return possible_prestiges
+      def removeDuplicatePrestigeOptions(self, possible_prestiges):
+            unique_prestiges = []
+            added_results = set()
+            for result in possible_prestiges:
+                  if result and result not in added_results:
+                        unique_prestiges.append(result)
+                        added_results.add(result)
+            return unique_prestiges
       def getCrewName(self, crewid):
             global CREW_LIST
             for crew in CREW_LIST:
@@ -2687,6 +2747,9 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             API_CALL_COUNT += 1
             response = await API_CLIENT.character_service.prestige_character_to(crewid)
             return response
+      class CrewMember:
+            def __init__(self, name):
+                  self.name = name
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):
