@@ -770,6 +770,7 @@
     <addaction name="actionTrainer"/>
     <addaction name="actionLoadout_Builder"/>
     <addaction name="actionPlanner"/>
+    <addaction name="actionPrestige_Calculator"/>
    </widget>
    <widget class="QMenu" name="menuTournament">
     <property name="title">
@@ -836,6 +837,11 @@
    </property>
    <property name="text">
     <string>Dark Mode</string>
+   </property>
+  </action>
+  <action name="actionPrestige_Calculator">
+   <property name="text">
+    <string>Prestige Calculator (NOT IMPLEMENTED)</string>
    </property>
   </action>
  </widget>

@@ -325,6 +325,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionAbout.triggered.connect(self.openAboutBox)
             self.actionLoadout_Builder.triggered.connect(self.openLoadoutBuilder)
             self.actionDark_Mode.triggered.connect(self.swapStyle)
+            self.actionPrestige_Calculator.triggered.connect(self.open_prestigeCalc)
 
             self.createNewProfile.clicked.connect(createProfile)
             self.createNewProfile.clicked.connect(self.popProfiles)
@@ -560,6 +561,8 @@ class MainWindow(QtWidgets.QMainWindow):
                   if not query.lastError().text().startswith("duplicate"):
                         print(f"Error: {db_name} Update")
                         print("Error:", query.lastError().text())
+      def open_prestigeCalc(self):
+            self.crewPrestiger.exec()
       def open_fightDialog(self):
             self.fightDialog.exec()
       def open_playerBrowser(self):
