@@ -80,6 +80,9 @@
      <pointsize>12</pointsize>
     </font>
    </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::MultiSelection</enum>
+   </property>
   </widget>
   <widget class="QLabel" name="label">
    <property name="geometry">
@@ -120,6 +123,9 @@
      <family>Calibri</family>
      <pointsize>12</pointsize>
     </font>
+   </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::MultiSelection</enum>
    </property>
   </widget>
   <widget class="QListWidget" name="twoStepPrestigeList">

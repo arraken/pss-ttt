@@ -15,8 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDialog, QLabel, QListWidget,
-    QListWidgetItem, QPushButton, QSizePolicy, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QDialog, QLabel,
+    QListWidget, QListWidgetItem, QPushButton, QSizePolicy,
+    QWidget)
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -42,6 +43,7 @@ class Ui_Dialog(object):
         font.setFamilies([u"Calibri"])
         font.setPointSize(12)
         self.currentCrewList.setFont(font)
+        self.currentCrewList.setSelectionMode(QAbstractItemView.MultiSelection)
         self.label = QLabel(Dialog)
         self.label.setObjectName(u"label")
         self.label.setGeometry(QRect(10, 19, 161, 21))
@@ -56,6 +58,7 @@ class Ui_Dialog(object):
         self.oneStepPrestigeList.setObjectName(u"oneStepPrestigeList")
         self.oneStepPrestigeList.setGeometry(QRect(260, 40, 161, 321))
         self.oneStepPrestigeList.setFont(font)
+        self.oneStepPrestigeList.setSelectionMode(QAbstractItemView.MultiSelection)
         self.twoStepPrestigeList = QListWidget(Dialog)
         self.twoStepPrestigeList.setObjectName(u"twoStepPrestigeList")
         self.twoStepPrestigeList.setGeometry(QRect(430, 40, 161, 321))

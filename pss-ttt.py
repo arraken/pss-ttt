@@ -2651,16 +2651,16 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def __init__(self, parent=None):
             super().__init__(parent)
             uic.loadUi(os.path.join('_internal','_ui','pss-ttt-pc.ui'), self)
-            self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Ardent Templar'), self.CrewMember('Apex'), self.CrewMember('Alibaba')]
-            #self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Rainbow Giant Slime'), self.CrewMember('Rainbow Ardent Templar'), self.CrewMember('Mr Cray'), self.CrewMember('Le Vincent'), self.CrewMember('Infecteddy'), self.CrewMember('Government Troop'), self.CrewMember('Giant Slime'), self.CrewMember('Floozey'), self.CrewMember('Ennui'), self.CrewMember('Elf'), self.CrewMember('Ardent Templar'), self.CrewMember('Aaron'), self.CrewMember('Dr Sera'), self.CrewMember('Alibaba'), self.CrewMember('Apex'), self.CrewMember('Ursa Major'), self.CrewMember('The Switch'), self.CrewMember('Mr Coconut'), self.CrewMember('Mecha'), self.CrewMember('Maya'), self.CrewMember('Lollita'), self.CrewMember('Lollita'), self.CrewMember('Invader'), self.CrewMember('Glitch'), self.CrewMember('Glitch'), self.CrewMember('Bogan'), self.CrewMember('Big Boom Cat'), self.CrewMember('Aries'), self.CrewMember('Aquarius'), self.CrewMember('Admiral Serena')]
+            #self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Ardent Templar'), self.CrewMember('Apex'), self.CrewMember('Alibaba')]
+            self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Rainbow Giant Slime'), self.CrewMember('Rainbow Ardent Templar'), self.CrewMember('Mr Cray'), self.CrewMember('Le Vincent'), self.CrewMember('Infecteddy'), self.CrewMember('Government Troop'), self.CrewMember('Giant Slime'), self.CrewMember('Floozey'), self.CrewMember('Ennui'), self.CrewMember('Elf'), self.CrewMember('Ardent Templar'), self.CrewMember('Aaron'), self.CrewMember('Dr Sera'), self.CrewMember('Alibaba'), self.CrewMember('Apex'), self.CrewMember('Ursa Major'), self.CrewMember('The Switch'), self.CrewMember('Mr Coconut'), self.CrewMember('Mecha'), self.CrewMember('Maya'), self.CrewMember('Lollita'), self.CrewMember('Lollita'), self.CrewMember('Invader'), self.CrewMember('Glitch'), self.CrewMember('Glitch'), self.CrewMember('Bogan'), self.CrewMember('Big Boom Cat'), self.CrewMember('Aries'), self.CrewMember('Aquarius'), self.CrewMember('Admiral Serena')]
             self.manageCurrentCrew(self.current_crew)
             self.prestige_recipes = { ('', ''): ''}
             self.reverse_prestige_recipes = { ('', ''): ''}
             self.readfromCSV()
-            crew_list = self.findPrestigeOptions(self.current_crew,self.prestige_recipes)
+            crew_list = self.findPrestigeOptions(self.current_crew)
             self.stars5 = self.filterPrestigeFromList(crew_list)
             self.manageMergeCrew(self.stars5)
-            legendary = self.findPrestigeOptions(self.stars5,self.prestige_recipes)
+            legendary = self.findPrestigeOptions(self.stars5)
             self.legendary = self.filterPrestigeFromList(legendary)
             self.manageLegendaryCrew(self.legendary)
 
@@ -2670,6 +2670,7 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             self.updateHighlightedCrew(self.oneStepPrestigeList)
             self.updateHighlightedCrew(self.twoStepPrestigeList)
       def updateHighlightedCrew(self, merge_list):
+            self.limitSelection()
             selected_items = merge_list.selectedItems()
             crew_names_to_highlight = []
             for item in selected_items:
@@ -2785,15 +2786,15 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                         prestiged_crew.append(self.CrewMember(crew_list[recipe_key]))
                         added_results.add(crew_list[recipe_key])
             return prestiged_crew
-      def findPrestigeOptions(self, current_crew, prestige_recipes):
+      def findPrestigeOptions(self, current_crew):
             possible_prestiges = {}
             #crew_names = set([crew.name for crew in current_crew])
             for crew1 in current_crew:
                   for crew2 in current_crew:
                         if crew1 != crew2:
                               recipe_key = (crew1.name, crew2.name)
-                              if recipe_key in prestige_recipes:
-                                    result_name = prestige_recipes[recipe_key]
+                              if recipe_key in self.prestige_recipes:
+                                    result_name = self.prestige_recipes[recipe_key]
                                     if recipe_key not in possible_prestiges:
                                           possible_prestiges[recipe_key] = result_name
             return possible_prestiges
@@ -2810,6 +2811,14 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             for crew in CREW_LIST:
                   if int(crew[1]) == int(crewid):
                         return crew[0]
+      def limitSelection(self):
+            list_widgets = [self.currentCrewList, self.oneStepPrestigeList, self.twoStepPrestigeList]
+            for lw in list_widgets:
+                  selected_items = lw.selectedItems()
+                  if len(selected_items) > 2:
+                        lw.blockSignals(True)
+                        selected_items[-1].setSelected(False)
+                        lw.blockSignals(False)
       async def prestige_from(self, crewid):
             global API_CALL_COUNT, API_CLIENT
             API_CALL_COUNT += 1
