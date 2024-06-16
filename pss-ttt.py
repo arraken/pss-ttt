@@ -11,12 +11,12 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.5.7"
+CURRENT_VERSION = "v1.6.0"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
-GITHUB_RELEASE_VERSION = "v1.5.3"
+GITHUB_RELEASE_VERSION = "v1.6.0"
 ITEM_DATABASE_VERSION = None
 CREW_DATABASE_VERSION = None
 API_CALL_COUNT = 0
@@ -2650,26 +2650,90 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
 class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def __init__(self, parent=None):
             super().__init__(parent)
-            uic.loadUi(os.path.join('_internal','ui', 'pss-ttt-pc.ui'), self)
-            #self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Ardent Templar'), self.CrewMember('Apex'), self.CrewMember('Alibaba')]
-            self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Rainbow Giant Slime'), self.CrewMember('Rainbow Ardent Templar'), self.CrewMember('Mr Cray'), self.CrewMember('Le Vincent'), self.CrewMember('Infecteddy'), self.CrewMember('Government Troop'), self.CrewMember('Giant Slime'), self.CrewMember('Floozey'), self.CrewMember('Ennui'), self.CrewMember('Elf'), self.CrewMember('Ardent Templar'), self.CrewMember('Aaron'), self.CrewMember('Dr Sera'), self.CrewMember('Alibaba'), self.CrewMember('Apex')]
+            uic.loadUi(os.path.join('_internal','_ui','pss-ttt-pc.ui'), self)
+            self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Ardent Templar'), self.CrewMember('Apex'), self.CrewMember('Alibaba')]
+            #self.current_crew = [self.CrewMember('Sakura'), self.CrewMember('Rainbow Giant Slime'), self.CrewMember('Rainbow Ardent Templar'), self.CrewMember('Mr Cray'), self.CrewMember('Le Vincent'), self.CrewMember('Infecteddy'), self.CrewMember('Government Troop'), self.CrewMember('Giant Slime'), self.CrewMember('Floozey'), self.CrewMember('Ennui'), self.CrewMember('Elf'), self.CrewMember('Ardent Templar'), self.CrewMember('Aaron'), self.CrewMember('Dr Sera'), self.CrewMember('Alibaba'), self.CrewMember('Apex'), self.CrewMember('Ursa Major'), self.CrewMember('The Switch'), self.CrewMember('Mr Coconut'), self.CrewMember('Mecha'), self.CrewMember('Maya'), self.CrewMember('Lollita'), self.CrewMember('Lollita'), self.CrewMember('Invader'), self.CrewMember('Glitch'), self.CrewMember('Glitch'), self.CrewMember('Bogan'), self.CrewMember('Big Boom Cat'), self.CrewMember('Aries'), self.CrewMember('Aquarius'), self.CrewMember('Admiral Serena')]
+            self.manageCurrentCrew(self.current_crew)
             self.prestige_recipes = { ('', ''): ''}
             self.reverse_prestige_recipes = { ('', ''): ''}
             self.readfromCSV()
-            stars5 = self.findPrestigeOptions(self.current_crew, self.prestige_recipes, self.reverse_prestige_recipes)
-            legendary = []
-            legendarydupes = []
-            for key, value in stars5.items():
-                  legendary.append(self.CrewMember(value))
-                  legendarydupes.append(value)
-            debug = self.findPrestigeOptions(legendary, self.prestige_recipes, self.reverse_prestige_recipes)
-            legendaryprint = self.removeDuplicatePrestigeOptions(legendarydupes)
-            #print(legendaryprint)
-            
-            debugprint = []
-            for key, value in debug.items():
-                  debugprint.append(value)
-            print(self.removeDuplicatePrestigeOptions(debugprint))
+            crew_list = self.findPrestigeOptions(self.current_crew,self.prestige_recipes)
+            self.stars5 = self.filterPrestigeFromList(crew_list)
+            self.manageMergeCrew(self.stars5)
+            legendary = self.findPrestigeOptions(self.stars5,self.prestige_recipes)
+            self.legendary = self.filterPrestigeFromList(legendary)
+            self.manageLegendaryCrew(self.legendary)
+
+
+            self.oneStepPrestigeList.itemSelectionChanged.connect(lambda: self.updateHighlightedCrew(self.oneStepPrestigeList))
+            self.twoStepPrestigeList.itemSelectionChanged.connect(lambda: self.updateHighlightedCrew(self.twoStepPrestigeList))
+            self.updateHighlightedCrew(self.oneStepPrestigeList)
+            self.updateHighlightedCrew(self.twoStepPrestigeList)
+      def updateHighlightedCrew(self, merge_list):
+            selected_items = merge_list.selectedItems()
+            crew_names_to_highlight = []
+            for item in selected_items:
+                  selected_crew = item.text()
+                  for (crew1, crew2), result in self.prestige_recipes.items():
+                        if result == selected_crew:
+                              crew_names_to_highlight.append(crew1)
+                              crew_names_to_highlight.append(crew2)
+            self.highlightCurrentCrew(crew_names_to_highlight, merge_list)
+            #print(f"Crew names to highlight: {crew_names_to_highlight}")
+      def mergeCurrentCrew(self, crew1, crew2, crew_list):
+            new_list = []
+            for crew in crew_list[:]:
+                  if crew.name == crew1.name or crew.name == crew2.name:
+                        new_list.append(crew)
+                        crew_list.remove(crew)
+                        continue
+            prestige_result = self.findPrestigeOptions(new_list, self.prestige_recipes)
+            if prestige_result:
+                  result_key = next(iter(prestige_result))
+                  self.highlightCurrentCrew([crew1.name, crew2.name])
+                  self.manageMergeCrew([self.CrewMember(prestige_result[result_key])])
+                  return prestige_result[result_key]
+            return None
+      def manageCurrentCrew(self, crew_list):
+            self.currentCrewList.clear()
+            for crew in crew_list[:]:
+                  self.currentCrewList.addItem(crew.name)
+      def manageMergeCrew(self, crew_list):
+            self.oneStepPrestigeList.clear()
+            for crew in crew_list[:]:
+                  self.oneStepPrestigeList.addItem(crew.name)
+            if crew_list:
+                  self.oneStepPrestigeList.setCurrentItem(self.oneStepPrestigeList.item(0))
+      def manageLegendaryCrew(self, crew_list):
+            self.twoStepPrestigeList.clear()
+            for crew in crew_list[:]:
+                  self.twoStepPrestigeList.addItem(crew.name)
+            if crew_list:
+                  self.twoStepPrestigeList.setCurrentItem(self.twoStepPrestigeList.item(0))
+      def highlightCurrentCrew(self, crew_names, merge_list):
+            list_widget_name = merge_list.objectName()
+            if list_widget_name == "oneStepPrestigeList":
+                  for i in range(self.currentCrewList.count()):
+                        item = self.currentCrewList.item(i)
+                        if item.text() in crew_names:
+                              item.setBackground(QColor("yellow"))
+                        else:
+                              item.setBackground(QColor("white"))
+            elif list_widget_name == "twoStepPrestigeList":
+                  for i in range(self.oneStepPrestigeList.count()):
+                        item = self.oneStepPrestigeList.item(i)
+                        if item.text() in crew_names:
+                              item.setBackground(QColor("yellow"))
+                        else:
+                              item.setBackground(QColor("white"))
+      def onMergeCrewSelected(self, current_row):
+            if current_row >= 0:
+                  selected_crew = self.oneStepPrestigeList.item(current_row).text()
+                  crew_names_to_highlight = set()
+                  for recipe_key, result_name in self.prestige_recipes.items():
+                        if result_name == selected_crew:
+                              crew_names_to_highlight.update(recipe_key)
+                  self.highlightCurrentCrew(crew_names_to_highlight)
       def initialize_prestige_recipes(self):
             for crew in CREW_LIST:
                   if crew[3] in ["Special", "Legendary", "Common", "Elite"]:
@@ -2696,7 +2760,7 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                         writer.writerow([crew1, crew2, result])
       def readfromCSV(self):
             try:
-                  with open('prestige.csv', 'r', newline='', encoding='utf-8') as csvfile:
+                  with open(os.path.join('_internal','_crew', 'prestige.csv'), 'r', newline='', encoding='utf-8') as csvfile:
                         print("Prestige file found - Pulling Data")
                         reader = csv.reader(csvfile)
                         next(reader)
@@ -2712,7 +2776,16 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   self.writeToCSV(self.prestige_recipes)
                   for (crew1, crew2), result in self.prestige_recipes.items():
                         self.reverse_prestige_recipes[(crew2, crew1)] = result
-      def findPrestigeOptions(self, current_crew, prestige_recipes, reverse_prestige_recipes):
+      def filterPrestigeFromList(self, crew_list):
+            prestiged_crew = []
+            added_results = set()
+            for crew1, crew2 in crew_list:
+                  recipe_key = (crew1, crew2)
+                  if crew_list[recipe_key] not in added_results:
+                        prestiged_crew.append(self.CrewMember(crew_list[recipe_key]))
+                        added_results.add(crew_list[recipe_key])
+            return prestiged_crew
+      def findPrestigeOptions(self, current_crew, prestige_recipes):
             possible_prestiges = {}
             #crew_names = set([crew.name for crew in current_crew])
             for crew1 in current_crew:
@@ -2723,10 +2796,6 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                                     result_name = prestige_recipes[recipe_key]
                                     if recipe_key not in possible_prestiges:
                                           possible_prestiges[recipe_key] = result_name
-                              #elif recipe_key in reverse_prestige_recipes:
-                               #     result_name = reverse_prestige_recipes[recipe_key]
-                                #    if recipe_key not in possible_prestiges:
-                                 #         possible_prestiges[recipe_key] = result_name
             return possible_prestiges
       def removeDuplicatePrestigeOptions(self, possible_prestiges):
             unique_prestiges = []
