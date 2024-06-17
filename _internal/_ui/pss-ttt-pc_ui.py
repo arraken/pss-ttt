@@ -16,26 +16,26 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QDialog, QLabel,
-    QListWidget, QListWidgetItem, QPushButton, QSizePolicy,
-    QWidget)
+    QLineEdit, QListWidget, QListWidgetItem, QPushButton,
+    QSizePolicy, QWidget)
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
-        Dialog.resize(831, 365)
-        self.pushButton = QPushButton(Dialog)
-        self.pushButton.setObjectName(u"pushButton")
-        self.pushButton.setGeometry(QRect(180, 40, 75, 23))
-        self.pushButton_2 = QPushButton(Dialog)
-        self.pushButton_2.setObjectName(u"pushButton_2")
-        self.pushButton_2.setGeometry(QRect(180, 70, 75, 23))
-        self.pushButton_3 = QPushButton(Dialog)
-        self.pushButton_3.setObjectName(u"pushButton_3")
-        self.pushButton_3.setGeometry(QRect(180, 100, 75, 23))
-        self.pushButton_4 = QPushButton(Dialog)
-        self.pushButton_4.setObjectName(u"pushButton_4")
-        self.pushButton_4.setGeometry(QRect(180, 130, 75, 23))
+        Dialog.resize(611, 494)
+        self.mergeCrewButton = QPushButton(Dialog)
+        self.mergeCrewButton.setObjectName(u"mergeCrewButton")
+        self.mergeCrewButton.setGeometry(QRect(10, 370, 161, 23))
+        self.oneStepRecipeCheckButton = QPushButton(Dialog)
+        self.oneStepRecipeCheckButton.setObjectName(u"oneStepRecipeCheckButton")
+        self.oneStepRecipeCheckButton.setGeometry(QRect(260, 410, 161, 23))
+        self.addCrewButton = QPushButton(Dialog)
+        self.addCrewButton.setObjectName(u"addCrewButton")
+        self.addCrewButton.setGeometry(QRect(10, 400, 161, 23))
+        self.deleteCrewButton = QPushButton(Dialog)
+        self.deleteCrewButton.setObjectName(u"deleteCrewButton")
+        self.deleteCrewButton.setGeometry(QRect(10, 430, 161, 23))
         self.currentCrewList = QListWidget(Dialog)
         self.currentCrewList.setObjectName(u"currentCrewList")
         self.currentCrewList.setGeometry(QRect(10, 40, 161, 321))
@@ -73,6 +73,12 @@ class Ui_Dialog(object):
         self.label_3.setGeometry(QRect(430, 20, 161, 21))
         self.label_3.setFont(font1)
         self.label_3.setAlignment(Qt.AlignCenter)
+        self.lineEdit = QLineEdit(Dialog)
+        self.lineEdit.setObjectName(u"lineEdit")
+        self.lineEdit.setGeometry(QRect(260, 370, 161, 31))
+        self.clearCrewListButton = QPushButton(Dialog)
+        self.clearCrewListButton.setObjectName(u"clearCrewListButton")
+        self.clearCrewListButton.setGeometry(QRect(10, 460, 161, 23))
 
         self.retranslateUi(Dialog)
 
@@ -81,12 +87,13 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
-        self.pushButton.setText(QCoreApplication.translate("Dialog", u"PushButton", None))
-        self.pushButton_2.setText(QCoreApplication.translate("Dialog", u"PushButton", None))
-        self.pushButton_3.setText(QCoreApplication.translate("Dialog", u"PushButton", None))
-        self.pushButton_4.setText(QCoreApplication.translate("Dialog", u"PushButton", None))
+        self.mergeCrewButton.setText(QCoreApplication.translate("Dialog", u"Merge Selected", None))
+        self.oneStepRecipeCheckButton.setText(QCoreApplication.translate("Dialog", u"Recipe Check", None))
+        self.addCrewButton.setText(QCoreApplication.translate("Dialog", u"Add Crew", None))
+        self.deleteCrewButton.setText(QCoreApplication.translate("Dialog", u"Delete Crew", None))
         self.label.setText(QCoreApplication.translate("Dialog", u"Current Crew", None))
         self.label_2.setText(QCoreApplication.translate("Dialog", u"1 Step Prestige", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"2 Step Prestige", None))
+        self.clearCrewListButton.setText(QCoreApplication.translate("Dialog", u"Clear List", None))
     # retranslateUi
 

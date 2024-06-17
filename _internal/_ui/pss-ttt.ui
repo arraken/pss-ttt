@@ -841,7 +841,7 @@
   </action>
   <action name="actionPrestige_Calculator">
    <property name="text">
-    <string>Prestige Calculator (NOT IMPLEMENTED)</string>
+    <string>Prestige Calculator (Beta)</string>
    </property>
   </action>
  </widget>

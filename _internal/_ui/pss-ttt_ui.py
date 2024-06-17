@@ -313,7 +313,7 @@ class Ui_MainWindow(object):
         self.actionTarget_Tracking.setText(QCoreApplication.translate("MainWindow", u"Target Tracking", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionDark_Mode.setText(QCoreApplication.translate("MainWindow", u"Dark Mode", None))
-        self.actionPrestige_Calculator.setText(QCoreApplication.translate("MainWindow", u"Prestige Calculator (NOT IMPLEMENTED)", None))
+        self.actionPrestige_Calculator.setText(QCoreApplication.translate("MainWindow", u"Prestige Calculator (Beta)", None))
         self.fleetNameLabel.setText(QCoreApplication.translate("MainWindow", u"Fleet", None))
         self.maxTrophiesLabel.setText(QCoreApplication.translate("MainWindow", u"Max Trophies", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Player Name", None))

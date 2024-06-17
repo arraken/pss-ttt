@@ -6,63 +6,63 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>831</width>
-    <height>365</height>
+    <width>611</width>
+    <height>494</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QPushButton" name="pushButton">
+  <widget class="QPushButton" name="mergeCrewButton">
    <property name="geometry">
     <rect>
-     <x>180</x>
-     <y>40</y>
-     <width>75</width>
+     <x>10</x>
+     <y>370</y>
+     <width>161</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>PushButton</string>
+    <string>Merge Selected</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_2">
+  <widget class="QPushButton" name="oneStepRecipeCheckButton">
    <property name="geometry">
     <rect>
-     <x>180</x>
-     <y>70</y>
-     <width>75</width>
+     <x>260</x>
+     <y>410</y>
+     <width>161</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>PushButton</string>
+    <string>Recipe Check</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_3">
+  <widget class="QPushButton" name="addCrewButton">
    <property name="geometry">
     <rect>
-     <x>180</x>
-     <y>100</y>
-     <width>75</width>
+     <x>10</x>
+     <y>400</y>
+     <width>161</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>PushButton</string>
+    <string>Add Crew</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_4">
+  <widget class="QPushButton" name="deleteCrewButton">
    <property name="geometry">
     <rect>
-     <x>180</x>
-     <y>130</y>
-     <width>75</width>
+     <x>10</x>
+     <y>430</y>
+     <width>161</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>PushButton</string>
+    <string>Delete Crew</string>
    </property>
   </widget>
   <widget class="QListWidget" name="currentCrewList">
@@ -192,6 +192,29 @@
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit">
+   <property name="geometry">
+    <rect>
+     <x>260</x>
+     <y>370</y>
+     <width>161</width>
+     <height>31</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="clearCrewListButton">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>460</y>
+     <width>161</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Clear List</string>
    </property>
   </widget>
  </widget>
