@@ -87,7 +87,7 @@ class ProfileDialog(QDialog):
                   self.setStyleSheet(DARK_MODE_STYLESHEET)
 class CrewMember:
       #Crew Name,ID,Equipment Mask,Rarity,Special,Collection,HP,Attack,RPR,ABL,PLT,SCI,ENG,WPN,RST,Walk,Run,TP
-      def __init__(self, name="", id=0, mask=0, rarity="", special="", collection="", hp=0, atk=0, rpr=0, abl=0, sta=0, plt=0, sci=0, eng=0, wpn=0, rst=0, walk=0, run=0, tp=0):
+      def __init__(self, name="", id=0, mask=0, rarity=" ", special=" ", collection=" ", hp=0, atk=0, rpr=0, abl=0, sta=0, plt=0, sci=0, eng=0, wpn=0, rst=0, walk=0, run=0, tp=0):
             self.name = name
             self.id = id
             self.equipmask = mask
@@ -116,6 +116,8 @@ class PrestigeRecipe:
             self.result = result
       def __repr__(self):
             return f"PrestigeRecipe({self.crew1}, {self.crew2}, {self.result})"
+      def __str__(self):
+            return f"{self.result}"
       def as_tuple(self):
             return self.crew1, self.crew2, self.result
 def get_or_create_uuid():
@@ -2166,7 +2168,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             crew_name = self.crewNameBox.text()
             for crew in CREW_LIST:
                   if crew.name == crew_name:
-                        equip_mask = crew[2]
+                        equip_mask = crew.equipmask
             return self.equipSlots(equip_mask)
       def loadCrewData(self):
             crew_name = self.crewNameBox.text()
@@ -2287,15 +2289,15 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
 
             for crew in CREW_LIST:
                   if crew.name == crew_name:
-                        crew_data = [crew.hp, crew.atk, crew.rpr, crew.rpr, crew.abl, crew.sta, crew.plt, crew.sci, crew.eng, crew.wpn, crew.rst, crew.walk, crew.run, crew.tp]
+                        crew_data = [crew.hp, crew.atk, crew.rpr, crew.abl, crew.sta, crew.plt, crew.sci, crew.eng, crew.wpn, crew.rst, crew.walk, crew.run, crew.tp]
                         keys = list(base_stats.keys())
-                        if len(keys) != len(crew_data) + 1:
-                              print(f"Error: Expected {len(keys)} values but got {len(crew_data) + 1}")
+                        if len(keys) != len(crew_data):
+                              print(f"Error: Expected {len(keys)} values but got {len(crew_data)}")
                               return
                         for i, key in enumerate(keys):
-                              if i == 4:
+                              if i == 5:
                                     base_stats[key] = 0.0
-                              elif i > 4:
+                              elif i > 5:
                                     base_stats[key] = float(crew_data[i - 1])
                               else:
                                     base_stats[key] = float(crew_data[i])
@@ -2355,7 +2357,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                                     if stat_type == 'abl':
                                           stat_increase = (float(item[3])/100)
                                           eqp_stats[stat_type] += stat_increase
-                                          #print(f"Eqp_stats1[stat_type] {eqp_stats[stat_type]}")
                                     else:
                                           eqp_stats[stat_type] += float(item[3])
                               else:
@@ -2366,11 +2367,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             for key in base_stats:
                   if key in tp_values:
                         if key == 'abl':
-                              print(f"Base Stat[{key}]: {base_stats[key]}")
-                              print(f"Eqp Stats[{key}]: {(eqp_stats[key])}")
-                              print(f"TP Values[{key}]: {1+(tp_values[key]/100)}")
-                              print(f"FHSS[{key}]: {final_hero_side_stats[key]/100}")
-                              print(f"Merged gear[{key}]: {(1 + eqp_stats[key] + (final_hero_side_stats[key]/100))}")
                               final_stats[key] = base_stats[key] * (1 + eqp_stats[key] + (final_hero_side_stats[key] / 100)) * (1 + tp_values[key] / 100)
                         else:
                               #print(f"Base Stat[{key}]: {base_stats[key]}")
@@ -2379,25 +2375,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                               final_stats[key] = (base_stats[key] * (1 + tp_values[key]/100)) + eqp_stats.get(key, 0) + final_hero_side_stats.get(key, 0)
                   else:
                         final_stats[key] = base_stats[key] + eqp_stats.get(key, 0) + final_hero_side_stats.get(key, 0)
-                  #print(f"Final_stats[{key}]: {final_stats[key]}")
             
-            '''{
-                  'bodyHeroSideStat': self.getHeroSideStatAdd('bodyHeroSideStat', 'bodyHeroSideDD', final_stats),
-                  'headHeroSideStat': self.getHeroSideStatAdd('headHeroSideStat', 'headHeroSideDD', final_stats),
-                  'accessoryHeroSideStat': self.getHeroSideStatAdd('accessoryHeroSideStat', 'accessoryHeroSideDD', final_stats),
-                  'weaponHeroSideStat': self.getHeroSideStatAdd('weaponHeroSideStat', 'weaponHeroSideDD', final_stats),
-                  'petHeroSideStat': self.getHeroSideStatAdd('petHeroSideStat', 'petHeroSideDD', final_stats),
-                  'legHeroSideStat': self.getHeroSideStatAdd('legHeroSideStat', 'legHeroSideDD', final_stats)
-                  }
-            for stat_name, stat_value in final_hero_side_stats.items():
-                  if stat_name in final_stats:
-                        final_stats[stat_name] += stat_value
-                  else:
-                        print(f"Key Problem: '{stat_name}' not found in final_stats keys.")
-                        print('')
-
-            final_stats['abl'] = math.floor(final_stats['abl'])'''
-
             self.finalModel.setData(self.finalModel.index(0, 1), final_stats["hp"])
             self.finalModel.setData(self.finalModel.index(1, 1), final_stats["attack"])
             self.finalModel.setData(self.finalModel.index(2, 1), final_stats["rpr"])
@@ -2410,8 +2388,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.finalModel.setData(self.finalModel.index(9, 1), final_stats["rst"])
             self.finalModel.setData(self.finalModel.index(10, 1), final_stats["walk"])
             self.finalModel.setData(self.finalModel.index(11, 1), final_stats["run"])
-
-            #print("Final Stats:", final_stats)
       def getHeroSideStatAdd(self):
             sidestatbonus = {
                   "hp": 0.0,
@@ -2743,6 +2719,10 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             if ok and text:
                   self.addCrewMembers(text)
       def generatePrestigeLists(self, crew_list):
+            paired_list = self.pairCrewFromList(crew_list)
+            scenarios = self.generate_scenarios(crew_list)
+            for scenario in scenarios:
+                  print(scenario)
             prestige_list = self.findPrestigeOptions(crew_list)
             one_step_prestige = self.filterPrestigeList(prestige_list)
             one_step_prestige_crew_members = [CrewMember(item) for item in one_step_prestige]
@@ -2760,13 +2740,13 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                               recipe_key = (crew1.name, crew2.name)
                               if recipe_key in self.prestige_recipes:
                                     result_name = self.prestige_recipes[recipe_key]
-                                    possible_prestiges.append(CrewMember(result_name))
+                                    possible_prestiges.append(result_name)
             return possible_prestiges
       def filterPrestigeList(self, prestige_list):
             prestiged_crew = []
             added_results = set()
             for recipe in prestige_list:
-                  if isinstance(recipe, PrestigeRecipe) and recipe.result not in added_results:
+                  if recipe.result not in added_results:
                         prestiged_crew.append(recipe.result)
                         added_results.add(recipe.result)
             return prestiged_crew
@@ -2776,8 +2756,59 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   crew_name = item.text()
                   self.current_crew = [crew for crew in self.current_crew if crew.name != crew_name]
             self.updateUI()
+      def generate_pairs(self, items):
+            if not items:
+                  return [[]]
+            
+            if len(items) == 1:
+                  return [[(items[0].name, None)]]    
+            
+            first_item = items[0]
+            rest = items[1:]
+            
+            pairs_list = []
+    
+            for i in range(len(rest)):
+                  if rest[i] is None:
+                        pair = (first_item.name, None)
+                  else:
+                        pair = (first_item.name, rest[i].name)
+                  rest_excluding_pair = rest[:i] + rest[i+1:]
+        
+                  for rest_pairs in self.generate_pairs(rest_excluding_pair):
+                        pairs_list.append([pair] + rest_pairs)
+            return pairs_list
+      def filter_dummy_pairs(self, scenarios, dummy):
+            filtered_scenarios = []
+            for scenario in scenarios:
+                  filtered_scenario = [pair for pair in scenario if dummy not in pair]
+                  filtered_scenarios.append(filtered_scenario)
+            return filtered_scenarios
+      def generate_scenarios(self, items):
+            if len(items) % 2 == 1:
+                  dummy = None
+                  items.append(dummy)
+                  pairs = self.generate_pairs(items)
+                  return self.filter_dummy_pairs(pairs, dummy)
+            else:
+                  return self.generate_pairs(items)
+      def debugPrintPairs(self, pairs):
+            for item in pairs:
+                  if isinstance(item, list):
+                        self.debugPrintPairs(item)
+                  elif isinstance(item, tuple):
+                        print(f"Pair: {item[0]}, {item[1]}")
+                  else:
+                        continue
       def pairCrewFromList(self, crew_list):
-            return combinations(crew_list, 2)
+            if len(crew_list) <= 2:
+                  return [[crew_list[0].name]] if crew_list else []
+            parts = [[crew_list[0].name] + ele for ele in self.pairCrewFromList(crew_list[1:])]
+            for idx in range(1, len(crew_list)):
+                  pairs = [(crew_list[0].name, crew_list[idx].name)]
+                  rest = self.pairCrewFromList(crew_list[1:idx] + crew_list[idx + 1:])
+                  parts.extend([pairs + ele for ele in rest])    
+            return parts
       def handleMergeCrew(self):
             selected_items = self.currentCrewList.selectedItems()
             if len(selected_items) != 2:
@@ -2786,7 +2817,6 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             
             crew1, crew2 = (self.findCrewByName(item.text()) for item in selected_items)
             merge_result = self.prestige_recipes.get((crew1.name, crew2.name)) or self.prestige_recipes.get((crew2.name, crew1.name))
-            
             if merge_result:
                   confirm = QtWidgets.QMessageBox.question(
                   self, "Confirm Merge",
@@ -2805,9 +2835,12 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             list_widget.clear()
             for item in crew_list:
                   if isinstance(item, CrewMember):
+                        #print(f"Item.name [type({type(item)}) - {item.name}]")
                         list_widget.addItem(item.name)
-                  if isinstance(item, PrestigeRecipe):
+                  elif isinstance(item, PrestigeRecipe):
                         list_widget.addItem(item.result)
+                  else:
+                        print(f"Unexpected item type: {type(item)}")
       def updateHighlightedCrew(self, list_widget):
             selected_items = list_widget.selectedItems()
             crew_names_to_highlight = []
@@ -2855,7 +2888,7 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   writer = csv.writer(csvfile)
                   writer.writerow(["Crew 1", "Crew 2", "Result"])
                   for (crew1, crew2), result in recipes.items():
-                        writer.writerow([crew1, crew2, result])
+                        writer.writerow([crew1, crew2, str(result)])
       def readfromCSV(self):
             try:
                   with open(os.path.join('_internal', '_crew', 'prestige.csv'), 'r', newline='', encoding='utf-8') as csvfile:
@@ -2869,6 +2902,7 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                               self.prestige_recipes[(crew1, crew2)] = PrestigeRecipe(crew1, crew2, result)
                               self.reverse_prestige_recipes[(crew2, crew1)] = PrestigeRecipe(crew1, crew2, result)
             except FileNotFoundError:
+                  print("No prestige file found - Generating new data")
                   self.initialize_prestige_recipes()
                   self.writeToCSV(self.prestige_recipes)
       def limitSelection(self, list_widget):
