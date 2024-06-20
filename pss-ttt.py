@@ -12,12 +12,12 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.6.2"
+CURRENT_VERSION = "v1.6.3"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
 GITHUB_RELEASE_LINK = "https://api.github.com/repos/arraken/pss-ttt/releases/latest"
-GITHUB_RELEASE_VERSION = "v1.6.0"
+GITHUB_RELEASE_VERSION = "v1.6.3"
 ITEM_DATABASE_VERSION = None
 CREW_DATABASE_VERSION = None
 API_CALL_COUNT = 0
@@ -108,7 +108,7 @@ class CrewMember:
             self.run = run
             self.tp = tp
       def __repr__(self):
-            return f"{self.name},{self.id},{self.equipmask},{self.rarity},{self.collection},{self.hp},{self.atk},{self.rpr},{self.abl},{self.plt},{self.sci},{self.eng},{self.wpn},{self.rst},{self.walk},{self.run},{self.tp}"
+            return self.name
 class PrestigeRecipe:
       def __init__(self, crew1, crew2, result):
             self.crew1 = crew1
@@ -386,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.starTargetTrack = TargetTournyTrackDialogBox(self.profileComboBox.currentText(), parent=self)
             self.aboutBox = self.AboutInfoDialog(CURRENT_VERSION, CREATOR, SUPPORT_LINK, GITHUB_LINK, API_CALL_COUNT)
             self.crewLoadoutBuilder = CrewLoadoutBuilderDialogBox(parent=self)
-            self.crewPrestiger = CrewPrestigeDialogBox(parent=self)
+            self.crewPrestiger = CrewPrestigeDialogBox(self.profileComboBox.currentText(), parent=self)
       def populate_tables(self):
             self.update_SQL(QSqlQuery(QSqlDatabase.database("tournydb")), "Tourny")
             self.update_SQL(QSqlQuery(QSqlDatabase.database("legendsdb")), "Legend")
@@ -482,23 +482,6 @@ class MainWindow(QtWidgets.QMainWindow):
             await self.fetch_mass_api_call()
       async def fetch_mass_api_call(self):
             return
-            '''if not should_make_api_call():
-                  print("Call done too recently")
-                  return
-            #Pull dataset of top 100 fleets
-            #Pull players of each fleet
-            #write individual player data into targets database
-            #fleet_list = await API_CLIENT.alliance_service.list_alliances_by_ranking(0,100)
-            #for fleet in fleet_list:
-                  #current_fleet_members = await API_CLIENT.alliance_service.list_users(ACCESS_TOKEN,fleet.alliance_id,0,fleet.number_of_members)                  
-                  #for member in current_fleet_members:
-                        #print(member.name)
-            topplayers = await API_CLIENT.ladder_service.list_users_by_ranking(ACCESS_TOKEN,0,100)
-            update_last_api_call()
-            for player in topplayers:
-                  print(f"Adding {player.name} to targets database")
-                  self.update_player_via_api(player.name)
-      Update top 100 players and names in fleets once per day maximum'''
       def swapStyle(self):
             global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if self.actionDark_Mode.isChecked():
@@ -558,6 +541,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   print(f"changing to profile name of [{profile_name}]")
                   self.starCalculator.setProfilePath(profile_name)
                   self.starTargetTrack.setProfilePath(profile_name)
+                  self.crewPrestiger.setProfilePath(profile_name)
                   modify_SQL()
       def deleteProfile(self):
             current_index = self.profileComboBox.currentIndex()
@@ -2158,7 +2142,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                         run=crew.run_speed, 
                         tp=crew.training_capacity)
                   CREW_LIST.append(crew_member)
-                  print(f"Adding type {type(crew_member)}:[{crew_member}] to <{CREW_LIST}>")
                   all_crew_data.append(crew_member)
             self.saveCrewtoCSV(all_crew_data)
       def onCompleterActivated(self):
@@ -2679,23 +2662,24 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             def flags(self, index):
                   return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
 class CrewPrestigeDialogBox(QtWidgets.QDialog):
-      def __init__(self, parent=None):
+      def __init__(self, profile_name, parent=None):
             super().__init__(parent)
             uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt-pc.ui'), self)
-            self.current_crew = [CrewMember(name) for name in ['Sakura', 'Ardent Templar', 'Apex', 'Alibaba']]
-            #self.current_crew = [CrewMember(name) for name in [
-                  #'Sakura', 'Rainbow Giant Slime', 'Rainbow Ardent Templar', 
-                  #'Mr Cray', 'Le Vincent', 'Infecteddy', 'Government Troop', 
-                  #'Giant Slime', 'Floozey', 'Ennui', 'Elf', 'Ardent Templar', 
-                  #'Aaron', 'Dr Sera', 'Alibaba', 'Apex', 'The Switcher', 
-                  #'Mr Coconut', 'Mecha', 'Maya', 'Lollita', 'Lollita', 
-                  #'Invader', 'Glitch', 'Glitch', 'Big Boom Cat', 'Aries', 
-                  #'Aquarius', 'Admiral Serena'
-            #]]
+            self.current_crew = [CrewMember(name) for name in ['Sakura', 'Ardent Templar', 'Apex', 'Alibaba', 'Aaron']]
+            self.current_crew = [CrewMember(name) for name in [
+                  'Sakura', 'Rainbow Giant Slime', 'Rainbow Ardent Templar', 
+                  'Mr Cray', 'Le Vincent', 'Infecteddy', 'Government Troop', 
+                  'Giant Slime', 'Floozey', 'Ennui', 'Elf', 'Ardent Templar', 
+                  'Aaron', 'Dr Sera', 'Alibaba', 'Apex', 'The Switcher', 
+                  'Mr Coconut', 'Mecha', 'Maya', 'Lollita', 'Lollita', 
+                  'Invader', 'Glitch', 'Glitch', 'Big Boom Cat', 'Aries', 
+                  'Aquarius', 'Admiral Serena'
+            ]]
             
             self.prestige_recipes = {}
             self.reverse_prestige_recipes = {}
-            
+            self.profile_path = profile_name
+            self.readProfileCrew()
             self.readfromCSV()
             self.initializeUI()
       def initializeUI(self):
@@ -2718,11 +2702,8 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             text, ok = QtWidgets.QInputDialog.getText(self, 'Add Crew Members', 'Enter crew names (comma separated if multiple):')
             if ok and text:
                   self.addCrewMembers(text)
+                  self.saveProfileCrew()
       def generatePrestigeLists(self, crew_list):
-            paired_list = self.pairCrewFromList(crew_list)
-            scenarios = self.generate_scenarios(crew_list)
-            for scenario in scenarios:
-                  print(scenario)
             prestige_list = self.findPrestigeOptions(crew_list)
             one_step_prestige = self.filterPrestigeList(prestige_list)
             one_step_prestige_crew_members = [CrewMember(item) for item in one_step_prestige]
@@ -2756,59 +2737,6 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   crew_name = item.text()
                   self.current_crew = [crew for crew in self.current_crew if crew.name != crew_name]
             self.updateUI()
-      def generate_pairs(self, items):
-            if not items:
-                  return [[]]
-            
-            if len(items) == 1:
-                  return [[(items[0].name, None)]]    
-            
-            first_item = items[0]
-            rest = items[1:]
-            
-            pairs_list = []
-    
-            for i in range(len(rest)):
-                  if rest[i] is None:
-                        pair = (first_item.name, None)
-                  else:
-                        pair = (first_item.name, rest[i].name)
-                  rest_excluding_pair = rest[:i] + rest[i+1:]
-        
-                  for rest_pairs in self.generate_pairs(rest_excluding_pair):
-                        pairs_list.append([pair] + rest_pairs)
-            return pairs_list
-      def filter_dummy_pairs(self, scenarios, dummy):
-            filtered_scenarios = []
-            for scenario in scenarios:
-                  filtered_scenario = [pair for pair in scenario if dummy not in pair]
-                  filtered_scenarios.append(filtered_scenario)
-            return filtered_scenarios
-      def generate_scenarios(self, items):
-            if len(items) % 2 == 1:
-                  dummy = None
-                  items.append(dummy)
-                  pairs = self.generate_pairs(items)
-                  return self.filter_dummy_pairs(pairs, dummy)
-            else:
-                  return self.generate_pairs(items)
-      def debugPrintPairs(self, pairs):
-            for item in pairs:
-                  if isinstance(item, list):
-                        self.debugPrintPairs(item)
-                  elif isinstance(item, tuple):
-                        print(f"Pair: {item[0]}, {item[1]}")
-                  else:
-                        continue
-      def pairCrewFromList(self, crew_list):
-            if len(crew_list) <= 2:
-                  return [[crew_list[0].name]] if crew_list else []
-            parts = [[crew_list[0].name] + ele for ele in self.pairCrewFromList(crew_list[1:])]
-            for idx in range(1, len(crew_list)):
-                  pairs = [(crew_list[0].name, crew_list[idx].name)]
-                  rest = self.pairCrewFromList(crew_list[1:idx] + crew_list[idx + 1:])
-                  parts.extend([pairs + ele for ele in rest])    
-            return parts
       def handleMergeCrew(self):
             selected_items = self.currentCrewList.selectedItems()
             if len(selected_items) != 2:
@@ -2835,7 +2763,6 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             list_widget.clear()
             for item in crew_list:
                   if isinstance(item, CrewMember):
-                        #print(f"Item.name [type({type(item)}) - {item.name}]")
                         list_widget.addItem(item.name)
                   elif isinstance(item, PrestigeRecipe):
                         list_widget.addItem(item.result)
@@ -2928,6 +2855,26 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             self.manageCrewListUI(self.current_crew, self.currentCrewList)
             self.updateHighlightedCrew(self.oneStepPrestigeList)
             self.updateHighlightedCrew(self.twoStepPrestigeList)
+      def saveProfileCrew(self):
+            with open(os.path.join('_profiles', self.profile_path, 'crewlist.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+                  writer = csv.writer(csvfile)
+                  for crew in self.current_crew:
+                        writer.writerow([crew.name])
+      def readProfileCrew(self):
+            self.current_crew.clear()
+            try:
+                  with open(os.path.join('_profiles', self.profile_path, 'crewlist.csv'), 'r', newline='', encoding='utf-8') as csvfile:
+                        print(f"Crewlist data found for {self.profile_path} - Loading Data")
+                        reader = csv.reader(csvfile)
+                        for row in reader:
+                              self.current_crew.append(CrewMember(row[0]))
+            except FileNotFoundError:
+                  print(f"No crewlist data found for {self.profile_path} - Generating blank crew list")
+      def setProfilePath(self, profile_name):
+            self.current_crew.clear()
+            self.profile_path = profile_name
+            self.readProfileCrew()
+            self.updateUI()
 
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
