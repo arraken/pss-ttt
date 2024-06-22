@@ -6,18 +6,18 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>611</width>
-    <height>494</height>
+    <width>674</width>
+    <height>509</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QPushButton" name="mergeCrewButton">
+  <widget class="QPushButton" name="estMergeCrewButton">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>370</y>
+     <y>390</y>
      <width>161</width>
      <height>23</height>
     </rect>
@@ -26,11 +26,11 @@
     <string>Merge Selected</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="oneStepRecipeCheckButton">
+  <widget class="QPushButton" name="estOneStepRecipeCheckButton">
    <property name="geometry">
     <rect>
      <x>260</x>
-     <y>410</y>
+     <y>390</y>
      <width>161</width>
      <height>23</height>
     </rect>
@@ -39,11 +39,11 @@
     <string>Recipe Check</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="addCrewButton">
+  <widget class="QPushButton" name="estAddCrewButton">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>400</y>
+     <y>420</y>
      <width>161</width>
      <height>23</height>
     </rect>
@@ -52,11 +52,11 @@
     <string>Add Crew</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="deleteCrewButton">
+  <widget class="QPushButton" name="estDeleteCrewButton">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>430</y>
+     <y>450</y>
      <width>161</width>
      <height>23</height>
     </rect>
@@ -68,9 +68,9 @@
   <widget class="QListWidget" name="currentCrewList">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>40</y>
-     <width>161</width>
+     <x>0</x>
+     <y>60</y>
+     <width>171</width>
      <height>321</height>
     </rect>
    </property>
@@ -84,12 +84,12 @@
     <enum>QAbstractItemView::MultiSelection</enum>
    </property>
   </widget>
-  <widget class="QLabel" name="label">
+  <widget class="QLabel" name="currentCrewLabel">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>19</y>
-     <width>161</width>
+     <x>0</x>
+     <y>39</y>
+     <width>171</width>
      <height>21</height>
     </rect>
    </property>
@@ -112,9 +112,9 @@
   <widget class="QListWidget" name="oneStepPrestigeList">
    <property name="geometry">
     <rect>
-     <x>260</x>
-     <y>40</y>
-     <width>161</width>
+     <x>180</x>
+     <y>60</y>
+     <width>321</width>
      <height>321</height>
     </rect>
    </property>
@@ -131,8 +131,8 @@
   <widget class="QListWidget" name="twoStepPrestigeList">
    <property name="geometry">
     <rect>
-     <x>430</x>
-     <y>40</y>
+     <x>510</x>
+     <y>60</y>
      <width>161</width>
      <height>321</height>
     </rect>
@@ -144,12 +144,12 @@
     </font>
    </property>
   </widget>
-  <widget class="QLabel" name="label_2">
+  <widget class="QLabel" name="oneStepPrestigeLabel">
    <property name="geometry">
     <rect>
-     <x>260</x>
-     <y>20</y>
-     <width>161</width>
+     <x>180</x>
+     <y>40</y>
+     <width>321</width>
      <height>21</height>
     </rect>
    </property>
@@ -169,11 +169,11 @@
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_3">
+  <widget class="QLabel" name="twoStepPrestigeLabel">
    <property name="geometry">
     <rect>
-     <x>430</x>
-     <y>20</y>
+     <x>510</x>
+     <y>40</y>
      <width>161</width>
      <height>21</height>
     </rect>
@@ -194,27 +194,43 @@
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit">
-   <property name="geometry">
-    <rect>
-     <x>260</x>
-     <y>370</y>
-     <width>161</width>
-     <height>31</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="clearCrewListButton">
+  <widget class="QPushButton" name="estClearCrewListButton">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>460</y>
+     <y>480</y>
      <width>161</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
     <string>Clear List</string>
+   </property>
+  </widget>
+  <widget class="QToolButton" name="estCalcButton">
+   <property name="geometry">
+    <rect>
+     <x>260</x>
+     <y>10</y>
+     <width>331</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Estimator</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="calcTargetCrewButton">
+   <property name="geometry">
+    <rect>
+     <x>530</x>
+     <y>390</y>
+     <width>121</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Targeted Crew Entry</string>
    </property>
   </widget>
  </widget>
