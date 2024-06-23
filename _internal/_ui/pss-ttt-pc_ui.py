@@ -82,6 +82,9 @@ class Ui_Dialog(object):
         self.calcTargetCrewButton = QPushButton(Dialog)
         self.calcTargetCrewButton.setObjectName(u"calcTargetCrewButton")
         self.calcTargetCrewButton.setGeometry(QRect(530, 390, 121, 23))
+        self.calcRecipeCheckButton = QPushButton(Dialog)
+        self.calcRecipeCheckButton.setObjectName(u"calcRecipeCheckButton")
+        self.calcRecipeCheckButton.setGeometry(QRect(10, 400, 161, 23))
 
         self.retranslateUi(Dialog)
 
@@ -100,5 +103,6 @@ class Ui_Dialog(object):
         self.estClearCrewListButton.setText(QCoreApplication.translate("Dialog", u"Clear List", None))
         self.estCalcButton.setText(QCoreApplication.translate("Dialog", u"Estimator", None))
         self.calcTargetCrewButton.setText(QCoreApplication.translate("Dialog", u"Targeted Crew Entry", None))
+        self.calcRecipeCheckButton.setText(QCoreApplication.translate("Dialog", u"Recipe Check", None))
     # retranslateUi
 

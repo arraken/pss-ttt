@@ -11,7 +11,7 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.6.5"
+CURRENT_VERSION = "v1.6.6"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
@@ -2678,11 +2678,13 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def initializeUI(self):
             self.oneStepPrestigeList.itemSelectionChanged.connect(lambda: self.limitSelection(self.oneStepPrestigeList))
             self.oneStepPrestigeList.itemSelectionChanged.connect(lambda: self.updateHighlightedCrew(self.oneStepPrestigeList))
+            self.oneStepPrestigeList.itemSelectionChanged.connect(self.calcHighlightBase)
             self.twoStepPrestigeList.itemSelectionChanged.connect(lambda: self.limitSelection(self.twoStepPrestigeList))
             self.twoStepPrestigeList.itemSelectionChanged.connect(lambda: self.updateHighlightedCrew(self.twoStepPrestigeList))
             
             self.estMergeCrewButton.clicked.connect(self.handleMergeCrew)
             self.estOneStepRecipeCheckButton.clicked.connect(self.recipePopup)
+            self.calcRecipeCheckButton.clicked.connect(self.calcRecipePopup)
             self.estAddCrewButton.clicked.connect(self.showAddCrewDialog)
             self.estDeleteCrewButton.clicked.connect(self.delSelectedCrew)
             self.estClearCrewListButton.clicked.connect(self.clearCrewList)
@@ -2799,6 +2801,17 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   self.calcHighlightCrew(crew_names_to_highlight, list_widget)
             else:
                   print("Unexpected Button text error")
+      def calcRecipePopup(self):
+            selected_items = self.currentCrewList.selectedItems()
+            if len(selected_items) != 2:
+                  throwErrorMessage("Selection Error", "Please only select 2 crew members to merge")
+                  return
+            
+            crew1, crew2 = (CrewMember(item.text()) for item in selected_items)
+            merge_result = self.prestige_recipes.get((crew1.name, crew2.name)) or self.prestige_recipes.get((crew2.name, crew1.name))
+            
+            if merge_result:
+                  QtWidgets.QMessageBox.information(self, "Recipe check", f"The two selected crew of {crew1.name} and {crew2.name} would create {merge_result}")
       def recipePopup(self):
             selected_items = self.oneStepPrestigeList.selectedItems()
             if len(selected_items) != 2:
@@ -2902,16 +2915,16 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             self.estAddCrewButton.show()
             self.estDeleteCrewButton.show()
             self.estClearCrewListButton.show()
-            self.estOneStepRecipeCheckButton.show()
+            self.calcRecipeCheckButton.hide()
             self.calcTargetCrewButton.hide()
       def updateCalculatorUI(self):
             self.estMergeCrewButton.hide()
             self.estAddCrewButton.hide()
             self.estDeleteCrewButton.hide()
+            self.calcRecipeCheckButton.show()
             self.estClearCrewListButton.hide()
             self.estOneStepRecipeCheckButton.hide()
             self.calcTargetCrewButton.show()
-            return
       def saveProfileCrew(self):
             with open(os.path.join('_profiles', self.profile_path, 'crewlist.csv'), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
@@ -2948,12 +2961,18 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   self.manageCrewListUI([self.target_crew], self.twoStepPrestigeList)
                   if self.target_crew != "":
                         self.calcReversePrestigeList(self.target_crew)
-      def calcReversePrestigeList(self, target_crew):
+      def calcReversePrestigeList(self, crew_list, list_widget):
             global API_CALL_COUNT
             added_crew = []
-            for crew in CREW_LIST:
-                  if crew.name == target_crew.name:
-                        crew_id = crew.id
+            if isinstance(crew_list, CrewMember):
+                  for crew in CREW_LIST:
+                        if crew.name == crew_list.name:
+                              crew_id = crew.id
+            elif isinstance(crew_list, list):
+                  for crew in CREW_LIST:
+                        for i in range(len(crew_list)):
+                              if crew.name == crew_list[i]:
+                                    crew_id = crew.id
 
             prestige_options = asyncio.run(self.prestige_to(crew_id))
             API_CALL_COUNT += 1
@@ -2966,14 +2985,29 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   if crew2 not in added_crew:
                         added_crew.append(crew2)            
             for crew in added_crew:
-                  self.oneStepPrestigeList.addItem(crew)
+                  list_widget.addItem(crew)
+            return added_crew
       def calcAddTargetCrew(self):
             text, ok = QtWidgets.QInputDialog.getText(self, 'Add Target Crew', 'Enter crew name:')
             if ok:
                   self.target_crew = (CrewMember(text))
             self.oneStepPrestigeList.clear()
             self.manageCrewListUI([self.target_crew], self.twoStepPrestigeList)
-            self.calcReversePrestigeList(self.target_crew)
+            next_step = self.calcReversePrestigeList(self.target_crew, self.oneStepPrestigeList)
+            self.updateHighlightedCrew(self.currentCrewList)
+            final = self.calcReversePrestigeList(next_step, self.currentCrewList)
+      def calcHighlightBase(self):
+            estcalc = self.estCalcButton.text()
+            if estcalc == "Calculator":
+                  selected_item = self.oneStepPrestigeList.selectedItems()
+                  crew_names_to_highlight = []
+                  for item in selected_item:
+                        selected_crew = item.text()
+                        for recipe in self.prestige_recipes.values():
+                              if recipe.result == item.text():
+                                    crew_names_to_highlight.append(recipe.crew2)
+                                    crew_names_to_highlight.append(recipe.crew1)
+                  self.calcHighlightCrew(crew_names_to_highlight, self.currentCrewList)
 
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
