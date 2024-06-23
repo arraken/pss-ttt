@@ -6,12 +6,13 @@ from PyQt6.QtGui import QColor, QStandardItemModel
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from collections import OrderedDict
+from dataclasses import dataclass
 import sys, csv, math, webbrowser, os, traceback, shutil, asyncio, uuid, pssapi, json, requests
 import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.6.6"
+CURRENT_VERSION = "v1.6.7"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
@@ -84,35 +85,34 @@ class ProfileDialog(QDialog):
                   self.setStyleSheet("")
             elif CURRENT_STYLESHEET == "dark":
                   self.setStyleSheet(DARK_MODE_STYLESHEET)
+@dataclass
 class CrewMember:
-      #Crew Name,ID,Equipment Mask,Rarity,Special,Collection,HP,Attack,RPR,ABL,PLT,SCI,ENG,WPN,RST,Walk,Run,TP
-      def __init__(self, name="", id=0, mask=0, rarity=" ", special=" ", collection=" ", hp=0, atk=0, rpr=0, abl=0, sta=0, plt=0, sci=0, eng=0, wpn=0, rst=0, walk=0, run=0, tp=0):
-            self.name = name
-            self.id = id
-            self.equipmask = mask
-            self.rarity = rarity
-            self.special = special
-            self.collection = collection
-            self.hp = hp
-            self.atk = atk
-            self.rpr = rpr
-            self.abl = abl
-            self.sta = sta
-            self.plt = plt
-            self.sci = sci
-            self.eng = eng
-            self.wpn = wpn
-            self.rst = rst
-            self.walk = walk
-            self.run = run
-            self.tp = tp
-      def __repr__(self):
-            return self.name
+    name: str = ""
+    id: int = 0
+    equipmask: int = 0
+    rarity: str = " "
+    special: str = " "
+    collection: str = " "
+    hp: float = 0
+    atk: float = 0
+    rpr: float = 0
+    abl: float = 0
+    sta: float = 0
+    plt: float = 0
+    sci: float = 0
+    eng: float = 0
+    wpn: float = 0
+    rst: float = 0
+    walk: int = 0
+    run: int = 0
+    tp: int = 0
+    def __repr__(self):
+        return self.name
+@dataclass
 class PrestigeRecipe:
-      def __init__(self, crew1, crew2, result):
-            self.crew1 = crew1
-            self.crew2 = crew2
-            self.result = result
+      crew1: str
+      crew2: str
+      result: str
       def __repr__(self):
             return f"PrestigeRecipe({self.crew1}, {self.crew2}, {self.result})"
       def __str__(self):
@@ -918,12 +918,12 @@ class FilteredListDialog(QtWidgets.QDialog):
             self.filterBox.setPlaceholderText(filter_placeholder)
       def populateList(self, query_string, query_args):
             self.itemList.clear()
-            if not QSqlDatabase.database("targetdb").isOpen():
-                  if not QSqlDatabase.database("targetdb").open():
-                        throwErrorMessage("Database Connection Failure [populateList]", "Targets DB did not open properly")
-                        return
+            db = QSqlDatabase.database("targetdb")
+            if not db.isOpen() and not db.open():
+                  throwErrorMessage("Database Connection Failure [populateList]", "Targets DB did not open properly")
+                  return
             
-            query = QSqlQuery(QSqlDatabase.database("targetdb"))
+            query = QSqlQuery(db)
             query.prepare(query_string)
             if query_args:
                   query.bindValue(":fleet_name", query_args)
@@ -936,13 +936,11 @@ class FilteredListDialog(QtWidgets.QDialog):
                   item_text = query.value(0)
                   if item_text not in fleet_names:
                         fleet_names.add(item_text)
-                        item = QListWidgetItem(item_text)
-                        self.itemList.addItem(item)
+                        self.itemList.addItem(QListWidgetItem(item_text))
       def onCopyItemSearchClicked(self):
             selected_item = self.itemList.currentItem()
             if selected_item:
-                  selected_text = selected_item.text()
-                  self.copyItemSearchClicked.emit(selected_text, True)
+                  self.copyItemSearchClicked.emit(selected_item.text(), True)
       def setStyle(self):
             global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if CURRENT_STYLESHEET == "default":
@@ -953,21 +951,13 @@ class FilteredListDialog(QtWidgets.QDialog):
             filter_text = self.filterBox.toPlainText().lower()
             for i in range(self.itemList.count()):
                   item = self.itemList.item(i)
-                  item_text = item.text().lower()
-                  if filter_text in item_text:
-                        item.setHidden(False)
-                  else:
-                        item.setHidden(True)
+                  item.setHidden(filter_text not in item.text().lower())
       def filterListLength(self):
             if self.charLimiterCheckBox.isChecked():
                   length_threshold = self.charLimiter.value()
                   for i in range(self.itemList.count()):
                         item = self.itemList.item(i)
-                        item_text = item.text()
-                        if len(item_text) == length_threshold:
-                              item.setHidden(False)
-                        else:
-                              item.setHidden(True)
+                        item.setHidden(len(item.text()) != length_threshold)
 class FightDataConfirmation(QtWidgets.QDialog):
       fightDataSaved = pyqtSignal(int, float, str, str)
       def __init__(self, parent=None):
@@ -990,13 +980,14 @@ class FightDataConfirmation(QtWidgets.QDialog):
             self.accept()
 class ImportDialogBox(QtWidgets.QDialog):
       progress_signal = pyqtSignal(int)
-      updated_records = []
-      has_imported = False
-      counter = 0
-      max_counter = 0
       def __init__(self):
             super().__init__()
             uic.loadUi(os.path.join('_internal','_ui','pss-ttt-importdialog.ui'), self)
+            self.updated_records = []
+            self.has_imported = False
+            self.counter = 0
+            self.max_counter = 0
+
             self.importTargetsButton.clicked.connect(self.import_data)
             self.importBrowse.clicked.connect(self.open_fileBrowser)
             self.importSeeChanges.clicked.connect(self.printChangesList)
@@ -1004,10 +995,7 @@ class ImportDialogBox(QtWidgets.QDialog):
             self.progress_signal.connect(self.updateProgressBar, QtCore.Qt.ConnectionType.DirectConnection)
       def setStyle(self):
             global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
-            if CURRENT_STYLESHEET == "default":
-                  self.setStyleSheet("")
-            elif CURRENT_STYLESHEET == "dark":
-                  self.setStyleSheet(DARK_MODE_STYLESHEET)
+            self.setStyleSheet(DARK_MODE_STYLESHEET if CURRENT_STYLESHEET == "dark" else "")
       def closeEvent(self, event):
             self.has_imported = False
             super().closeEvent(event)
@@ -1017,13 +1005,11 @@ class ImportDialogBox(QtWidgets.QDialog):
             with open(os.path.join('_internal', 'importedChanges.csv'), 'w', newline='', encoding='utf-8') as csvfile:
                   writer = csv.writer(csvfile)
                   writer.writerow(header)
-                  for record in self.updated_records:
-                        writer.writerow(record)
+                  writer.writerows(self.updated_records)
       def open_fileBrowser(self):
             options = QFileDialog.Option.DontUseNativeDialog
             selected_files, _ = QFileDialog.getOpenFileNames(self, "Select File", "", "All Files (*)", options=options)
-            for file_path in selected_files:
-                  self.importFilenameBox.appendPlainText(file_path)
+            self.importFilenameBox.appendPlainText('\n'.join(selected_files))
       def import_data(self):
             self.importDialogLabel.setText("Data importing has begun.<br>Please note the application may appear to freeze<br>It is not frozen and just processing in the background<br>This will update once finished")
             QApplication.processEvents()
@@ -1047,6 +1033,10 @@ class ImportDialogBox(QtWidgets.QDialog):
             self.importProgressBar.setValue(int((value / self.max_counter) * 100))
       def importCSV(self, file_path):
             data_to_insert = []
+            db = QSqlDatabase.database("targetdb")
+            if not db.open():
+                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
+                  return self.counter
             with open(file_path, 'r', encoding='utf-8') as csvfile:
                   reader = csv.reader(csvfile, delimiter=';')
                   next(reader)
@@ -1072,32 +1062,17 @@ class ImportDialogBox(QtWidgets.QDialog):
                                     self.updated_records.append((f"NEW-{playername}", fleetname, laststars, beststars_int, notes_str))
                                     self.updated_records.append((f"OLD-{playername}", fleetname, laststars, int(row[7]), row[6]))
                         data_to_insert.append((playername, fleetname, laststars, beststars_int, notes_str))
-            db = QSqlDatabase.database("targetdb")
-            if not db.open():
-                  throwErrorMessage("Targets Database Error", "Unable to open targets database for import")
-                  return self.counter
-    
-            query = QSqlQuery(db)
+            db.transaction()
             query.exec("CREATE TABLE IF NOT EXISTS players (playername TEXT PRIMARY KEY, fleetname TEXT NOT NULL, laststars TEXT NOT NULL, beststars TEXT NOT NULL, notes TEXT NOT NULL)")
-    
             self.max_counter = len(data_to_insert)
-            for specific_data in data_to_insert:
-                  playername, fleetname, laststars, beststars, notes = specific_data
-                  count_query = QSqlQuery(db)
-                  count_query.prepare("SELECT COUNT(*) FROM players WHERE playername = ? AND fleetname = ?")
-                  count_query.addBindValue(playername)
-                  count_query.addBindValue(fleetname)
-                  count_query.exec()
-                  count_query.next()
-                  count = count_query.value(0)
-                  
+            
+            for playername, fleetname, laststars, beststars, notes in data_to_insert:
                   query.prepare("INSERT OR REPLACE INTO players (playername, fleetname, laststars, beststars, notes) VALUES (?, ?, ?, ?, ?)")
                   query.addBindValue(playername)
                   query.addBindValue(fleetname)
                   query.addBindValue(laststars)
                   query.addBindValue(beststars)
                   query.addBindValue(notes)
-        
                   if query.exec():
                         self.counter += 1
                         self.progress_signal.emit(self.counter)
@@ -1106,28 +1081,19 @@ class ImportDialogBox(QtWidgets.QDialog):
             db.commit()
             return self.counter
 class StarsCalculatorDialogBox(QtWidgets.QDialog):
-      global CURRENT_STYLESHEET
       def __init__(self, profile_name):
             super().__init__()
             uic.loadUi(os.path.join('_internal','_ui','pss-ttt-tsc.ui'), self)
             
             self.starTableHeaders = ['Star Goal', 'Fight 1', 'Fight 2', 'Fight 3', 'Fight 4', 'Fight 5', 'Fight 6']
-            self.starsTable = [
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],]
+            self.starsTable = [[0]*7 for _ in range(8)]
             self.tournamentTable = self.findChild(QTableView, "starsTableView")
             self.model = self.StarsTableModel(self.starsTable, self)
             self.tournamentTable.setModel(self.model)
             for i in range(7):
                   self.tournamentTable.setColumnWidth(i,50)
             self.calculateStars.clicked.connect(self.calculateStarsGoal)     
-            self.resetStarsTableButton.clicked.connect(self.resetStarsTable)
+            self.resetStarsTableButton.clicked.connect(self.initializeStarsTable)
             self.profile_path = profile_name
             self.loadStarsTableFromCSV()
       def setProfilePath(self, profile_name):
@@ -1174,29 +1140,7 @@ class StarsCalculatorDialogBox(QtWidgets.QDialog):
                   print(f"File not found: {file_path}. Initializing with default values.")
                   self.initializeStarsTable()
       def initializeStarsTable(self):
-            self.starsTable = [
-                  [0, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0],
-            ]
-            self.model._data = self.starsTable
-            self.model.layoutChanged.emit()
-            self.saveStarsTableToCSV()
-      def resetStarsTable(self):
-            self.starsTable = [
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0],]
+            self.starsTable = [[0]*7 for _ in range(8)]
             self.model._data = self.starsTable
             self.model.layoutChanged.emit()
             self.saveStarsTableToCSV()
@@ -1267,24 +1211,19 @@ class StarsCalculatorDialogBox(QtWidgets.QDialog):
             if not self.starsErrorDialog.checkStarsErrors(self):
                   return
                         
-            start_value = Decimal(0)
             winsPerDay = Decimal(self.winsPerDayBox.toPlainText())
             myTrophies = Decimal(self.myTrophiesBox.toPlainText())
             strengthRatio = Decimal(self.strengthRatioBox.toPlainText())
             end_value = Decimal(0)
-            todaysStarsTarget = Decimal(0)
             for i in range(7):
                   start_value = end_value
                   trophyStarsTarget = math.floor((myTrophies*strengthRatio)/1000)
-                  starsStarsTarget = math.floor(Decimal(start_value*Decimal(".15")*strengthRatio))
-                  if trophyStarsTarget > starsStarsTarget:
-                        todaysStarsTarget = trophyStarsTarget
-                  else:
-                        todaysStarsTarget = starsStarsTarget
+                  starsStarsTarget = math.floor(start_value*Decimal(".15")*strengthRatio)
+                  todaysStarsTarget = max(trophyStarsTarget, starsStarsTarget)
                   end_value = todaysStarsTarget*winsPerDay+start_value
+
                   index = self.model.index(0,i)
                   self.model.setData(index, todaysStarsTarget)
-                  self.estStarsBox.clear()
                   if i == 6:
                         self.estStarsBox.setPlainText(str(end_value))
             self.tournamentTable.show()
@@ -2031,6 +1970,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             self.setup_signals()
       def setup_ui(self):
             uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt-clb.ui'), self)
+            self.maxTPLabel.setText("Total TP: [0]")
       def setup_directories(self):
             os.makedirs(os.path.join('_internal', '_equip'), exist_ok=True)
             os.makedirs(os.path.join('_internal', '_crew'), exist_ok=True)
@@ -2145,6 +2085,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
       def onCompleterActivated(self):
             self.selectEquipmentBoxes(self.getEquipMask())
             self.calculateStats()
+            self.maxTPLabel.setText(f"Total TP: [{str(sum(row[0] for row in self.tpChart))}]")
       def getEquipMask(self):
             crew_name = self.crewNameBox.text()
             for crew in CREW_LIST:
