@@ -12,7 +12,7 @@ import time, logging
 from pssapi import PssApiClient
 
 ACCESS_TOKEN = None
-CURRENT_VERSION = "v1.6.7"
+CURRENT_VERSION = "v1.6.8"
 CREATOR = "Kamguh11"
 SUPPORT_LINK = "Trek Discord - https://discord.gg/psstrek or https://discord.gg/pss"
 GITHUB_LINK = "https://github.com/arraken/pss-ttt"
@@ -325,10 +325,13 @@ class MainWindow(QtWidgets.QMainWindow):
             start_time = time.time()
             uic.loadUi(os.path.join('_internal', '_ui', 'pss-ttt.ui'), self)
             self.show()
+            self.api_fleet_names = []
 
             API_CLIENT = PssApiClient()
             asyncio.run(self.generateAccessToken())
 
+            #print(self.get_first_of_following_month(datetime.now(timezone.utc)))
+            #print()
             self.popProfiles()
             self.connect_signals()
             self.initialize_dialogs()
@@ -404,13 +407,14 @@ class MainWindow(QtWidgets.QMainWindow):
             API_CALL_COUNT += 1
             user_login = await API_CLIENT.user_service.device_login(checksum, client_date_time, device_key, API_CLIENT.device_type)
             API_CALL_COUNT += 1
+
             assert isinstance(user_login, pssapi.entities.UserLogin)
             assert user_login.access_token
             ACCESS_TOKEN = user_login.access_token
             total_time = time.time() - start_time
             log_time(f"Total access token generation time: {total_time:.4f} seconds")
       async def fetch_user_data(self, searchname):
-            global API_CALL_COUNT, API_CLIENT
+            global API_CALL_COUNT
             start_time = time.time()
             try:
                   responses = await API_CLIENT.user_service.search_users(searchname)
@@ -423,12 +427,11 @@ class MainWindow(QtWidgets.QMainWindow):
                   return
             response = responses[0]
             self.fleetName.setPlainText(response.alliance_name)
-            try:
-                  if(response.alliance > int(self.bestStars.toPlainText())):
-                        self.bestStars.setPlainText(str(response.alliance_score))
-            except Exception:
+            print(f"Last: [{self.lastStars.toPlainText()}] - Best: [{self.bestStars.toPlainText()}] - API: [{response.alliance_score}]")
+            if response.alliance_score > int(self.bestStars.toPlainText()):
                   self.bestStars.setPlainText(str(response.alliance_score))
-                  self.lastStars.setPlainText("0")
+            # This is where the call for last month's results will happen to TW api
+                  #self.lastStars.setPlainText("0")
             self.currentTrophies.setPlainText(str(response.trophy))
             self.maxTrophies.setPlainText(str(response.highest_trophy))
             self.updateFightTables("tourny")
@@ -442,8 +445,11 @@ class MainWindow(QtWidgets.QMainWindow):
             timer = time.time() - start_time
             log_time(f"Fetch searched fleet data: {timer:.4f} seconds")
       async def fetch_fleetmembers_from_api(self, fleetname, fleetid):
-            global API_CALL_COUNT, API_CLIENT
+            global API_CALL_COUNT
             start_time = time.time()
+            if fleetname in self.api_fleet_names:
+                  print(f"Searching for {fleetname} in {self.api_fleet_names} and found it - exiting fleet search")
+                  return True
             try:
                   fleet = await API_CLIENT.alliance_service.search_alliances(ACCESS_TOKEN,fleetname,0,5)
                   API_CALL_COUNT += 1
@@ -454,30 +460,34 @@ class MainWindow(QtWidgets.QMainWindow):
                   return False
             query = QSqlQuery(QSqlDatabase.database("targetdb"))
             player_data_list = []
+            
+            is_first_of_month = datetime.now(timezone.utc).day == 1
 
             for player in players:
                   pname = player.name
                   fname = player.alliance_name
                   if fname != fleetname:
                         continue
-                  laststars = player.alliance_score
+                  laststars = 0
                   beststars = 0
                   notes = ""
                   query.prepare("SELECT * FROM players WHERE playername = :pname")
                   query.bindValue(":pname", pname)
                   if query.exec() and query.next():
-                        beststars = query.value(3)
-                        notes = query.value(4)
+                        laststars = query.value("laststars")
+                        beststars = query.value("beststars")
+                        notes = query.value("notes")
                   else:
                         print(f"Query execution failed on {pname} in fleet {fname} [fetch_fleetmembers_from_api]")
                   player_data_list.append([pname, fname, laststars, beststars, notes])
             if player_data_list:
                   write_to_targets_database_batch(player_data_list)
+            self.api_fleet_names.append(fleetname)
             total_time = time.time() - start_time
             log_time(f"Fetch fleet members data generation time: {total_time:.4f} seconds")
             return True
       async def main(self):
-            await self.fetch_mass_api_call()
+            return
       async def fetch_mass_api_call(self):
             return
       def swapStyle(self):
@@ -517,16 +527,6 @@ class MainWindow(QtWidgets.QMainWindow):
       def openLoadoutBuilder(self):
             self.crewLoadoutBuilder.setStyle()
             self.crewLoadoutBuilder.exec()
-      def update_player_via_api(self, searchname):
-            data = self.fetch_user_data(searchname)
-      def get_first_of_following_month(self, utc_now):
-            year = utc_now.year
-            month = utc_now.month + 1
-            if (month == 13):
-                  year += 1
-                  month = 1
-            result = datetime(year, month, 1, 0, 0, 0, 0, timezone.utc)
-            return result
       def openAboutBox(self):
             self.aboutBox.update_api_calls(API_CALL_COUNT)
             self.aboutBox.exec()
@@ -2062,7 +2062,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   crew_member = CrewMember(
                         name=crew.character_design_name, 
                         id=crew.character_design_id, 
-                        mask=crew.equipment_mask, 
+                        equipmask=crew.equipment_mask, 
                         rarity=crew.rarity, 
                         special=crew.special_ability_final_argument, 
                         collection=crew.collection_design_id, 
@@ -2070,7 +2070,7 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                         atk=crew.final_attack, 
                         rpr=crew.final_repair, 
                         abl=crew.special_ability_final_argument, 
-                        sta=0,  # Assuming there is a final_stamina field
+                        sta=0,
                         plt=crew.final_pilot, 
                         sci=crew.final_science, 
                         eng=crew.final_engine, 
@@ -2620,8 +2620,10 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             self.oneStepPrestigeList.itemSelectionChanged.connect(lambda: self.limitSelection(self.oneStepPrestigeList))
             self.oneStepPrestigeList.itemSelectionChanged.connect(lambda: self.updateHighlightedCrew(self.oneStepPrestigeList))
             self.oneStepPrestigeList.itemSelectionChanged.connect(self.calcHighlightBase)
+            self.oneStepPrestigeList.itemSelectionChanged.connect(self.calcFodderHighlights)
             self.twoStepPrestigeList.itemSelectionChanged.connect(lambda: self.limitSelection(self.twoStepPrestigeList))
             self.twoStepPrestigeList.itemSelectionChanged.connect(lambda: self.updateHighlightedCrew(self.twoStepPrestigeList))
+            self.twoStepPrestigeList.itemSelectionChanged.connect(self.calcFodderHighlights)
             
             self.estMergeCrewButton.clicked.connect(self.handleMergeCrew)
             self.estOneStepRecipeCheckButton.clicked.connect(self.recipePopup)
@@ -2769,7 +2771,7 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def calcHighlightCrew(self, crew_names, list_widget):
             for i in range(list_widget.count()):
                   item = list_widget.item(i)
-                  item.setBackground(QColor("yellow") if item.text() in crew_names else QColor("white"))
+                  item.setBackground(QColor(255,255,0) if item.text() in crew_names else QColor(255,255,255))
       def estHighlightCurrentCrew(self, crew_names, list_widget):
             target_list = self.currentCrewList if list_widget == self.oneStepPrestigeList else self.oneStepPrestigeList
             for i in range(target_list.count()):
@@ -2901,7 +2903,10 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   self.updateCalculatorUI()
                   self.manageCrewListUI([self.target_crew], self.twoStepPrestigeList)
                   if self.target_crew != "":
-                        self.calcReversePrestigeList(self.target_crew)
+                        next_step = self.calcReversePrestigeList(self.target_crew, self.oneStepPrestigeList)
+                        self.updateHighlightedCrew(self.currentCrewList)
+                        final = self.calcReversePrestigeList(next_step, self.currentCrewList)
+                        self.highlightFodderList(final, self.currentCrewList)
       def calcReversePrestigeList(self, crew_list, list_widget):
             global API_CALL_COUNT
             added_crew = []
@@ -2937,9 +2942,41 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             next_step = self.calcReversePrestigeList(self.target_crew, self.oneStepPrestigeList)
             self.updateHighlightedCrew(self.currentCrewList)
             final = self.calcReversePrestigeList(next_step, self.currentCrewList)
-      def calcHighlightBase(self):
+            self.highlightFodderList(final, self.currentCrewList)
+            self.highlightFodderList(next_step, self.oneStepPrestigeList)
+      def calcFodderHighlights(self):
             estcalc = self.estCalcButton.text()
             if estcalc == "Calculator":
+                  one_step = []
+                  two_step = []
+                  for index in range(self.oneStepPrestigeList.count()):
+                        item = self.oneStepPrestigeList.item(index)
+                        one_step.append(item)
+                  for index in range(self.currentCrewList.count()):
+                        item = self.currentCrewList.item(index)
+                        two_step.append(item)
+                  self.highlightFodderList(one_step, self.oneStepPrestigeList)
+                  self.highlightFodderList(two_step, self.currentCrewList)
+      def highlightFodderList(self, crew_list, list_widget):
+            highlight_color = QColor(189,215,238)
+            yellow_highlight_color = QColor(255, 255, 0)
+            combined_highlight_color = QColor(51, 125, 52)
+            estcalc = self.estCalcButton.text()
+            if estcalc == "Calculator":
+                  added_crew = [crew.name for crew in self.current_crew]
+                  for index in range(list_widget.count()):
+                        item = list_widget.item(index)
+                        current_background = item.background()
+                        if item.text() in added_crew:
+                              if current_background == yellow_highlight_color:
+                                    item.setBackground(combined_highlight_color)
+                              else:
+                                    item.setBackground(highlight_color)
+                        else:
+                              item.setBackground(current_background)
+      def calcHighlightBase(self):
+            #estcalc = self.estCalcButton.text()
+            #if estcalc == "Calculator":
                   selected_item = self.oneStepPrestigeList.selectedItems()
                   crew_names_to_highlight = []
                   for item in selected_item:
