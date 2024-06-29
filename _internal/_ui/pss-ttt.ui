@@ -762,6 +762,9 @@
     </property>
     <addaction name="actionImport_Data"/>
     <addaction name="actionExport_Fights"/>
+    <addaction name="actionReset_Prestige_Data"/>
+    <addaction name="actionReset_Item_Data"/>
+    <addaction name="actionReset_Crew_Data"/>
    </widget>
    <widget class="QMenu" name="menuCrew">
     <property name="title">
@@ -842,6 +845,21 @@
   <action name="actionPrestige_Calculator">
    <property name="text">
     <string>Prestige Calculator (Beta)</string>
+   </property>
+  </action>
+  <action name="actionReset_Prestige_Data">
+   <property name="text">
+    <string>Reset Prestige Data</string>
+   </property>
+  </action>
+  <action name="actionReset_Item_Data">
+   <property name="text">
+    <string>Reset Item Data</string>
+   </property>
+  </action>
+  <action name="actionReset_Crew_Data">
+   <property name="text">
+    <string>Reset Crew Data</string>
    </property>
   </action>
  </widget>

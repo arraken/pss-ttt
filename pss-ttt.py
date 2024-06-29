@@ -364,6 +364,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionLoadout_Builder.triggered.connect(self.openLoadoutBuilder)
             self.actionDark_Mode.triggered.connect(self.swapStyle)
             self.actionPrestige_Calculator.triggered.connect(self.open_prestigeCalc)
+            self.actionReset_Prestige_Data.triggered.connect(self.resetPrestigeData)
+            self.actionReset_Item_Data.triggered.connect(self.resetItemData)
+            self.actionReset_Crew_Data.triggered.connect(self.resetCrewData)
 
             self.createNewProfile.clicked.connect(createProfile)
             self.createNewProfile.clicked.connect(self.popProfiles)
@@ -490,6 +493,24 @@ class MainWindow(QtWidgets.QMainWindow):
             return
       async def fetch_mass_api_call(self):
             return
+      def resetPrestigeData(self):
+            confirm = QtWidgets.QMessageBox.question(self, "Confirm Reset Prestige Data", "This will reset all prestige recipes and will make the program look like it's frozen for about 30 seconds", QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
+                  self.crewPrestiger.initialize_prestige_recipes()
+            else:
+                  return
+      def resetCrewData(self):
+            confirm = QtWidgets.QMessageBox.question(self, "Confirm Reset Crew Data", "This will reset all crew data from game.", QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
+                  asyncio.run(self.crewLoadoutBuilder.fetch_crew_list())
+            else:
+                  return
+      def resetItemData(self):
+            confirm = QtWidgets.QMessageBox.question(self, "Confirm Reset Item Data", "This will reset all item data from game.", QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
+                  asyncio.run(self.crewLoadoutBuilder.fetch_item_list())
+            else:
+                  return
       def swapStyle(self):
             global CURRENT_STYLESHEET, DARK_MODE_STYLESHEET
             if self.actionDark_Mode.isChecked():
