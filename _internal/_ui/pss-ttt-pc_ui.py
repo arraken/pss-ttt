@@ -27,9 +27,6 @@ class Ui_Dialog(object):
         self.estMergeCrewButton = QPushButton(Dialog)
         self.estMergeCrewButton.setObjectName(u"estMergeCrewButton")
         self.estMergeCrewButton.setGeometry(QRect(10, 390, 161, 23))
-        self.estOneStepRecipeCheckButton = QPushButton(Dialog)
-        self.estOneStepRecipeCheckButton.setObjectName(u"estOneStepRecipeCheckButton")
-        self.estOneStepRecipeCheckButton.setGeometry(QRect(260, 390, 161, 23))
         self.estAddCrewButton = QPushButton(Dialog)
         self.estAddCrewButton.setObjectName(u"estAddCrewButton")
         self.estAddCrewButton.setGeometry(QRect(10, 420, 161, 23))
@@ -94,7 +91,6 @@ class Ui_Dialog(object):
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
         self.estMergeCrewButton.setText(QCoreApplication.translate("Dialog", u"Merge Selected", None))
-        self.estOneStepRecipeCheckButton.setText(QCoreApplication.translate("Dialog", u"Recipe Check", None))
         self.estAddCrewButton.setText(QCoreApplication.translate("Dialog", u"Add Crew", None))
         self.estDeleteCrewButton.setText(QCoreApplication.translate("Dialog", u"Delete Crew", None))
         self.currentCrewLabel.setText(QCoreApplication.translate("Dialog", u"Current Crew", None))

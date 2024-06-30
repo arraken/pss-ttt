@@ -119,6 +119,14 @@ class PrestigeRecipe:
             return f"{self.result}"
       def as_tuple(self):
             return self.crew1, self.crew2, self.result
+      def __eq__(self, other):
+            if isinstance(other, PrestigeRecipe):
+                  return self.result == other.result
+            elif isinstance(other, str):
+                  return self.result == other
+            return
+      def __ne__(self, other):
+            return not self.__eq__(other)
 def get_or_create_uuid():
       config_data = load_config()
       config_list = config_data.get('config')
@@ -430,8 +438,12 @@ class MainWindow(QtWidgets.QMainWindow):
                   return
             response = responses[0]
             self.fleetName.setPlainText(response.alliance_name)
-            print(f"Last: [{self.lastStars.toPlainText()}] - Best: [{self.bestStars.toPlainText()}] - API: [{response.alliance_score}]")
-            if response.alliance_score > int(self.bestStars.toPlainText()):
+            bestStars = self.bestStars.toPlainText()
+            if bestStars.isdigit():
+                  bestStars = int(bestStars)
+            else:
+                  bestStars = 0
+            if response.alliance_score > bestStars:
                   self.bestStars.setPlainText(str(response.alliance_score))
             # This is where the call for last month's results will happen to TW api
                   #self.lastStars.setPlainText("0")
@@ -2638,16 +2650,17 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             self.readfromCSV()
             self.initializeUI()
       def initializeUI(self):
+            self.currentCrewList.itemSelectionChanged.connect(self.highlightMergedCrew)
             self.oneStepPrestigeList.itemSelectionChanged.connect(lambda: self.limitSelection(self.oneStepPrestigeList))
             self.oneStepPrestigeList.itemSelectionChanged.connect(lambda: self.updateHighlightedCrew(self.oneStepPrestigeList))
             self.oneStepPrestigeList.itemSelectionChanged.connect(self.calcHighlightBase)
             self.oneStepPrestigeList.itemSelectionChanged.connect(self.calcFodderHighlights)
+            self.oneStepPrestigeList.itemSelectionChanged.connect(self.highlightMergedOneStep)
             self.twoStepPrestigeList.itemSelectionChanged.connect(lambda: self.limitSelection(self.twoStepPrestigeList))
             self.twoStepPrestigeList.itemSelectionChanged.connect(lambda: self.updateHighlightedCrew(self.twoStepPrestigeList))
             self.twoStepPrestigeList.itemSelectionChanged.connect(self.calcFodderHighlights)
             
             self.estMergeCrewButton.clicked.connect(self.handleMergeCrew)
-            self.estOneStepRecipeCheckButton.clicked.connect(self.recipePopup)
             self.calcRecipeCheckButton.clicked.connect(self.calcRecipePopup)
             self.estAddCrewButton.clicked.connect(self.showAddCrewDialog)
             self.estDeleteCrewButton.clicked.connect(self.delSelectedCrew)
@@ -2703,7 +2716,7 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             confirm = QtWidgets.QMessageBox.question(self, "Confirm Clear", "Are you sure you want to clear the entire crew list?", QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
             if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
                   self.current_crew.clear()
-                  self.updateUI
+                  self.updateEstimatorUI()
                   self.saveProfileCrew()
       def handleMergeCrew(self):
             selected_items = self.currentCrewList.selectedItems()
@@ -2793,11 +2806,13 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             for i in range(list_widget.count()):
                   item = list_widget.item(i)
                   item.setBackground(QColor(255,255,0) if item.text() in crew_names else QColor(255,255,255))
+                  item.setForeground(self.getCrewRarityColor(item.text()))
       def estHighlightCurrentCrew(self, crew_names, list_widget):
             target_list = self.currentCrewList if list_widget == self.oneStepPrestigeList else self.oneStepPrestigeList
             for i in range(target_list.count()):
                   item = target_list.item(i)
                   item.setBackground(QColor("yellow") if item.text() in crew_names else QColor("white"))
+                  item.setForeground(self.getCrewRarityColor(item.text()))
       def initialize_prestige_recipes(self):
             for crew in CREW_LIST:
                   if crew.rarity in ["Special", "Legendary", "Common", "Elite"]:
@@ -2870,6 +2885,26 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             for crew in CREW_LIST:
                   if int(crew.id) == int(crewid):
                         return crew.name
+      def getCrewRarityColor(self, crewname):
+            crew_name = ""
+            if isinstance(crewname, CrewMember):
+                  crew_name = crewname.name
+            elif isinstance(crewname, str):
+                  crew_name = crewname
+            else:
+                  print("TypeError: crewname not CrewMember or str")
+            for crew in CREW_LIST:
+                  if crew.name == crew_name:
+                        if crew.rarity == "Unique":
+                              return QColor(51,153,255)
+                        elif crew.rarity == "Epic":
+                              return QColor(153,51,255)
+                        elif crew.rarity == "Hero":
+                              return QColor(255,178,102)
+                        elif crew.rarity == "Legendary":
+                              return QColor(255,128,0)
+                        else:
+                              return QColor(0,0,0)
       def updateEstimatorUI(self):
             self.generatePrestigeLists(self.current_crew)
             self.manageCrewListUI(self.current_crew, self.currentCrewList)
@@ -2887,7 +2922,6 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             self.estDeleteCrewButton.hide()
             self.calcRecipeCheckButton.show()
             self.estClearCrewListButton.hide()
-            self.estOneStepRecipeCheckButton.hide()
             self.calcTargetCrewButton.show()
       def saveProfileCrew(self):
             with open(os.path.join('_profiles', self.profile_path, 'crewlist.csv'), 'w', newline='', encoding='utf-8') as csvfile:
@@ -2991,10 +3025,13 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                         if item.text() in added_crew:
                               if current_background == yellow_highlight_color:
                                     item.setBackground(combined_highlight_color)
+                                    item.setForeground(self.getCrewRarityColor(item.text()))
                               else:
                                     item.setBackground(highlight_color)
+                                    item.setForeground(self.getCrewRarityColor(item.text()))
                         else:
                               item.setBackground(current_background)
+                              item.setForeground(self.getCrewRarityColor(item.text()))
       def calcHighlightBase(self):
             #estcalc = self.estCalcButton.text()
             #if estcalc == "Calculator":
@@ -3007,7 +3044,38 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                                     crew_names_to_highlight.append(recipe.crew2)
                                     crew_names_to_highlight.append(recipe.crew1)
                   self.calcHighlightCrew(crew_names_to_highlight, self.currentCrewList)
-
+      def highlightMergedCrew(self):
+            if self.estCalcButton.text() == "Estimator":
+                  selected_items = self.currentCrewList.selectedItems()
+            else:
+                  return
+            if len(selected_items) == 2:
+                  crew1, crew2 = (item.text() for item in selected_items)
+                  for i in range(self.oneStepPrestigeList.count()):
+                        item = self.oneStepPrestigeList.item(i)
+                        result = item.text()
+                        if self.prestige_recipes.get((crew1, crew2)) == result or self.prestige_recipes.get((crew2, crew1)) == result:
+                              item.setBackground(QColor(255,102,102))
+                              item.setForeground(self.getCrewRarityColor(result))
+                        else:
+                              item.setBackground(QColor(255, 255, 255))
+                              item.setForeground(self.getCrewRarityColor(result))
+      def highlightMergedOneStep(self):
+            if self.estCalcButton.text() == "Estimator":
+                  selected_items = self.oneStepPrestigeList.selectedItems()
+            else:
+                  return
+            if len(selected_items) == 2:
+                  crew1, crew2 = (item.text() for item in selected_items)
+                  for i in range(self.twoStepPrestigeList.count()):
+                        item = self.twoStepPrestigeList.item(i)
+                        result = item.text()
+                        if self.prestige_recipes.get((crew1, crew2)) == result or self.prestige_recipes.get((crew2, crew1)) == result:
+                              item.setBackground(QColor(255,102,102))
+                              item.setForeground(self.getCrewRarityColor(result))
+                        else:
+                              item.setBackground(QColor(255, 255, 255))
+                              item.setForeground(self.getCrewRarityColor(result))
 if __name__ == "__main__":
       app = QtWidgets.QApplication(sys.argv)
       if create_connection(getDefaultProfile()):

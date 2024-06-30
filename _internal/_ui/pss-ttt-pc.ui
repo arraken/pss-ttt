@@ -26,19 +26,6 @@
     <string>Merge Selected</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="estOneStepRecipeCheckButton">
-   <property name="geometry">
-    <rect>
-     <x>260</x>
-     <y>390</y>
-     <width>161</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Recipe Check</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="estAddCrewButton">
    <property name="geometry">
     <rect>
