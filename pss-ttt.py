@@ -2277,10 +2277,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
                   print(f"Error: Expected 9 values in tp_values but got {len(tp_values)}")
                   return
 
-            #keys_for_tp = list(base_stats.keys())[:9]
-            #tp_stats = {key: (1 + (tp_values[i] / 100)) * base_stats[key] if i != 3 else (1 + (tp_values[3] / 100)) * base_stats[key] for i, key in enumerate(keys_for_tp)}
-            #print(f"tp_values:{tp_values}")
-
             eqp_stats = {
                   'hp': 0.0, 'attack': 0.0, 'rpr': 0.0, 'abl': 0.0,
                   'sta': 0.0, 'plt': 0.0, 'sci': 0.0, 'eng': 0.0,
@@ -2493,8 +2489,6 @@ class CrewLoadoutBuilderDialogBox(QtWidgets.QDialog):
             return version
       async def fetch_item_list(self):
             global API_CALL_COUNT, API_CLIENT
-            # Item_Design_Name,Enhancement_Type,Enhancement_Value,Item_Sub_Type  ,Rarity
-            # La Paula        ,Ability         ,17.0             ,EquipmentWeapon,Hero
             version = await self.get_db_version()
             config_data = load_config()
             if not config_data.get('config'):
@@ -2670,8 +2664,13 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
             self.updateEstimatorUI()
       def addCrewMembers(self, crew_names):
             new_crew_names = {name.strip() for name in crew_names.split(',') if name.strip()}
+            old_crew_list = self.current_crew[:]
             for name in new_crew_names:
-                  self.current_crew.append(CrewMember(name))
+                  for crew in CREW_LIST:
+                        if crew.name == name:
+                              self.current_crew.append(CrewMember(name))
+            if len(old_crew_list) == len(self.current_crew):
+                  throwErrorMessage("Crew Data", f"Crew name {name} was not correctly spelled and has been removed from entry")      
             self.updateEstimatorUI()
       def showAddCrewDialog(self):
             text, ok = QtWidgets.QInputDialog.getText(self, 'Add Crew Members', 'Enter crew names (comma separated if multiple):')
@@ -2758,7 +2757,7 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                   selected_items = list_widget.selectedItems()
                   crew_names_to_highlight = []
                   for item in selected_items:
-                        selected_crew = item.text()#.split(" -> ")[-1].strip()
+                        selected_crew = item.text()
                         for recipe in self.prestige_recipes.values():
                               if recipe.result == selected_crew:
                                     crew_names_to_highlight.append(recipe.crew1)
@@ -2805,14 +2804,22 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
       def calcHighlightCrew(self, crew_names, list_widget):
             for i in range(list_widget.count()):
                   item = list_widget.item(i)
-                  item.setBackground(QColor(255,255,0) if item.text() in crew_names else QColor(255,255,255))
-                  item.setForeground(self.getCrewRarityColor(item.text()))
+                  if item.text() in crew_names:
+                        item.setBackground(QColor(255,255,0))
+                        item.setForeground(QColor(0,0,0))
+                  else:
+                        item.setBackground(QColor(255,255,255))
+                        item.setForeground(self.getCrewRarityColor(item.text()))
       def estHighlightCurrentCrew(self, crew_names, list_widget):
             target_list = self.currentCrewList if list_widget == self.oneStepPrestigeList else self.oneStepPrestigeList
             for i in range(target_list.count()):
                   item = target_list.item(i)
-                  item.setBackground(QColor("yellow") if item.text() in crew_names else QColor("white"))
-                  item.setForeground(self.getCrewRarityColor(item.text()))
+                  if item.text() in crew_names:
+                        item.setBackground(QColor("yellow"))
+                        item.setForeground(QColor(0,0,0))
+                  else:
+                        item.setBackground(QColor("white"))
+                        item.setForeground(self.getCrewRarityColor(item.text()))
       def initialize_prestige_recipes(self):
             for crew in CREW_LIST:
                   if crew.rarity in ["Special", "Legendary", "Common", "Elite"]:
@@ -3056,7 +3063,7 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                         result = item.text()
                         if self.prestige_recipes.get((crew1, crew2)) == result or self.prestige_recipes.get((crew2, crew1)) == result:
                               item.setBackground(QColor(255,102,102))
-                              item.setForeground(self.getCrewRarityColor(result))
+                              item.setForeground(QColor(0,0,0))
                         else:
                               item.setBackground(QColor(255, 255, 255))
                               item.setForeground(self.getCrewRarityColor(result))
@@ -3072,7 +3079,7 @@ class CrewPrestigeDialogBox(QtWidgets.QDialog):
                         result = item.text()
                         if self.prestige_recipes.get((crew1, crew2)) == result or self.prestige_recipes.get((crew2, crew1)) == result:
                               item.setBackground(QColor(255,102,102))
-                              item.setForeground(self.getCrewRarityColor(result))
+                              item.setForeground(QColor(0,0,0))
                         else:
                               item.setBackground(QColor(255, 255, 255))
                               item.setForeground(self.getCrewRarityColor(result))
